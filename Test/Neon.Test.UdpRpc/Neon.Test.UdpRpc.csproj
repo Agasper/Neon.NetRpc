@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Src\Neon.Logging\Neon.Logging.csproj" />
+      <ProjectReference Include="..\..\Src\Neon.Networking\Neon.Networking.csproj" />
+      <ProjectReference Include="..\..\Src\Neon.Rpc\Neon.Rpc.csproj" />
+      <ProjectReference Include="..\..\Src\Neon.Util\Neon.Util.csproj" />
+      <ProjectReference Include="..\Neon.Test.Util\Neon.Test.Util.csproj" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net6.0</TargetFramework>
+        <Nullable>disable</Nullable>
+        <AssemblyName>Neon.Test.TcpRpc</AssemblyName>
+        <RootNamespace>Neon.Test.TcpRpc</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Src\Neon.Logging\Neon.Logging.csproj" />
+      <ProjectReference Include="..\..\Src\Neon.Networking\Neon.Networking.csproj" />
+      <ProjectReference Include="..\..\Src\Neon.Rpc\Neon.Rpc.csproj" />
+      <ProjectReference Include="..\..\Src\Neon.Util\Neon.Util.csproj" />
+      <ProjectReference Include="..\Neon.Test.Util\Neon.Test.Util.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="Google.Protobuf, Version=3.21.1.0, Culture=neutral, PublicKeyToken=a7d26565bac4d604">
+        <HintPath>..\..\Src\Neon.Rpc\Libs\Google.Protobuf-Unity\Google.Protobuf.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+</Project>

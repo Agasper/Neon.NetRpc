@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package neon.test;
+
+option csharp_namespace = "Neon.Test.Proto";
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.MessageOptions {
+    optional uint32 message_id = 55217;
+}
+
+message TestMessage {
+    int32 int = 1;
+    int64 long = 2;
+    double double = 3;
+    float float = 4;
+    string string = 5;
+    repeated float floats = 6;
+}
+
+message TestMessageWithId {
+    option (message_id) = 1;
+    int32 int = 1;
+    int64 long = 2;
+    double double = 3;
+    float float = 4;
+    string string = 5;
+    repeated float floats = 6;
+}
+
+message BufferTestMessage {
+    bytes bytes = 1;
+}
+
+message AuthTest {
+    string login = 1;
+    string password = 2;
+}
+
+message AuthTestResult {
+    string result = 1;
+}
+
+message AuthFailed {
+    enum Reason {
+        WRONG_CREDENTIALS = 0;
+    }
+    
+    Reason reason = 1;
+}
