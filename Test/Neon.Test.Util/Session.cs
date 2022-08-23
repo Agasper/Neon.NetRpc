@@ -18,10 +18,10 @@ public class Session : RpcSessionImpl
             switch (sessionContext.AuthSession)
             {
                 case TestAuthSession testAuthSession:
-                    result = ((AuthTestResult)testAuthSession.ResultServer).Result;
+                    result = ((AuthTestResult)testAuthSession.ResultServer!)?.Result;
                     break;
                 case TestAuthSessionAsync testAuthSessionAsync:
-                    result = ((AuthTestResult)testAuthSessionAsync.ResultServer).Result;
+                    result = ((AuthTestResult)testAuthSessionAsync.ResultServer!)?.Result;
                     break;
                 case AuthSessionClient authSessionClient:
                     result = ((AuthTestResult)authSessionClient.AuthResult).Result;

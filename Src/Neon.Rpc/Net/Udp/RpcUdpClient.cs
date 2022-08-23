@@ -42,8 +42,6 @@ namespace Neon.Rpc.Net.Udp
         public RpcUdpConfigurationClient Configuration => configuration;
         public RpcSession Session { get; private set; }
         public RpcClientStatus Status { get; private set; }
-        public UdpConnectionStatistics Statistics => innerUdpClient?.Connection?.Statistics;
-        public int? Mtu => innerUdpClient?.Connection?.Mtu;
         public bool Ready => Session != null;
         public event DOnSessionOpened OnSessionOpenedEvent;
         public event DOnSessionClosed OnSessionClosedEvent;

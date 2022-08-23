@@ -9,9 +9,9 @@ public class MyTcpClient : TcpClient
     public delegate void DOnConnectionClosed(ConnectionClosedEventArgs args);
     public delegate void DOnClientStatusChanged(ClientStatusChangedEventArgs args);
     
-    public event DOnConnectionOpened OnConnectionOpenedEvent;
-    public event DOnConnectionClosed OnConnectionClosedEvent;
-    public event DOnClientStatusChanged OnClientStatusChangedEvent;
+    public event DOnConnectionOpened? OnConnectionOpenedEvent;
+    public event DOnConnectionClosed? OnConnectionClosedEvent;
+    public event DOnClientStatusChanged? OnClientStatusChangedEvent;
 
     public MyTcpClient(TcpConfigurationClient configuration) : base(configuration)
     {

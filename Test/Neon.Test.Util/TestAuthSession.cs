@@ -6,7 +6,7 @@ namespace Neon.Test.Util;
 
 public class TestAuthSession : AuthSessionServer
 {
-    public object ResultServer { get; private set; }
+    public object? ResultServer { get; private set; }
     
     public TestAuthSession(AuthSessionContext sessionContext) : base(sessionContext)
     {

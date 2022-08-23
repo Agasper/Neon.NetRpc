@@ -13,8 +13,8 @@ namespace Neon.Test.Tcp
 
     static class Program
     {
-        static SingleThreadSynchronizationContext context;
-        static ILogger logger;
+        static SingleThreadSynchronizationContext? context;
+        static ILogger? logger;
         
         public static async Task Main(string[] args)
         {
@@ -85,7 +85,7 @@ namespace Neon.Test.Tcp
         
         static void ContextOnException(Exception ex)
         {
-            logger.Critical($"Unhandled exception in context: {ex}");
+            logger?.Critical($"Unhandled exception in context: {ex}");
             Aborter.Abort(127);
         }
 
@@ -102,27 +102,27 @@ namespace Neon.Test.Tcp
 
         static void ClientOnStatusChangedEvent(ClientStatusChangedEventArgs args)
         {
-            context.CheckThread();
+            context?.CheckThread();
         }
 
         static void ClientOnConnectionOpenedEvent(ConnectionOpenedEventArgs args)
         {
-            context.CheckThread();
+            context?.CheckThread();
         }
 
         static void ClientOnConnectionClosedEvent(ConnectionClosedEventArgs args)
         {
-            context.CheckThread();
+            context?.CheckThread();
         }
 
         static void ServerOnConnectionOpenedEvent(ConnectionOpenedEventArgs args)
         {
-            context.CheckThread();
+            context?.CheckThread();
         }
 
         static void ServerOnConnectionClosedEvent(ConnectionClosedEventArgs args)
         {
-            context.CheckThread();
+            context?.CheckThread();
         }
     }
 }

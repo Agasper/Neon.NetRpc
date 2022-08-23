@@ -24,7 +24,7 @@ public class NamedLoggingFormatter : LoggingFormatterDefault
             stringBuilder.AppendFormat("[{0}] ", logger.Name);
         if (IncludeSeverityInMessage)
             stringBuilder.Append($"[{severity}] ");
-        stringBuilder.Append(message.ToString().Replace("\r", @"\r").Replace("\n", @"\n").Replace("\t", @"\t"));
+        stringBuilder.Append(message.ToString()?.Replace("\r", @"\r").Replace("\n", @"\n").Replace("\t", @"\t"));
         return stringBuilder.ToString();
     }
 }

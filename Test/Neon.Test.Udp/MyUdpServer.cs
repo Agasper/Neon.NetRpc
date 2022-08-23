@@ -8,8 +8,8 @@ public class MyUdpServer : UdpServer
     public delegate void DOnConnectionOpened(ConnectionOpenedEventArgs args);
     public delegate void DOnConnectionClosed(ConnectionClosedEventArgs args);
 
-    public event DOnConnectionOpened OnConnectionOpenedEvent;
-    public event DOnConnectionClosed OnConnectionClosedEvent;
+    public event DOnConnectionOpened? OnConnectionOpenedEvent;
+    public event DOnConnectionClosed? OnConnectionClosedEvent;
     
     public MyUdpServer(UdpConfigurationServer configuration) : base(configuration)
     {

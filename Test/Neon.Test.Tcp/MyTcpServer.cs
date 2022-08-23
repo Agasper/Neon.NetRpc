@@ -10,8 +10,8 @@ public class MyTcpServer : TcpServer
     public delegate void DOnConnectionOpened(ConnectionOpenedEventArgs args);
     public delegate void DOnConnectionClosed(ConnectionClosedEventArgs args);
 
-    public event DOnConnectionOpened OnConnectionOpenedEvent;
-    public event DOnConnectionClosed OnConnectionClosedEvent;
+    public event DOnConnectionOpened? OnConnectionOpenedEvent;
+    public event DOnConnectionClosed? OnConnectionClosedEvent;
     
     public MyTcpServer(TcpConfigurationServer configuration) : base(configuration)
     {

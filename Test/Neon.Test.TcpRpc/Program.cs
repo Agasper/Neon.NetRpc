@@ -24,8 +24,8 @@ namespace Neon.Test.TcpRpc
 
     static class Program
     {
-        static SingleThreadSynchronizationContext context;
-        static ILogger logger;
+        static SingleThreadSynchronizationContext? context;
+        static ILogger? logger;
         
         public static async Task Main(string[] args)
         {
@@ -194,7 +194,7 @@ namespace Neon.Test.TcpRpc
 
         static void ContextOnException(Exception ex)
         {
-            logger.Critical($"Unhandled exception in context: {ex}");
+            logger?.Critical($"Unhandled exception in context: {ex}");
             Aborter.Abort(127);
         }
 
@@ -211,27 +211,27 @@ namespace Neon.Test.TcpRpc
 
         static void ClientOnOnStatusChangedEvent(RpcClientStatusChangedEventArgs args)
         {
-            context.CheckThread();
+            context?.CheckThread();
         }
 
         static void ClientOnOnSessionOpenedEvent(SessionOpenedEventArgs args)
         {
-            context.CheckThread();
+            context?.CheckThread();
         }
 
         static void ClientOnOnSessionClosedEvent(SessionClosedEventArgs args)
         {
-            context.CheckThread();
+            context?.CheckThread();
         }
 
         static void ServerOnOnSessionOpenedEvent(SessionOpenedEventArgs args)
         {
-            context.CheckThread();
+            context?.CheckThread();
         }
 
         static void ServerOnOnSessionClosedEvent(SessionClosedEventArgs args)
         {
-            context.CheckThread();
+            context?.CheckThread();
         }
     }
 }
