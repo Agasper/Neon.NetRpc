@@ -9,7 +9,7 @@ using Neon.Util;
 
 namespace Neon.Rpc
 {
-    public abstract class RpcSession : RpcSessionBase
+    public abstract class RpcSession : RpcSessionBase, IRpcSession
     {
         public bool IsClosed => closed;
 
