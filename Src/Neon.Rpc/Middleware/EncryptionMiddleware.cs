@@ -9,6 +9,7 @@ using Neon.Networking.Cryptography;
 using Neon.Networking.Messages;
 using Neon.Networking.Udp;
 using Neon.Networking.Udp.Messages;
+using Neon.Rpc.Cryptography;
 using Neon.Rpc.Net;
 using Neon.Rpc.Net.Tcp;
 

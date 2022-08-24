@@ -9,7 +9,7 @@
     <PackageLicenseFile>license/LICENSE</PackageLicenseFile>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="../../LICENSE" Pack="true" PackagePath="license"/>
+    <None Include="../../LICENSE" Pack="true" PackagePath="license" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Neon.Networking\Neon.Networking.csproj" />

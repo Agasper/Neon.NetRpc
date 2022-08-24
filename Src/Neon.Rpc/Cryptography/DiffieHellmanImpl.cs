@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using Neon.Networking.Cryptography;
 using Neon.Networking.Messages;
 
-namespace Neon.Rpc.Net
+namespace Neon.Rpc.Cryptography
 {
     public class DiffieHellmanImpl
     {
@@ -136,6 +136,10 @@ namespace Neon.Rpc.Net
                     break;
                 case 256:
                     using (SHA256 hash = SHA256.Create())
+                        cipher.SetKey(hash.ComputeHash(commonKey));
+                    break;
+                case 384:
+                    using (SHA384 hash = SHA384.Create())
                         cipher.SetKey(hash.ComputeHash(commonKey));
                     break;
                 case 512:
