@@ -3,11 +3,11 @@ using System.Security.Cryptography;
 
 namespace Neon.Networking.Cryptography
 {
-    public class Aes128Cipher : AesBaseCipher
+    public class Aes256Cipher : AesBaseCipher
     {
-        public Aes128Cipher() : base()
+        public Aes256Cipher() : base()
         {
-            cipher.KeySize = 128;
+            cipher.KeySize = 256;
         }
     }
 }

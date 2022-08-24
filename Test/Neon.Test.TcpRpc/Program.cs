@@ -4,6 +4,7 @@
 using System;
 using System.Buffers;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.IO;
 using Neon.Logging;
@@ -67,7 +68,7 @@ namespace Neon.Test.TcpRpc
             configurationServer.LogManagerNetwork = logManagerNetworkServer;
             configurationServer.LogManager = logManagerRpcServer;
             configurationServer.OrderedExecution = true;
-            configurationServer.SetCipher<Aes128Cipher>();
+            configurationServer.SetCipher<Aes256Cipher>();
             configurationServer.SessionFactory = new SessionFactory(context);
             configurationServer.ContextSynchronizationMode = ContextSynchronizationMode.Post;
             configurationServer.SetSynchronizationContext(context);
@@ -93,7 +94,7 @@ namespace Neon.Test.TcpRpc
             configurationClient.LogManager = logManagerRpcClient;
             configurationClient.OrderedExecution = true;
             configurationClient.ConnectTimeout = 5000;
-            configurationClient.SetCipher<Aes128Cipher>();
+            configurationClient.SetCipher<Aes256Cipher>();
             configurationClient.SessionFactory = new SessionFactory(context);
             configurationClient.ContextSynchronizationMode = ContextSynchronizationMode.Post;
             configurationClient.SetSynchronizationContext(context);
