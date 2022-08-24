@@ -357,7 +357,7 @@ namespace Neon.Networking.Udp
 
         int IChannelConnection.GetInitialResendDelay()
         {
-            if (latency.HasValue)
+            if (avgLatency.HasValue)
             {
                 int doubleLatency = (int)(avgLatency.Value * 2);
                 if (doubleLatency < 100)
