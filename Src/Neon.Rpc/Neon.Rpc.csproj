@@ -3,8 +3,14 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>Neon</Authors>
+    <RepositoryUrl>https://github.com/Agasper/Neon.NetRpc</RepositoryUrl>
+    <PackageLicenseFile>license/LICENSE</PackageLicenseFile>
   </PropertyGroup>
-
+  <ItemGroup>
+    <None Include="../../LICENSE" Pack="true" PackagePath="license"/>
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Neon.Networking\Neon.Networking.csproj" />
   </ItemGroup>

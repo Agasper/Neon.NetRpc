@@ -6,7 +6,7 @@
 [assembly: AssemblyTitle("Neon.Logging")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Niarru")]
+[assembly: AssemblyCompany("Neon")]
 [assembly: AssemblyProduct("")]
 //[assembly: AssemblyCulture("")] 
 

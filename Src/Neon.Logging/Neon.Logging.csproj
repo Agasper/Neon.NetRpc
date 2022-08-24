@@ -4,8 +4,16 @@
     <TargetFrameworks>netstandard2.0;netcoreapp3.1</TargetFrameworks>
     <RootNamespace>Neon.Logging</RootNamespace>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>Neon</Authors>
+    <PackageLicenseFile>license/LICENSE</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/Agasper/Neon.NetRpc</RepositoryUrl>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="../../LICENSE" Pack="true" PackagePath="license"/>
+  </ItemGroup>
+  
   <ItemGroup>
     <Folder Include="Properties\" />
     <Folder Include="Formatters\" />
