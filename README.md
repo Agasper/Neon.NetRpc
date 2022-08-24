@@ -6,7 +6,6 @@ It’s supporting encryption and authentication
 
 > UDP still not production tested and may have issues
 
-# Getting started
+# Documentation
 
-
-
+[RPC - Getting started](https://github.com/Agasper/Neon.NetRpc/wiki/RPC-Getting-started)
