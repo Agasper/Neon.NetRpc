@@ -105,6 +105,7 @@ namespace Neon.Rpc.Net
             serializer = new RpcSerializer(MemoryManager.Shared);
             remotingInvocationRules = RemotingInvocationRules.Default;
             synchronizationContext = new DummySynchronizationContext();
+            contextSynchronizationMode = ContextSynchronizationMode.Send;
             taskScheduler = TaskScheduler.Default;
             logManager = Logging.LogManager.Dummy;
             defaultExecutionTimeout = -1;
