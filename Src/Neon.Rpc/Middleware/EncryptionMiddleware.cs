@@ -39,7 +39,7 @@ namespace Middleware
             this.cancellationToken = cancellationToken;
             using (cancellationToken.Register(() =>
                    {
-                       tcs.TrySetException(new OperationCanceledException("Middleware initialization cancelled"));
+                       tcs.TrySetException(new OperationCanceledException("Connection initialization cancelled"));
                    }))
             {
                 if (connection.IsClientConnection)
