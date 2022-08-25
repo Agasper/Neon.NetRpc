@@ -72,6 +72,12 @@ namespace Neon.Networking.Udp
             this.Statistics = new UdpConnectionStatistics();
             this.serviceReliableChannel = GetOrAddChannel(new ChannelDescriptor(0, DeliveryType.ReliableOrdered));
             this.serviceUnreliableChannel = GetOrAddChannel(new ChannelDescriptor(0, DeliveryType.Unreliable));
+            if (peer.Configuration is UdpConfigurationClient configurationClient)
+            {
+                this.mtuExpand = configurationClient.AutoMtuExpand;
+                this.mtuExpandMaxFailAttempts = configurationClient.MtuExpandMaxFailAttempts;
+                this.mtuExpandFrequency = configurationClient.MtuExpandFrequency;
+            }
             this.UpdateTimeoutDeadline();
         }
 

@@ -143,7 +143,7 @@ namespace Neon.Networking.Udp
 
             }
             
-            if (peer.Configuration.AutoMtuExpand && IsClientConnection)
+            if (IsClientConnection)
                 ExpandMTU();
 
             connectingTcs.TrySetResult(null);

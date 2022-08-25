@@ -17,6 +17,10 @@ namespace Neon.Networking.Udp
             Finished = 2
         }
 
+        bool mtuExpand;
+        int mtuExpandMaxFailAttempts;
+        int mtuExpandFrequency;
+
         int mtuFailedAttempts = -1;
         int smallestFailedMtu = -1;
         MtuExpansionStatus mtuStatus;
@@ -24,7 +28,7 @@ namespace Neon.Networking.Udp
 
         public void ExpandMTU()
         {
-            if (mtuStatus == MtuExpansionStatus.NotStarted)
+            if (mtuExpand && mtuStatus == MtuExpansionStatus.NotStarted)
                 mtuStatus = MtuExpansionStatus.Started;
         }
 
@@ -135,7 +139,7 @@ namespace Neon.Networking.Udp
                     {
                         smallestFailedMtu = nextMtu;
                         mtuFailedAttempts++;
-                        if (mtuFailedAttempts >= peer.Configuration.MtuExpandMaxFailAttempts)
+                        if (mtuFailedAttempts >= mtuExpandMaxFailAttempts)
                         {
                             FixMtu();
                             return;
@@ -156,10 +160,10 @@ namespace Neon.Networking.Udp
             if (mtuStatus != MtuExpansionStatus.Started)
                 return;
 
-            if ((DateTime.UtcNow - lastMtuExpandSent).TotalMilliseconds > peer.Configuration.MtuExpandFrequency)
+            if ((DateTime.UtcNow - lastMtuExpandSent).TotalMilliseconds > mtuExpandFrequency)
             {
                 mtuFailedAttempts++;
-                if (mtuFailedAttempts >= peer.Configuration.MtuExpandMaxFailAttempts)
+                if (mtuFailedAttempts >= mtuExpandMaxFailAttempts)
                 {
                     FixMtu();
                     return;

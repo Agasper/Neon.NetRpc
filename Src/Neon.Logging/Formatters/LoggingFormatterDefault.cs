@@ -32,17 +32,22 @@ namespace Neon.Logging.Formatters
         {
             if (message == null) throw new ArgumentNullException(nameof(message));
             var stringBuilder = GetStringBuilder();
-            stringBuilder.Clear();
-            if (IncludeTimestampInMessage)
-                stringBuilder.AppendFormat("[{0}] ", DateTime.UtcNow.ToString(DateTimeFormat));
-            if (IncludeLoggerNameInMessage)
-                stringBuilder.AppendFormat("[{0}] ", logger.Name);
-            if (IncludeSeverityInMessage)
-                stringBuilder.Append($"[{severity}] ");
+            try
+            {
+                if (IncludeTimestampInMessage)
+                    stringBuilder.AppendFormat("[{0}] ", DateTime.UtcNow.ToString(DateTimeFormat));
+                if (IncludeLoggerNameInMessage)
+                    stringBuilder.AppendFormat("[{0}] ", logger.Name);
+                if (IncludeSeverityInMessage)
+                    stringBuilder.Append($"[{severity}] ");
 
-            stringBuilder.Append(message.ToString().Replace("\r", @"\r").Replace("\n", @"\n").Replace("\t", @"\t"));
-            return stringBuilder.ToString();
-
+                stringBuilder.Append(message.ToString().Replace("\r", @"\r").Replace("\n", @"\n").Replace("\t", @"\t"));
+                return stringBuilder.ToString();
+            }
+            finally
+            {
+                stringBuilder?.Clear();
+            }
         }
     }
 }

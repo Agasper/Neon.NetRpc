@@ -89,33 +89,6 @@ namespace Neon.Rpc.Net.Udp
                 udpConfiguration.LimitMtu = value;
             }
         }
-        public int MtuExpandFrequency
-        {
-            get => udpConfiguration.MtuExpandFrequency;
-            set
-            {
-                CheckLocked();
-                udpConfiguration.MtuExpandFrequency = value;
-            }
-        }
-        public int MtuExpandMaxFailAttempts
-        {
-            get => udpConfiguration.MtuExpandMaxFailAttempts;
-            set
-            {
-                CheckLocked();
-                udpConfiguration.MtuExpandMaxFailAttempts = value;
-            }
-        }
-        public bool AutoMtuExpand
-        {
-            get => udpConfiguration.AutoMtuExpand;
-            set
-            {
-                CheckLocked();
-                udpConfiguration.AutoMtuExpand = value;
-            }
-        }
 
         public int ConnectionLingerTimeout
         {

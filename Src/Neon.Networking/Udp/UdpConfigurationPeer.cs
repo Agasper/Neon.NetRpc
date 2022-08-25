@@ -21,9 +21,6 @@ namespace Neon.Networking.Udp
         public bool ReuseAddress { get => reuseAddress; set { CheckLocked(); reuseAddress = value; } }
         public int ConnectionTimeout { get => connectionTimeout; set { CheckLocked(); connectionTimeout = value; } }
         public int NetworkReceiveThreads { get => networkReceiveThreads; set { CheckLocked(); networkReceiveThreads = value; } }
-        public bool AutoMtuExpand { get => autoMtuExpand; set { CheckLocked(); autoMtuExpand = value; } }
-        public int MtuExpandMaxFailAttempts { get => mtuExpandMaxFailAttempts; set { CheckLocked(); mtuExpandMaxFailAttempts = value; } }
-        public int MtuExpandFrequency { get => mtuExpandFrequency; set { CheckLocked(); mtuExpandFrequency = value; } }
         public int LimitMtu { get => limitMtu; set { CheckLocked(); limitMtu = value; } }
         public int KeepAliveInterval { get => keepAliveInterval; set { CheckLocked(); keepAliveInterval = value; } }
         public int ConnectionLingerTimeout { get => connectionLingerTimeout; set { CheckLocked(); connectionLingerTimeout = value; } }
@@ -40,13 +37,10 @@ namespace Neon.Networking.Udp
         int connectionTimeout;
         int connectionLingerTimeout;
         int networkReceiveThreads;
-        int mtuExpandMaxFailAttempts;
-        int mtuExpandFrequency;
         int limitMtu;
         int keepAliveInterval;
         ConnectionSimulation connectionSimulation;
         TooLargeMessageBehaviour tooLargeMessageBehaviour;
-        private protected bool autoMtuExpand;
 
         SynchronizationContext synchronizationContext;
         ContextSynchronizationMode contextSynchronizationMode;
@@ -72,9 +66,6 @@ namespace Neon.Networking.Udp
             if (this.NetworkReceiveThreads < 1)
                 throw new ArgumentException(
                     $"{nameof(this.NetworkReceiveThreads)} must be greater than 0");
-            if (this.MtuExpandFrequency < 1)
-                throw new ArgumentException(
-                    $"{nameof(this.MtuExpandFrequency)} must be greater than 0");
             if (this.ConnectionTimeout <= this.KeepAliveInterval)
                 throw new ArgumentException(
                     $"{nameof(this.ConnectionTimeout)} must be greater than {nameof(this.KeepAliveInterval)}");
@@ -124,6 +115,7 @@ namespace Neon.Networking.Udp
         {
             sendBufferSize = 65535;
             receiveBufferSize = 1048676;
+            reuseAddress = true;
             synchronizationContext = new SynchronizationContext();
             tooLargeMessageBehaviour = TooLargeMessageBehaviour.RaiseException;
             contextSynchronizationMode = ContextSynchronizationMode.Send;
@@ -131,10 +123,8 @@ namespace Neon.Networking.Udp
             memoryManager = Neon.Util.Pooling.MemoryManager.Shared;
             logManager = Logging.LogManager.Dummy;
             connectionTimeout = 5000;
-            mtuExpandMaxFailAttempts = 5;
-            mtuExpandFrequency = 2000;
             keepAliveInterval = 1000;
-            connectionLingerTimeout = 20000;
+            connectionLingerTimeout = 60000;
             limitMtu = int.MaxValue;
         }
     }

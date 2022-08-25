@@ -19,7 +19,6 @@ namespace Neon.Networking.Udp
         public UdpConfigurationServer()
         {
             maximumConnections = int.MaxValue;
-            autoMtuExpand = false;
         }
     }
 }
