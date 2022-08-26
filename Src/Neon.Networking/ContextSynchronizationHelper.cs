@@ -20,5 +20,14 @@ namespace Neon.Networking
                 logger.Error($"Unhandled exception on context synchronization in `{nameForLogs}`: {ex}");
             }
         }
+
+        public static void Synchronize(SynchronizationContext context, ContextSynchronizationMode mode,
+            SendOrPostCallback callback, object state)
+        {
+            if (mode == ContextSynchronizationMode.Send)
+                context.Send(callback, state);
+            else
+                context.Post(callback, state);
+        }
     }
 }

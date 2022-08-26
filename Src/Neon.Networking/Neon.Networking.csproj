@@ -19,7 +19,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="../../LICENSE" Pack="true" PackagePath="license"/>
+    <None Include="../../LICENSE" Pack="true" PackagePath="license" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Tcp\" />

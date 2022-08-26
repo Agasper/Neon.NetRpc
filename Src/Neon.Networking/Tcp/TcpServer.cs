@@ -133,7 +133,7 @@ namespace Neon.Networking.Tcp
             serverSocket.BeginAccept(AcceptCallback, null);
         }
 
-        protected virtual bool OnAcceptConnectionUnsynchronized(Socket socket)
+        protected virtual bool OnAcceptConnection(Socket socket)
         {
             return true;
         }
@@ -155,7 +155,7 @@ namespace Neon.Networking.Tcp
                     return;
                 }
 
-                if (!listening || !OnAcceptConnectionUnsynchronized(connSocket))
+                if (!listening || !OnAcceptConnection(connSocket))
                 {
                     logger.Debug("Server rejected new connection");
                     connSocket.Close();

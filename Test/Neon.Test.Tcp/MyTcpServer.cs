@@ -17,7 +17,7 @@ public class MyTcpServer : TcpServer
     {
     }
 
-    protected override bool OnAcceptConnectionUnsynchronized(Socket socket)
+    protected override bool OnAcceptConnection(Socket socket)
     {
         return true;
     }

@@ -79,6 +79,18 @@ namespace Neon.Networking.Tcp
                 throw new ArgumentNullException(nameof(context));
             this.synchronizationContext = context;
         }
+        
+        internal void Synchronize(SendOrPostCallback callback, object state)
+        {
+            ContextSynchronizationHelper.Synchronize(this.synchronizationContext, this.contextSynchronizationMode,
+                callback, state);
+        }
+        
+        internal void Synchronize(ContextSynchronizationMode mode, SendOrPostCallback callback, object state)
+        {
+            ContextSynchronizationHelper.Synchronize(this.synchronizationContext, mode,
+                callback, state);
+        }
 
         internal void SynchronizeSafe(ILogger logger, string nameForLogs, SendOrPostCallback callback, object state)
         {

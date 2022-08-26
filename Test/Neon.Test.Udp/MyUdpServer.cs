@@ -15,7 +15,7 @@ public class MyUdpServer : UdpServer
     {
     }
 
-    protected override bool OnAcceptConnectionUnsynchronized(OnAcceptConnectionEventArgs args)
+    protected override bool OnAcceptConnection(OnAcceptConnectionEventArgs args)
     {
         return true;
     }

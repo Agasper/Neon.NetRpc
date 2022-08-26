@@ -20,13 +20,13 @@ namespace Neon.Test.Tcp
         {
             LogManager logManagerNetworkClient = new LogManager();
             logManagerNetworkClient.Handlers.Add(new LoggingHandlerConsole(new NamedLoggingFormatter("NET_CLIENT")));
-            logManagerNetworkClient.Severity = LogSeverity.TRACE;
+            logManagerNetworkClient.Severity = LogSeverity.INFO;
             LogManager logManagerNetworkServer = new LogManager();
             logManagerNetworkServer.Handlers.Add(new LoggingHandlerConsole(new NamedLoggingFormatter("NET_SERVER")));
-            logManagerNetworkServer.Severity = LogSeverity.TRACE;
+            logManagerNetworkServer.Severity = LogSeverity.DEBUG;
             LogManager logManagerMain = new LogManager();
             logManagerMain.Handlers.Add(new LoggingHandlerConsole(new NamedLoggingFormatter("MAIN")));
-            logManagerMain.Severity = LogSeverity.DEBUG;
+            logManagerMain.Severity = LogSeverity.INFO;
 
             logger = logManagerMain.GetLogger(nameof(Program));
 
@@ -72,7 +72,11 @@ namespace Neon.Test.Tcp
             client.Start();
 
             await client.ConnectAsync("127.0.0.1", 10000);
-            await Task.Delay(5000);
+
+            await (client.Connection as MyTcpConnection)?.SendChatMessage("Client", "Hello")!;
+
+            await Task.Delay(1000);
+
             client.Disconnect();
 
             client.Shutdown();

@@ -70,7 +70,7 @@ namespace Neon.Networking.Udp
         
         internal bool OnAcceptConnectionInternal(OnAcceptConnectionEventArgs args)
         {
-            bool result = OnAcceptConnectionUnsynchronized(args);
+            bool result = OnAcceptConnection(args);
             if (result)
                 logger.Debug($"Accepting connection from {args.Endpoint}");
             else
@@ -78,7 +78,7 @@ namespace Neon.Networking.Udp
             return result;
         }
         
-        protected virtual bool OnAcceptConnectionUnsynchronized(OnAcceptConnectionEventArgs args)
+        protected virtual bool OnAcceptConnection(OnAcceptConnectionEventArgs args)
         {
             return true;
         }
