@@ -9,6 +9,7 @@
     <Authors>Neon</Authors>
     <RepositoryUrl>https://github.com/Agasper/Neon.NetRpc</RepositoryUrl>
     <PackageLicenseFile>license/LICENSE</PackageLicenseFile>
+    <PackageVersion>1.0.1</PackageVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">

@@ -8,10 +8,11 @@
     <Authors>Neon</Authors>
     <PackageLicenseFile>license/LICENSE</PackageLicenseFile>
     <RepositoryUrl>https://github.com/Agasper/Neon.NetRpc</RepositoryUrl>
+    <PackageVersion>1.0.1</PackageVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="../../LICENSE" Pack="true" PackagePath="license"/>
+    <None Include="../../LICENSE" Pack="true" PackagePath="license" />
   </ItemGroup>
   
   <ItemGroup>
