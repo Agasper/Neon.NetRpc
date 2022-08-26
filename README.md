@@ -11,6 +11,11 @@ Features:
 * Support compression with GZip
 * Support encryption with Aes128, Aes256 with Diffie-Hellman key exchange
 
+# NuGet packages
+
+* ```Neon.Rpc```
+* ```Neon.Networking```
+
 # Documentation
 
 [Networking - Getting started](https://github.com/Agasper/Neon.NetRpc/wiki/Networking-Getting-started)
