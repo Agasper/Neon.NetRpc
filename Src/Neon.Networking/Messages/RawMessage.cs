@@ -12,7 +12,13 @@ namespace Neon.Networking.Messages
 {
     public class RawMessage : BaseRawMessage
     {
+        /// <summary>Gets a value indicating whether the current message is compressed.</summary>
+        /// <returns>
+        /// <see langword="true" /> if the message is compressed; otherwise, <see langword="false" />.</returns>
         public bool Compressed { get; }
+        /// <summary>Gets a value indicating whether the current message is encrypted.</summary>
+        /// <returns>
+        /// <see langword="true" /> if the message is encrypted; otherwise, <see langword="false" />.</returns>
         public bool Encrypted { get; }
 
         #region Constructors
@@ -41,7 +47,13 @@ namespace Neon.Networking.Messages
 
         #endregion
         
-
+        /// <summary>
+        /// Compressing the message, returning a new compressed one
+        /// </summary>
+        /// <param name="compressionLevel">Compression level</param>
+        /// <returns>A compressed message</returns>
+        /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
+        /// <exception cref="T:System.InvalidOperationException">If the message not compressed</exception>
         public RawMessage Compress(CompressionLevel compressionLevel)
         {
             CheckDisposed();
@@ -64,6 +76,12 @@ namespace Neon.Networking.Messages
             return compressedMessage;
         }
         
+        /// <summary>
+        /// Decompressing the message, returning a new decompressed one
+        /// </summary>
+        /// <returns>A decompressed message</returns>
+        /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
+        /// <exception cref="T:System.InvalidOperationException">If the message not compressed</exception>
         public RawMessage Decompress()
         {
             CheckDisposed();
@@ -97,6 +115,14 @@ namespace Neon.Networking.Messages
             return decompressedMessage;
         }
 
+        /// <summary>
+        /// Encrypting the message, returning a new encrypted one
+        /// </summary>
+        /// <param name="cipher">An instance of the cipher, used for encryption</param>
+        /// <returns>An encrypted message</returns>
+        /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
+        /// <exception cref="T:System.InvalidOperationException">If the message not compressed</exception>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="cipher" /> is <see langword="null" />.</exception>
         public RawMessage Encrypt(ICipher cipher)
         {
             CheckDisposed();
@@ -124,7 +150,14 @@ namespace Neon.Networking.Messages
             return encryptedMessage;
         }
 
-        
+        /// <summary>
+        /// Decrypting the message, returning a new decrypted one
+        /// </summary>
+        /// <param name="cipher">An instance of the cipher, used for decryption</param>
+        /// <returns>A decrypted message</returns>
+        /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
+        /// <exception cref="T:System.InvalidOperationException">If the message not compressed</exception>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="cipher" /> is <see langword="null" />.</exception>
         public RawMessage Decrypt(ICipher cipher)
         {
             CheckDisposed(); 

@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Neon.Rpc.Net.Events;
 using Neon.Logging;
+using Neon.Networking;
 using Neon.Networking.Udp;
 using Neon.Networking.Udp.Events;
 using Neon.Rpc.Net.Tcp;
@@ -114,12 +115,12 @@ namespace Neon.Rpc.Net.Udp
             return connection.StartClientSession(true, authObject, cancellationToken);
         }
 
-        public Task OpenConnectionAsync(string host, int port)
+        public Task OpenConnectionAsync(string host, int port, IPAddressSelectionRules ipAddressSelectionRules = default)
         {
-            return OpenConnectionAsync(host, port, default);
+            return OpenConnectionAsync(host, port, ipAddressSelectionRules,default);
         }
         
-        public async Task OpenConnectionAsync(string host, int port, CancellationToken cancellationToken)
+        public async Task OpenConnectionAsync(string host, int port, IPAddressSelectionRules ipAddressSelectionRules, CancellationToken cancellationToken)
         {
             if (Session != null)
                 throw new InvalidOperationException("Session already started");
@@ -128,7 +129,7 @@ namespace Neon.Rpc.Net.Udp
             {
                 logger.Debug($"Connecting to {host}:{port}");
                 ChangeStatus(RpcClientStatus.Connecting);
-                await innerUdpClient.ConnectAsync(host, port, cancellationToken)
+                await innerUdpClient.ConnectAsync(host, port, ipAddressSelectionRules, cancellationToken)
                     .ConfigureAwait(false);
                 RpcUdpConnection connection = (RpcUdpConnection) innerUdpClient.Connection;
                 logger.Trace($"Waiting for session...");

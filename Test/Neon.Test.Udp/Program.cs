@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Net;
 using Microsoft.IO;
 using Neon.Logging;
 using Neon.Logging.Handlers;
@@ -53,7 +54,7 @@ namespace Neon.Test.Udp
             server.OnConnectionClosedEvent += ServerOnConnectionClosedEvent;
             server.OnConnectionOpenedEvent += ServerOnConnectionOpenedEvent;
             server.Start();
-            server.Listen(10000);
+            server.Listen(new IPEndPoint(IPAddress.IPv6Loopback, 10000));
 
             UdpConfigurationClient configurationClient = new UdpConfigurationClient();
             configurationClient.MemoryManager = memoryManager;
@@ -70,7 +71,7 @@ namespace Neon.Test.Udp
             client.OnClientStatusChangedEvent += ClientOnStatusChangedEvent;
             client.Start();
 
-            await client.ConnectAsync("127.0.0.1", 10000);
+            await client.ConnectAsync("localhost", 10000, IPAddressSelectionRules.PreferIpv6);
             await client.DisconnectAsync();
 
             client.Shutdown();

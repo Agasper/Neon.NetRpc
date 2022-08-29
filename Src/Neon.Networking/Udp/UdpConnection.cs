@@ -21,17 +21,50 @@ namespace Neon.Networking.Udp
 
     public partial class UdpConnection : IChannelConnection, IDisposable
     {
+        /// <summary>
+        /// The main channel used for service messages
+        /// </summary>
         public const int DEFAULT_CHANNEL = ChannelDescriptor.DEFAULT_CHANNEL;
         
+        /// <summary>
+        /// The parent peer
+        /// </summary>
         public UdpPeer Parent => peer;
+        /// <summary>
+        /// Returns true if we connected state, else false
+        /// </summary>
         public bool Connected => status == UdpConnectionStatus.Connected; 
+        /// <summary>
+        /// Token will be cancelled as soon connection is terminated
+        /// </summary>
         public CancellationToken CancellationToken => connectionCancellationToken.Token;
+        /// <summary>
+        /// Unique connection id
+        /// </summary>
         public long Id { get; }
+        /// <summary>
+        /// Current connection MTU
+        /// </summary>
         public int Mtu { get; private set; } = INITIAL_MTU;
+        /// <summary>
+        /// Connection statistics
+        /// </summary>
         public UdpConnectionStatistics Statistics { get; private set; }
+        /// <summary>
+        /// Current connection status
+        /// </summary>
         public UdpConnectionStatus Status => status;
+        /// <summary>
+        /// Connection remote endpoint
+        /// </summary>
         public UdpNetEndpoint EndPoint { get; private set; }
+        /// <summary>
+        /// Does this connection belongs to the client
+        /// </summary>
         public bool IsClientConnection { get; private set; }
+        /// <summary>
+        /// A user defined tag
+        /// </summary>
         public object Tag { get; set; }
 
         UdpPeer peer;
@@ -81,6 +114,9 @@ namespace Neon.Networking.Udp
             this.UpdateTimeoutDeadline();
         }
 
+        /// <summary>
+        /// Frees all memory associated with the connection
+        /// </summary>
         public virtual void Dispose()
         {
             CloseImmediately(DisconnectReason.ClosedByThisPeer);
@@ -176,7 +212,12 @@ namespace Neon.Networking.Udp
         {
             if (datagram == null)
                 throw new ArgumentNullException(nameof(datagram));
-            
+            if (datagram.Type != MessageType.DeliveryAck && status == UdpConnectionStatus.Disconnected)
+            {
+                logger.Trace($"#{Id} got {datagram} in closed state, drop");
+                return;
+            }
+
             Statistics.PacketIn();
             Statistics.BytesIn(datagram.GetTotalSize());
             
@@ -386,6 +427,12 @@ namespace Neon.Networking.Udp
             return peer.SendDatagramAsync(this, datagram);
         }
 
+        /// <summary>
+        /// Sends the message 
+        /// </summary>
+        /// <param name="udpRawMessage">A message</param>
+        /// <exception cref="IOException">If connection not in the Connected state</exception>
+        /// <exception cref="ArgumentException">If the message too big to be send with this channel</exception>
         public Task SendMessageAsync(UdpRawMessage udpRawMessage)
         {
             if (this.status != UdpConnectionStatus.Connected)

@@ -38,7 +38,13 @@ namespace Neon.Networking.Udp
             {
                 var arg = new SocketAsyncEventArgs();
                 arg.SetBuffer(new byte[ushort.MaxValue], 0, ushort.MaxValue);
-                arg.RemoteEndPoint = new IPEndPoint(IPAddress.Any, 0);
+                if (socket.LocalEndPoint.AddressFamily == AddressFamily.InterNetwork)
+                    arg.RemoteEndPoint = new IPEndPoint(IPAddress.Any, 0);
+                else if (socket.LocalEndPoint.AddressFamily == AddressFamily.InterNetworkV6)
+                    arg.RemoteEndPoint = new IPEndPoint(IPAddress.IPv6Any, 0);
+                else
+                    throw new InvalidOperationException(
+                    $"Invalid socket address family: {socket.LocalEndPoint.AddressFamily}");
                 arg.Completed += IO_Complete;
                 return arg;
             }, 0);
@@ -319,9 +325,9 @@ namespace Neon.Networking.Udp
             if (socket != null)
                 throw new InvalidOperationException("Socket already bound to this peer");
             
-            socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            if (configuration.ReuseAddress)
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            socket = new Socket(endPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+            socket.ExclusiveAddressUse = !configuration.ReuseAddress;
+            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, configuration.ReuseAddress);
             socket.Blocking = false;
             
             socket.ReceiveBufferSize = configuration.ReceiveBufferSize;

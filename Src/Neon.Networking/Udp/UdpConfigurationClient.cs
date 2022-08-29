@@ -4,8 +4,17 @@ namespace Neon.Networking.Udp
 {
     public class UdpConfigurationClient : UdpConfigurationPeer
     {
+        /// <summary>
+        /// Should we try to expand MTU after a connection established
+        /// </summary>
         public bool AutoMtuExpand { get => autoMtuExpand; set { CheckLocked(); autoMtuExpand = value; } }
+        /// <summary>
+        /// Max attempts to expand MTU in case of fail
+        /// </summary>
         public int MtuExpandMaxFailAttempts { get => mtuExpandMaxFailAttempts; set { CheckLocked(); mtuExpandMaxFailAttempts = value; } }
+        /// <summary>
+        /// Interval for retrying MTU expand messages in case of MTU fail
+        /// </summary>
         public int MtuExpandFrequency { get => mtuExpandFrequency; set { CheckLocked(); mtuExpandFrequency = value; } }
 
         int mtuExpandMaxFailAttempts;

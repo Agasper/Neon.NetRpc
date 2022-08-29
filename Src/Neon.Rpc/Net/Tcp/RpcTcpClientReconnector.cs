@@ -2,6 +2,7 @@ using System;
 using System.Net;
 using System.Threading;
 using Neon.Logging;
+using Neon.Networking;
 
 namespace Neon.Rpc.Net.Tcp
 {
@@ -19,6 +20,7 @@ namespace Neon.Rpc.Net.Tcp
         bool useEndpoint;
         bool authRequired;
         object authObject;
+        IPAddressSelectionRules ipAddressSelectionRules;
 
         DateTime? disconnectedFrom;
         
@@ -32,8 +34,9 @@ namespace Neon.Rpc.Net.Tcp
             this.useEndpoint = true;
         }
         
-        public RpcTcpClientReconnector(RpcTcpClient client, int delay, string host, int port, bool authRequired, object authObject)
+        public RpcTcpClientReconnector(RpcTcpClient client, int delay, string host, int port, IPAddressSelectionRules ipAddressSelectionRules, bool authRequired, object authObject)
         {
+            this.ipAddressSelectionRules = ipAddressSelectionRules;
             this.delay = delay;
             this.client = client;
             this.host = host;
@@ -100,7 +103,7 @@ namespace Neon.Rpc.Net.Tcp
                 if (useEndpoint)
                     await client.OpenConnectionAsync(endpoint).ConfigureAwait(false);
                 else
-                    await client.OpenConnectionAsync(host, port).ConfigureAwait(false);
+                    await client.OpenConnectionAsync(host, port, ipAddressSelectionRules).ConfigureAwait(false);
                 if (authRequired)
                     await client.StartSessionWithAuth(authObject);
                 else

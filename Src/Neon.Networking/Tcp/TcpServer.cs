@@ -3,15 +3,16 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.InteropServices.ComTypes;
 using System.Threading;
 using Neon.Logging;
-using Neon.Util;
 
 namespace Neon.Networking.Tcp
 {
     public class TcpServer : TcpPeer
     {
+        /// <summary>
+        /// Thread-safe dictionary of current active connections
+        /// </summary>
         public IReadOnlyDictionary<long, TcpConnection> Connections => connections;
 
         private protected override ILogger Logger => logger;
@@ -39,6 +40,9 @@ namespace Neon.Networking.Tcp
             this.logger.Meta.Add("kind", this.GetType().Name);
         }
 
+        /// <summary>
+        /// Shutting down the peer, destroying all the connections and free memory
+        /// </summary>
         public override void Shutdown()
         {
             if (serverSocket == null)
@@ -88,11 +92,26 @@ namespace Neon.Networking.Tcp
             base.OnConnectionClosedInternal(tcpConnection, ex);
         }
 
+        /// <summary>
+        /// Places a peer in a listening state
+        /// </summary>
+        /// <param name="port">A port the socket will bind to</param>
+        /// <exception cref="T:System.Net.Sockets.SocketException">An error occurred when attempting to access the socket.</exception>
+        /// <exception cref="T:System.ObjectDisposedException">The <see cref="T:System.Net.Sockets.Socket" /> has been closed.</exception>
+        /// <exception cref="T:System.Security.SecurityException">A caller higher in the call stack does not have permission for the requested operation.</exception>
         public void Listen(int port)
         {
             Listen(null, port);
         }
 
+        /// <summary>
+        /// Places a peer in a listening state
+        /// </summary>
+        /// <param name="host">An ip address or domain the socket will bind to. Can be null, it wil use a default one</param>
+        /// <param name="port">A port the socket will bind to</param>
+        /// <exception cref="T:System.Net.Sockets.SocketException">An error occurred when attempting to access the socket.</exception>
+        /// <exception cref="T:System.ObjectDisposedException">The <see cref="T:System.Net.Sockets.Socket" /> has been closed.</exception>
+        /// <exception cref="T:System.Security.SecurityException">A caller higher in the call stack does not have permission for the requested operation.</exception>
         public void Listen(string host, int port)
         {
             IPEndPoint myEndpoint;
@@ -104,13 +123,21 @@ namespace Neon.Networking.Tcp
             Listen(myEndpoint);
         }
 
+        /// <summary>
+        /// Places a peer in a listening state
+        /// </summary>
+        /// <param name="endPoint">An ip endpoint the socket will bind to</param>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="endPoint" /> is <see langword="null" />.</exception>
+        /// <exception cref="T:System.Net.Sockets.SocketException">An error occurred when attempting to access the socket.</exception>
+        /// <exception cref="T:System.ObjectDisposedException">The <see cref="T:System.Net.Sockets.Socket" /> has been closed.</exception>
+        /// <exception cref="T:System.Security.SecurityException">A caller higher in the call stack does not have permission for the requested operation.</exception>
         public void Listen(IPEndPoint endPoint)
         {
             CheckStarted();
             if (serverSocket != null)
                 throw new InvalidOperationException("Server already listening");
 
-            serverSocket = GetNewSocket();
+            serverSocket = GetNewSocket(endPoint.AddressFamily);
             //https://stackoverflow.com/questions/14388706/how-do-so-reuseaddr-and-so-reuseport-differ
             serverSocket.Bind(endPoint);
             serverSocket.Listen(configuration.ListenBacklog);

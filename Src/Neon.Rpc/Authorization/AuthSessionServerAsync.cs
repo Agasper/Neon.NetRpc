@@ -24,7 +24,6 @@ namespace Neon.Rpc.Authorization
             if (authenticationRequest.HasArgument)
                 argument = authenticationRequest.Argument;
             
-            Console.WriteLine("ASYNC");
             taskFactory.StartNew((s) => { return Auth(s); }, argument)
                 .Unwrap()
                 .ContinueWith(AuthFinishedAsync, TaskContinuationOptions.ExecuteSynchronously);

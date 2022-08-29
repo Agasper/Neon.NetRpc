@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Neon.Rpc.Net.Events;
 using Neon.Logging;
+using Neon.Networking;
 using Neon.Networking.Tcp;
 using Neon.Networking.Tcp.Events;
 
@@ -118,13 +119,13 @@ namespace Neon.Rpc.Net.Tcp
                 throw new InvalidOperationException($"{nameof(RpcTcpClient)} is not connected");
             return connection.StartClientSession(true, authObject, cancellationToken);
         }
-
-        public Task OpenConnectionAsync(string host, int port)
+        
+        public Task OpenConnectionAsync(string host, int port, IPAddressSelectionRules ipAddressSelectionRules = default)
         {
-            return OpenConnectionAsync(host, port, default);
+            return OpenConnectionAsync(host, port, ipAddressSelectionRules,default);
         }
 
-        public async Task OpenConnectionAsync(string host, int port, CancellationToken cancellationToken)
+        public async Task OpenConnectionAsync(string host, int port, IPAddressSelectionRules ipAddressSelectionRules, CancellationToken cancellationToken)
         {
             if (Status != RpcClientStatus.Disconnected)
                 throw new InvalidOperationException($"Wrong status {Status}, expected {RpcClientStatus.Disconnected}");
@@ -133,7 +134,7 @@ namespace Neon.Rpc.Net.Tcp
             {
                 logger.Debug($"Connecting to {host}:{port}");
                 ChangeStatus(RpcClientStatus.Connecting);
-                await innerTcpClient.ConnectAsync(host, port, cancellationToken).ConfigureAwait(false);
+                await innerTcpClient.ConnectAsync(host, port, ipAddressSelectionRules, cancellationToken).ConfigureAwait(false);
                 RpcTcpConnection connection = (RpcTcpConnection) innerTcpClient.Connection;
                 logger.Trace($"Waiting for session...");
                 await connection.Start(cancellationToken).ConfigureAwait(false);

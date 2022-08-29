@@ -2,6 +2,10 @@
 
 namespace Neon.Networking.IO
 {
+    
+    /// <summary>
+    /// A stream that ignores disposing
+    /// </summary>
     class NonDisposableStream : Stream
     {
         public Stream BaseStream { get; private set; }

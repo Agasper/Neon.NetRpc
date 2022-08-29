@@ -10,7 +10,7 @@
         void Write(byte value);
     }
 
-    public class VarintBitConverter
+    class VarintBitConverter
     {
         /// <summary>
         /// Returns the specified byte value as varint encoded array of bytes.   

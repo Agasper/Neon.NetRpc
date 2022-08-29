@@ -9,6 +9,9 @@ namespace Neon.Logging
     {
         Dictionary<string, object> meta;
 
+        /// <summary>
+        /// Returns an empty meta collection
+        /// </summary>
         public static LoggingMeta Empty { get; } = new LoggingMeta();
 
         public LoggingMeta()
@@ -39,6 +42,11 @@ namespace Neon.Logging
             set => meta[key] = value;
         }
 
+        /// <summary>
+        /// Merging all the meta collections. If the key duplicates, the last one will be taken
+        /// </summary>
+        /// <param name="meta">Array of meta collections</param>
+        /// <returns>Merged meta collection</returns>
         public static LoggingMeta Merge(params LoggingMeta[] meta)
         {
             LoggingMeta newMeta = null;

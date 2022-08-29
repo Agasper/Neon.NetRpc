@@ -3,6 +3,9 @@ namespace Neon.Logging
     public delegate object Format<T>(T obj);
     public delegate object Format();
 
+    /// <summary>
+    /// A lazy log label for meta information
+    /// </summary>
     public class RefLogLabel
     {
         Format format;
@@ -22,6 +25,9 @@ namespace Neon.Logging
         }
     }
         
+    /// <summary>
+    /// A lazy log label for meta information
+    /// </summary>
     public class RefLogLabel<T>
     {
         public T obj;

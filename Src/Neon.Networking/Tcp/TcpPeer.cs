@@ -9,8 +9,17 @@ namespace Neon.Networking.Tcp
 {
     public abstract class TcpPeer
     {
+        /// <summary>
+        /// A user defined tag
+        /// </summary>
         public object Tag { get; set; }
+        /// <summary>
+        /// Current peer configuration
+        /// </summary>
         public TcpConfigurationPeer Configuration => configuration;
+        /// <summary>
+        /// Returns true is peer has been started, false if not
+        /// </summary>
         public bool IsStarted => poller.IsStarted;
 
         private protected readonly TcpConfigurationPeer configuration;
@@ -24,11 +33,17 @@ namespace Neon.Networking.Tcp
             this.poller = new Poller(5, PollEventsInternal_);
         }
 
+        /// <summary>
+        /// Start an internal network thread
+        /// </summary>
         public virtual void Start()
         {
             this.poller.StartPolling();
         }
 
+        /// <summary>
+        /// Stop an internal network thread
+        /// </summary>
         public virtual void Shutdown()
         {
             this.poller.StopPolling(false);
@@ -55,27 +70,40 @@ namespace Neon.Networking.Tcp
                 socket.LingerState = configuration.LingerOption;
         }
 
-        protected Socket GetNewSocket()
+        protected Socket GetNewSocket(AddressFamily addressFamily)
         {
-            Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            if (configuration.ReuseAddress)
-                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            Socket socket = new Socket(addressFamily, SocketType.Stream, ProtocolType.Tcp);
+            socket.ExclusiveAddressUse = !configuration.ReuseAddress;
+            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, configuration.ReuseAddress);
             socket.Blocking = false;
             return socket;
         }
 
+        /// <summary>
+        /// Creating a new empty message with a length defaulted my memory manager 
+        /// </summary>
+        /// <returns>A new message</returns>
         public RawMessage CreateMessage()
         {
             Guid newGuid = Guid.NewGuid();
             return new RawMessage(configuration.MemoryManager, configuration.MemoryManager.GetStream(newGuid), false, false, newGuid);
         }
 
+        /// <summary>
+        /// Creating a new empty message based on existing data. Data will be copied to the new message
+        /// </summary>
+        /// <returns>A new message</returns>
         public RawMessage CreateMessage(ArraySegment<byte> segment)
         {
             Guid newGuid = Guid.NewGuid();
             return new RawMessage(configuration.MemoryManager, configuration.MemoryManager.GetStream(segment, newGuid), false, false, newGuid);
         }
 
+        /// <summary>
+        /// Creating a new empty message with a predefined size. Returning message size may be bigger than requested value
+        /// </summary>
+        /// <param name="size">Size in bytes</param>
+        /// <returns>A new message</returns>
         public RawMessage CreateMessage(int size)
         {
             Guid newGuid = Guid.NewGuid();

@@ -4,6 +4,9 @@ namespace Neon.Networking.Udp
 {
     public class UdpConfigurationServer : UdpConfigurationPeer
     {
+        /// <summary>
+        /// Sets the server maximum connections. All the new connections after the limit will be dropped
+        /// </summary>
         public int MaximumConnections { get => maximumConnections; set { CheckLocked(); maximumConnections = value; } }
 
         int maximumConnections;

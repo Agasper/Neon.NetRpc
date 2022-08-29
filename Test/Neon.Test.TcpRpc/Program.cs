@@ -128,7 +128,7 @@ namespace Neon.Test.TcpRpc
 
         static async  Task TestFailedAuth(RpcTcpClient client, TestAuthSessionFactory authSessionFactory)
         {
-            await client.OpenConnectionAsync("127.0.0.1", 10000);
+            await client.OpenConnectionAsync("127.0.0.1", 10000, IPAddressSelectionRules.PreferIpv4);
             try
             {
                 authSessionFactory.ReturnAsync = false;

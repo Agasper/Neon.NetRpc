@@ -2,6 +2,14 @@
 {
     public interface ILoggingFormatter
     {
+        /// <summary>
+        /// Converts any incoming object with meta to the log string
+        /// </summary>
+        /// <param name="severity">Final row severity</param>
+        /// <param name="message">Object to format</param>
+        /// <param name="meta">Final meta information</param>
+        /// <param name="logger">Parent logger</param>
+        /// <returns>Log string</returns>
         string Format(LogSeverity severity, object message, LoggingMeta meta, ILogger logger);
     }
 }

@@ -26,7 +26,7 @@ namespace Neon.Networking.Udp
         MtuExpansionStatus mtuStatus;
         DateTime lastMtuExpandSent;
 
-        public void ExpandMTU()
+        void ExpandMTU()
         {
             if (mtuExpand && mtuStatus == MtuExpansionStatus.NotStarted)
                 mtuStatus = MtuExpansionStatus.Started;

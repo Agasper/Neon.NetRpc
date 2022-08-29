@@ -6,8 +6,14 @@ namespace Neon.Logging
 {
     public class LogManager : ILogManager
     {
-        public static LogManager Default => logManagerDefault;
-        public static LogManager Dummy => dummy.Value;
+        /// <summary>
+        /// A default static log manager helper
+        /// </summary>
+        public static ILogManager Default => logManagerDefault;
+        /// <summary>
+        /// An empty LogManager
+        /// </summary>
+        public static ILogManager Dummy => dummy.Value;
 
         static LogManager logManagerDefault;
         static Lazy<LogManager> dummy;
@@ -21,6 +27,11 @@ namespace Neon.Logging
             logManagerDefault = new LogManager();
         }
 
+        /// <summary>
+        /// Set the default LogManager
+        /// </summary>
+        /// <param name="logManager">LogManager to set</param>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="logManager" /> is <see langword="null" />.</exception>
         public static void SetDefault(LogManager logManager)
         {
             if (logManager == null)
@@ -28,8 +39,17 @@ namespace Neon.Logging
             logManagerDefault = logManager;
         }
 
+        /// <summary>
+        /// LogManager severity
+        /// </summary>
         public LogSeverity Severity { get; set; }
+        /// <summary>
+        /// LogManager meta information, will be merged with Logger meta and record meta 
+        /// </summary>
         public LoggingMeta Meta { get; private set; }
+        /// <summary>
+        /// LogManager handlers
+        /// </summary>
         public LoggingHandlers Handlers => handlers;
 
         LoggingHandlers handlers;
@@ -51,6 +71,11 @@ namespace Neon.Logging
             this.handlers = new LoggingHandlers();
         }
 
+        /// <summary>
+        /// Check whether severity level is available
+        /// </summary>
+        /// <param name="level">Severity level</param>
+        /// <returns>True if enabled, False if not</returns>
         public virtual bool IsLevelEnabled(LogSeverity level)
         {
             if (level < this.Severity)
@@ -58,11 +83,21 @@ namespace Neon.Logging
             return true;
         }
 
+        /// <summary>
+        /// Creates a new child instance of the logger 
+        /// </summary>
+        /// <param name="name">Logger name</param>
+        /// <returns>New instance of the logger</returns>
         ILogger ILogManager.GetLogger(string name)
         {
             return GetLogger(name);
         }
 
+        /// <summary>
+        /// Creates a new child instance of the logger 
+        /// </summary>
+        /// <param name="name">Logger name</param>
+        /// <returns>New instance of the logger</returns>
         public virtual Logger GetLogger(string name)
         {
             var logger = new Logger(name, this);

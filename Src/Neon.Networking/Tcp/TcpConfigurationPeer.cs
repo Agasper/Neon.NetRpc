@@ -10,19 +10,55 @@ namespace Neon.Networking.Tcp
 {
     public abstract class TcpConfigurationPeer
     {
+        /// <summary>
+        /// Allows you to simulate bad network behaviour. Packet loss applied only to UDP
+        /// </summary>
         public ConnectionSimulation ConnectionSimulation { get => connectionSimulation; set { CheckLocked(); connectionSimulation = value; } }
+        /// <summary>
+        /// Sets the socket linger options
+        /// </summary>
         public LingerOption LingerOption { get => lingerOption; set { CheckLocked(); CheckNull(value); lingerOption = value; } }
+        /// <summary>
+        /// Sets a value that specifies whether the socket is using the Nagle algorithm
+        /// </summary>
         public bool NoDelay { get => noDelay; set { CheckLocked(); noDelay = value; } }
+        /// <summary>
+        /// Set SocketOptionName.ReuseAddress
+        /// </summary>
         public bool ReuseAddress { get => reuseAddress; set { CheckLocked(); reuseAddress = value; } }
+        /// <summary>
+        /// Set socket send buffer size
+        /// </summary>
         public int SendBufferSize { get => sendBufferSize; set { CheckLocked(); sendBufferSize = value; } }
+        /// <summary>
+        /// Set socket receive buffer size
+        /// </summary>
         public int ReceiveBufferSize { get => receiveBufferSize; set { CheckLocked(); receiveBufferSize = value; } }
+        /// <summary>
+        /// A manager who provide us streams and arrays for a temporary use
+        /// </summary>
         public IMemoryManager MemoryManager { get => memoryManager; set { CheckLocked(); CheckNull(value); memoryManager = value; } }
+        /// <summary>
+        /// Log manager for network logs
+        /// </summary>
         public ILogManager LogManager { get => logManager; set { CheckLocked(); CheckNull(value); logManager = value; } }
 
+        /// <summary>
+        /// If true we will send ping packets to the other peer every KeepAliveInterval
+        /// </summary>
         public bool KeepAliveEnabled { get => keepAliveEnabled; set { CheckLocked(); keepAliveEnabled = value; } }
+        /// <summary>
+        /// Interval for pings
+        /// </summary>
         public int KeepAliveInterval { get => keepAliveInterval; set { CheckLocked(); keepAliveInterval = value; } }
+        /// <summary>
+        /// If we haven't got response for ping within timeout, we drop the connection
+        /// </summary>
         public int KeepAliveTimeout { get => keepAliveTimeout; set { CheckLocked(); keepAliveTimeout = value; } }
 
+        /// <summary>
+        /// Context synchronizations mode Send ot Post
+        /// </summary>
         public ContextSynchronizationMode ContextSynchronizationMode { get => contextSynchronizationMode; set { CheckLocked(); contextSynchronizationMode = value; } }
 
         //internal SynchronizationContext SyncronizationContext => syncronizationContext;

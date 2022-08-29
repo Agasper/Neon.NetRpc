@@ -149,11 +149,17 @@ namespace Neon.Networking.Udp
             connectingTcs.TrySetResult(null);
         }
 
+        /// <summary>
+        /// Start connection closing process
+        /// </summary>
         public virtual Task CloseAsync()
         {
             return StartClose();
         }
         
+        /// <summary>
+        /// Drop the connection immediately, the remote host consider connection dead after timeout
+        /// </summary>
         public void CloseImmediately()
         {
             this.CloseInternal(DisconnectReason.ClosedByThisPeer);

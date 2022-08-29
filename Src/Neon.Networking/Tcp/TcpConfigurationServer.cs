@@ -4,8 +4,17 @@ namespace Neon.Networking.Tcp
 {
     public class TcpConfigurationServer : TcpConfigurationPeer
     {
+        /// <summary>
+        /// Sets the server maximum connections. All the new connections after the limit will be dropped
+        /// </summary>
         public int MaximumConnections { get => maximumConnections; set { CheckLocked(); maximumConnections = value; } }
+        /// <summary>
+        /// The maximum length of the pending connections queue
+        /// </summary>
         public int ListenBacklog { get => listenBackLog; set { CheckLocked(); listenBackLog = value; } }
+        /// <summary>
+        /// The amount of threads who accepting connections
+        /// </summary>
         public int AcceptThreads { get => acceptThreads; set { CheckLocked(); acceptThreads = value; } }
 
         protected int acceptThreads;

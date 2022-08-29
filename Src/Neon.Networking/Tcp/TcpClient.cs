@@ -19,7 +19,13 @@ namespace Neon.Networking.Tcp
     
     public class TcpClient : TcpPeer
     {
+        /// <summary>
+        /// A client status
+        /// </summary>
         public TcpClientStatus Status => status;
+        /// <summary>
+        /// Returns an instance of the current connection. Can be null
+        /// </summary>
         public TcpConnection Connection { get; private set; }
 
         private protected override ILogger Logger => logger;
@@ -86,36 +92,84 @@ namespace Neon.Networking.Tcp
 
         }
 
-        public Task ConnectAsync(string host, int port)
+        /// <summary>
+        /// Start the asynchronous operation to establish a connection to the specified host and port
+        /// </summary>
+        /// <param name="host">IP or domain of a desired host</param>
+        /// <param name="port">Destination port</param>
+        /// <param name="ipAddressSelectionRules">If destination host resolves to a few ap addresses, which we should take</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        public Task ConnectAsync(string host, int port, IPAddressSelectionRules ipAddressSelectionRules = default)
         {
-            return ConnectAsync(host, port, default);
+            return ConnectAsync(host, port, ipAddressSelectionRules, default);
         }
         
-        public async Task ConnectAsync(string host, int port, CancellationToken cancellationToken)
+        /// <summary>
+        /// Start the asynchronous operation to establish a connection to the specified host and port
+        /// </summary>
+        /// <param name="host">IP or domain of a desired host</param>
+        /// <param name="port">Destination port</param>
+        /// <param name="ipAddressSelectionRules">If destination host resolves to a few ap addresses, which we should take</param>
+        /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        public async Task ConnectAsync(string host, int port, IPAddressSelectionRules ipAddressSelectionRules, CancellationToken cancellationToken)
         {
             CheckStarted();
-            IPAddress ip = IPAddress.Any;
-            if (IPAddress.TryParse(host, out IPAddress ip_))
+            IPAddress ip;
+            if (!IPAddress.TryParse(host, out ip))
             {
-                ip = ip_;
-            }
-            else
-            {
+                ip = null;
                 logger.Debug($"Resolving {host} to ip address...");
                 var addresses = await Dns.GetHostAddressesAsync(host).ConfigureAwait(false);
-                ip = addresses.First(addr => addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+
+                switch (ipAddressSelectionRules)
+                {
+                    case IPAddressSelectionRules.OnlyIpv4:
+                        ip = addresses.FirstOrDefault(addr => addr.AddressFamily == AddressFamily.InterNetwork);
+                        break;
+                    case IPAddressSelectionRules.OnlyIpv6:
+                        ip = addresses.FirstOrDefault(addr => addr.AddressFamily == AddressFamily.InterNetworkV6);
+                        break;
+                    case IPAddressSelectionRules.PreferIpv4:
+                        ip = addresses.FirstOrDefault(addr => addr.AddressFamily == AddressFamily.InterNetwork);
+                        if (ip == null)
+                            ip = addresses.FirstOrDefault(addr => addr.AddressFamily == AddressFamily.InterNetworkV6);
+                        break;
+                    case IPAddressSelectionRules.PreferIpv6: 
+                        ip = addresses.FirstOrDefault(addr => addr.AddressFamily == AddressFamily.InterNetworkV6);
+                        if (ip == null)
+                            ip = addresses.FirstOrDefault(addr => addr.AddressFamily == AddressFamily.InterNetwork);
+                        break;
+                }
+
+                if (ip == null)
+                    throw new InvalidOperationException($"Couldn't resolve suitable ip address for the host {host}");
+
                 logger.Debug($"Resolved {host} to {ip}");
             }
+            
+            cancellationToken.ThrowIfCancellationRequested();
 
             IPEndPoint endpoint = new IPEndPoint(ip, port);
             await ConnectAsync(endpoint, cancellationToken).ConfigureAwait(false);
         }
         
+        /// <summary>
+        /// Start the asynchronous operation to establish a connection to the specified ip endpoint
+        /// </summary>
+        /// <param name="endpoint">IP endpoint of a desired host</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         public Task ConnectAsync(IPEndPoint endpoint)
         {
             return ConnectAsync(endpoint, default);
         }
 
+        /// <summary>
+        /// Start the asynchronous operation to establish a connection to the specified ip endpoint
+        /// </summary>
+        /// <param name="endpoint">IP endpoint of a desired host</param>
+        /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         public virtual async Task ConnectAsync(IPEndPoint endpoint, CancellationToken cancellationToken)
         {
             CheckStarted();
@@ -123,11 +177,12 @@ namespace Neon.Networking.Tcp
                     out TcpClientStatus oldStatus))
                 throw new InvalidOperationException(
                     $"Wrong {nameof(TcpClient)} status {oldStatus}, {TcpClientStatus.Disconnected} expected");
+
             Socket clientSocket_ = null;
             try
             {
                 logger.Info($"Starting the connection to {endpoint}");
-                clientSocket_ = this.GetNewSocket();
+                clientSocket_ = this.GetNewSocket(endpoint.AddressFamily);
                 this.SetSocketOptions(clientSocket_);
                 await clientSocket_.ConnectAsync(endpoint)
                     .TimeoutAfter(configuration.ConnectTimeout, cancellationToken)
@@ -170,6 +225,9 @@ namespace Neon.Networking.Tcp
             base.OnConnectionClosedInternal(tcpConnection, ex);
         }
 
+        /// <summary>
+        /// Disconnects & shutdown the client
+        /// </summary>
         public override void Shutdown()
         {
             logger.Info($"{nameof(TcpClient)} shutdown");
@@ -191,6 +249,9 @@ namespace Neon.Networking.Tcp
             ChangeStatus(TcpClientStatus.Disconnected);
         }
 
+        /// <summary>
+        /// Terminate the current connection
+        /// </summary>
         public void Disconnect()
         {
             CheckStarted();

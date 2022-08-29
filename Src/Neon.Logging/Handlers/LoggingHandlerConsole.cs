@@ -13,7 +13,7 @@ namespace Neon.Logging.Handlers
         {
         }
 
-        protected override void Write(object message)
+        protected override void Write(string message)
         {
             Console.WriteLine(message);
         }

@@ -1,6 +1,6 @@
 ﻿namespace Neon.Networking.Udp.Messages
 {
-    public enum MessageType : byte
+    enum MessageType : byte
     {
         ConnectReq,
         ConnectResp,

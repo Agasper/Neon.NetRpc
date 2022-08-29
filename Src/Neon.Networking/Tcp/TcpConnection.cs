@@ -15,11 +15,29 @@ namespace Neon.Networking.Tcp
 {
     public class TcpConnection : IDisposable
     {
+        /// <summary>
+        /// Does this connection belongs to the client
+        /// </summary>
         public bool IsClientConnection { get; private set; }
+        /// <summary>
+        /// Was this connection disposed 
+        /// </summary>
         public bool Disposed => disposed;
+        /// <summary>
+        /// A user defined tag
+        /// </summary>
         public virtual object Tag { get; set; }
+        /// <summary>
+        /// Unique connection id
+        /// </summary>
         public long Id { get; private set; }
+        /// <summary>
+        /// In case of many simultaneously sends, they're queued. This is current queue size
+        /// </summary>
         public int SendQueueSize => sendQueueSize;
+        /// <summary>
+        /// Connection remote endpoint
+        /// </summary>
         public EndPoint RemoteEndpoint
         {
             get
@@ -34,6 +52,9 @@ namespace Neon.Networking.Tcp
                 }
             }
         }
+        /// <summary>
+        /// Is we still connected
+        /// </summary>
         public bool Connected
         {
             get
@@ -46,9 +67,21 @@ namespace Neon.Networking.Tcp
                 return socket_.Connected;
             }
         }
+        /// <summary>
+        /// Connection creation time
+        /// </summary>
         public DateTime Started { get; private set; }
+        /// <summary>
+        /// Token will be cancelled as soon connection is terminated
+        /// </summary>
         public CancellationToken CancellationToken => connectionCancellationToken.Token;
+        /// <summary>
+        /// Parent peer
+        /// </summary>
         public TcpPeer Parent { get; private set; }
+        /// <summary>
+        /// Connection statistics
+        /// </summary>
         public TcpConnectionStatistics Statistics { get; private set; }
 
         protected DateTime? LastKeepAliveRequestReceived { get; private set; }
@@ -171,6 +204,9 @@ namespace Neon.Networking.Tcp
             logger.Debug($"#{Id} disposed!");
         }
 
+        /// <summary>
+        /// Returns the memory used by this connection
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);
@@ -201,6 +237,9 @@ namespace Neon.Networking.Tcp
 
         }
 
+        /// <summary>
+        /// Close the connection
+        /// </summary>
         public virtual void Close()
         {
             CloseInternal(null);
@@ -350,11 +389,6 @@ namespace Neon.Networking.Tcp
                             break;
                         }
                     }
-
-                    // if (counter++ > recvBuffer.Length / 2)
-                    // {
-                    //     logger.Debug("Pre infinite loop");
-                    // }
 
                     //Infinite loop protection
                     if (counter++ > recvBuffer.Length / 2 + 100)
@@ -513,6 +547,11 @@ namespace Neon.Networking.Tcp
                 throw new InvalidOperationException($"is not established");
         }
 
+        /// <summary>
+        /// Sends the message
+        /// </summary>
+        /// <param name="message">Message to send</param>
+        /// <exception cref="ArgumentNullException">If message is null</exception>
         public virtual Task SendMessageAsync(RawMessage message)
         {
             if (message == null) throw new ArgumentNullException(nameof(message));

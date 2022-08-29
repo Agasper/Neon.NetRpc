@@ -3,6 +3,9 @@ using System.IO;
 
 namespace Neon.Networking.IO
 {
+    /// <summary>
+    /// Stream with read limits
+    /// </summary>
     public class LimitedReadStream : Stream
     {
         Stream stream;

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Neon.Networking.IO
 {
-    public class ByteArrayReader : IByteReader
+    class ByteArrayReader : IByteReader
     {
         public bool EOF => Position >= Count;
         public int Position

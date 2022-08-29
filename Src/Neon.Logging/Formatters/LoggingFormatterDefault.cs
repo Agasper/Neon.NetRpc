@@ -28,6 +28,14 @@ namespace Neon.Logging.Formatters
             return stringBuilders.Value;
         }
 
+        /// <summary>
+        /// Converts any incoming object with meta to the log string
+        /// </summary>
+        /// <param name="severity">Final row severity</param>
+        /// <param name="message">Object to format</param>
+        /// <param name="meta">Final meta information</param>
+        /// <param name="logger">Parent logger</param>
+        /// <returns>Log string</returns>
         public virtual string Format(LogSeverity severity, object message, LoggingMeta meta, ILogger logger)
         {
             if (message == null) throw new ArgumentNullException(nameof(message));

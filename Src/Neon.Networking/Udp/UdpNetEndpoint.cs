@@ -5,6 +5,9 @@ namespace Neon.Networking.Udp
 {
     public struct UdpNetEndpoint : IEquatable<UdpNetEndpoint>
     {
+        /// <summary>
+        /// The remote endpoint
+        /// </summary>
         public EndPoint EndPoint { get; }
 
         string stringEp;

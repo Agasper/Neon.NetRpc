@@ -1,8 +1,15 @@
 ﻿using System;
 namespace Neon.Networking
 {
+    /// <summary>
+    /// Connection issues simulation rules
+    /// </summary>
     public class ConnectionSimulation
     {
+        /// <summary>
+        /// Available only for UDP, percentage of incoming/outgoing packet loss where 0 - 0%, 1 - 100%
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">If a value is out of range 0-1</exception>
         public float PacketLoss
         {
             get
@@ -17,6 +24,10 @@ namespace Neon.Networking
             }
         }
 
+        /// <summary>
+        /// Adds a static delay in milliseconds for every incoming/outgoing messages
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">If a value less than 0</exception>
         public int AdditionalLatencyStatic
         {
             get
@@ -31,6 +42,10 @@ namespace Neon.Networking
             }
         }
 
+        /// <summary>
+        /// Adds a random delay from zero to value in milliseconds for every incoming/outgoing messages
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">If a value less than 0</exception>
         public int AdditionalLatencyRandom
         {
             get
