@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netcoreapp3.1</TargetFrameworks>
     <RootNamespace>Neon.Logging</RootNamespace>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
@@ -9,10 +8,17 @@
     <PackageLicenseFile>license/LICENSE</PackageLicenseFile>
     <RepositoryUrl>https://github.com/Agasper/Neon.NetRpc</RepositoryUrl>
     <PackageVersion>1.0.1</PackageVersion>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DocumentationFile>bin\Release\Neon.Logging.xml</DocumentationFile>
+    <NoWarn>1701;1702;1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="../../LICENSE" Pack="true" PackagePath="license" />
+    <None Remove="Neon.Logging.csproj.DotSettings" />
   </ItemGroup>
   
   <ItemGroup>

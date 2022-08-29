@@ -15,6 +15,7 @@
         /// <summary>
         /// Returns the specified byte value as varint encoded array of bytes.   
         /// </summary>
+        /// <param name="writer">A byte writer</param>
         /// <param name="value">Byte value</param>
         /// <returns>Varint array of bytes.</returns>
         public static void WriteVarintBytes(IByteWriter writer, byte value)
@@ -25,6 +26,7 @@
         /// <summary>
         /// Returns the specified 16-bit signed value as varint encoded array of bytes.   
         /// </summary>
+        /// <param name="writer">A byte writer</param>
         /// <param name="value">16-bit signed value</param>
         /// <returns>Varint array of bytes.</returns>
         public static void WriteVarintBytes(IByteWriter writer, short value)
@@ -36,6 +38,7 @@
         /// <summary>
         /// Returns the specified 16-bit unsigned value as varint encoded array of bytes.   
         /// </summary>
+        /// <param name="writer">A byte writer</param>
         /// <param name="value">16-bit unsigned value</param>
         /// <returns>Varint array of bytes.</returns>
         public static void WriteVarintBytes(IByteWriter writer, ushort value)
@@ -46,6 +49,7 @@
         /// <summary>
         /// Returns the specified 32-bit signed value as varint encoded array of bytes.   
         /// </summary>
+        /// <param name="writer">A byte writer</param>
         /// <param name="value">32-bit signed value</param>
         /// <returns>Varint array of bytes.</returns>
         public static void WriteVarintBytes(IByteWriter writer, int value)
@@ -57,6 +61,7 @@
         /// <summary>
         /// Returns the specified 32-bit unsigned value as varint encoded array of bytes.   
         /// </summary>
+        /// <param name="writer">A byte writer</param>
         /// <param name="value">32-bit unsigned value</param>
         /// <returns>Varint array of bytes.</returns>
         public static void WriteVarintBytes(IByteWriter writer, uint value)
@@ -72,6 +77,7 @@
         /// <summary>
         /// Returns the specified 64-bit signed value as varint encoded array of bytes.   
         /// </summary>
+        /// <param name="writer">A byte writer</param>
         /// <param name="value">64-bit signed value</param>
         /// <returns>Varint array of bytes.</returns>
         public static void WriteVarintBytes(IByteWriter writer, long value)
@@ -89,6 +95,7 @@
         /// <summary>
         /// Returns the specified 64-bit unsigned value as varint encoded array of bytes.   
         /// </summary>
+        /// <param name="writer">A byte writer</param>
         /// <param name="value">64-bit unsigned value</param>
         /// <returns>Varint array of bytes.</returns>
         public static void WriteVarintBytes(IByteWriter writer, ulong value)
@@ -124,7 +131,7 @@
         /// <summary>
         /// Returns byte value from varint encoded array of bytes.
         /// </summary>
-        /// <param name="bytes">Varint encoded array of bytes.</param>
+        /// <param name="reader">A byte reader</param>
         /// <returns>Byte value</returns>
         public static byte ToByte(IByteReader reader)
         {
@@ -134,7 +141,7 @@
         /// <summary>
         /// Returns 16-bit signed value from varint encoded array of bytes.
         /// </summary>
-        /// <param name="bytes">Varint encoded array of bytes.</param>
+        /// <param name="reader">A byte reader</param>
         /// <returns>16-bit signed value</returns>
         public static short ToInt16(IByteReader reader)
         {
@@ -145,7 +152,7 @@
         /// <summary>
         /// Returns 16-bit usigned value from varint encoded array of bytes.
         /// </summary>
-        /// <param name="bytes">Varint encoded array of bytes.</param>
+        /// <param name="reader">A byte reader</param>
         /// <returns>16-bit usigned value</returns>
         public static ushort ToUInt16(IByteReader reader)
         {
@@ -155,7 +162,7 @@
         /// <summary>
         /// Returns 32-bit signed value from varint encoded array of bytes.
         /// </summary>
-        /// <param name="bytes">Varint encoded array of bytes.</param>
+        /// <param name="reader">A byte reader</param>
         /// <returns>32-bit signed value</returns>
         public static int ToInt32(IByteReader reader)
         {
@@ -166,7 +173,7 @@
         /// <summary>
         /// Returns 32-bit unsigned value from varint encoded array of bytes.
         /// </summary>
-        /// <param name="bytes">Varint encoded array of bytes.</param>
+        /// <param name="reader">A byte reader</param>
         /// <returns>32-bit unsigned value</returns>
         public static uint ToUInt32(IByteReader reader)
         {
@@ -176,7 +183,7 @@
         /// <summary>
         /// Returns 64-bit signed value from varint encoded array of bytes.
         /// </summary>
-        /// <param name="bytes">Varint encoded array of bytes.</param>
+        /// <param name="reader">A byte reader</param>
         /// <returns>64-bit signed value</returns>
         public static long ToInt64(IByteReader reader)
         {
@@ -187,7 +194,7 @@
         /// <summary>
         /// Returns 64-bit unsigned value from varint encoded array of bytes.
         /// </summary>
-        /// <param name="bytes">Varint encoded array of bytes.</param>
+        /// <param name="reader">A byte reader</param>
         /// <returns>64-bit unsigned value</returns>
         public static ulong ToUInt64(IByteReader reader)
         {

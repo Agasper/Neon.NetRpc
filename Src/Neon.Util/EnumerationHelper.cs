@@ -2,7 +2,7 @@
 
 namespace Neon.Util
 {
-    public static class EnumerationHelper
+    static class EnumerationHelper
     {
         public static IEnumerable<T> SingleItemAsEnumerable<T>(this T item)
         {

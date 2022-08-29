@@ -225,7 +225,7 @@ namespace Neon.Networking.Udp
         }
 
         /// <summary>
-        /// Terminate the current connections & shutdown the client
+        /// Terminate the current connections and shutdown the client
         /// </summary>
         public override void Shutdown()
         {

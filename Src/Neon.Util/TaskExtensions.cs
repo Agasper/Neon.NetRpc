@@ -7,16 +7,14 @@ namespace Neon.Util
 {
     public static class TaskExtensions
     {
-        static OperationCanceledException GetOperationCancelledException()
-        {
-            return new OperationCanceledException("Operation cancelled");
-        }
-        
-        static TimeoutException GetTimeoutException()
-        {
-            return new TimeoutException("Operation timed out");
-        }
-        
+        /// <summary>
+        /// Throw an exception if task is not finished within the amount of time or cancellation token cancelled (what is faster)
+        /// </summary>
+        /// <param name="task">Task</param>
+        /// <param name="millisecondsTimeout">Timeout</param>
+        /// <param name="cancellationToken">Cancellation token </param>
+        /// <exception cref="OperationCanceledException">if cancellation token cancelled</exception>
+        /// <exception cref="TimeoutException">if timeout reached</exception>
         public static async Task TimeoutAfter(this Task task, int millisecondsTimeout,
             CancellationToken cancellationToken = default)
         {
@@ -40,9 +38,9 @@ namespace Neon.Util
                            {
                                Exception exception = null;
                                if (((CancellationToken) state).IsCancellationRequested)
-                                   exception = GetTimeoutException();
+                                   exception = ExceptionExtension.GetTimeoutException();
                                else
-                                   exception = GetOperationCancelledException();
+                                   exception = ExceptionExtension.GetOperationCancelledException();
                                tcs.TrySetException(exception);
                            }, cts.Token))
                     {
@@ -52,6 +50,15 @@ namespace Neon.Util
             }
         }
 
+        /// <summary>
+        /// Throw an exception if task is not finished within the amount of time or cancellation token cancelled (what is faster)
+        /// </summary>
+        /// <param name="task">Task</param>
+        /// <param name="millisecondsTimeout">Timeout</param>
+        /// <param name="cancellationToken">Cancellation token </param>
+        /// <exception cref="OperationCanceledException">if cancellation token cancelled</exception>
+        /// <exception cref="TimeoutException">if timeout reached</exception>
+        /// <returns>Original task result</returns>
         public static async Task<TResult> TimeoutAfter<TResult>(this Task<TResult> task, int millisecondsTimeout, CancellationToken cancellationToken = default)
         {
             if (task.IsCompleted)
@@ -75,9 +82,9 @@ namespace Neon.Util
                            {
                                Exception exception = null;
                                if (((CancellationToken) state).IsCancellationRequested)
-                                   exception = GetTimeoutException();
+                                   exception = ExceptionExtension.GetTimeoutException();
                                else
-                                   exception = GetOperationCancelledException();
+                                   exception = ExceptionExtension.GetOperationCancelledException();
                                tcs.TrySetException(exception);
                            }, cts.Token))
                     {

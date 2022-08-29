@@ -1,8 +1,15 @@
 ﻿using System;
 namespace Neon.Util.Pooling.Objects
 {
+    /// <summary>
+    /// An object wrapper, returning object on dispose
+    /// </summary>
     public struct ObjectHolder<T> : IDisposable
     {
+        /// <summary>
+        /// Object
+        /// </summary>
+        /// <exception cref="ObjectDisposedException">If holder already disposed</exception>
         public T Object
         {
             get
@@ -15,7 +22,7 @@ namespace Neon.Util.Pooling.Objects
 
         T obj;
         ObjectPool pool;
-        bool disposed;
+        volatile bool disposed;
 
         public ObjectHolder(ObjectPool pool, T obj)
         {
@@ -24,10 +31,14 @@ namespace Neon.Util.Pooling.Objects
             this.disposed = false;
         }
 
+        /// <summary>
+        /// Disposes holder, returns object to the pool, prevents to use object further
+        /// </summary>
+        /// <exception cref="ObjectDisposedException"></exception>
         public void Dispose()
         {
             if (disposed)
-                throw new ObjectDisposedException(nameof(ObjectHolder<T>));
+                return;
             disposed = true;
             pool.Return(obj);
         }

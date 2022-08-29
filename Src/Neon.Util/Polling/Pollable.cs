@@ -3,8 +3,14 @@ using System.Threading;
 
 namespace Neon.Util.Polling
 {
+    /// <summary>
+    /// A base class for any pollable object
+    /// </summary>
     public abstract class Pollable
     {
+        /// <summary>
+        /// Is polling thread started
+        /// </summary>
         protected bool IsStarted => pollingIsRun || pollingThread != null;
         protected int pollingThreadSleep;
 

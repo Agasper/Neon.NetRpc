@@ -4,8 +4,14 @@ using System.Collections.Generic;
 
 namespace Neon.Util.Pooling.Objects
 {
+    /// <summary>
+    /// Non generic object pool
+    /// </summary>
     public class ObjectPool : IObjectPool
     {
+        /// <summary>
+        /// Shared object pool
+        /// </summary>
         public static ObjectPool Shared => shared;
 
         static ObjectPool shared = new ObjectPool();
@@ -18,6 +24,9 @@ namespace Neon.Util.Pooling.Objects
             this.maxObjectsByType = maxObjectsByType;
         }
 
+        /// <summary>
+        /// Clearing the pool
+        /// </summary>
         public void Clear()
         {
             cache.Clear();
@@ -28,6 +37,10 @@ namespace Neon.Util.Pooling.Objects
             cache = new ConcurrentDictionary<Type, ConcurrentBag<object>>();
         }
 
+        /// <summary>
+        /// Returns amount of every type presents in the pool
+        /// </summary>
+        /// <returns></returns>
         public Dictionary<Type, int> GetStatsByType()
         {
             Dictionary<Type, int> result = new Dictionary<Type, int>();
@@ -38,6 +51,12 @@ namespace Neon.Util.Pooling.Objects
             return result;
         }
 
+        /// <summary>
+        /// Returns an object from the pool, if pool is empty creates a new object with a generator function
+        /// </summary>
+        /// <param name="type">Object type</param>
+        /// <param name="generator">Function returning a new object if not found in the pool</param>
+        /// <returns>An instance of requested object</returns>
         public object Pop(Type type, Func<object> generator)
         {
             ConcurrentBag<object> bag = cache.GetOrAdd(type, (t) => new ConcurrentBag<object>()); ;
@@ -54,6 +73,11 @@ namespace Neon.Util.Pooling.Objects
             }
         }
 
+        /// <summary>
+        /// Returns an object from the pool, if pool is empty creates a new object with a generator function
+        /// </summary>
+        /// <param name="generator">Function returning a new object if not found in the pool</param>
+        /// <returns>An instance of requested object</returns>
         public T Pop<T>(Func<T> generator)
         {
             ConcurrentBag<object> bag = cache.GetOrAdd(typeof(T), (t) => new ConcurrentBag<object>());
@@ -70,11 +94,20 @@ namespace Neon.Util.Pooling.Objects
             }
         }
         
+        /// <summary>
+        /// Returns an object from the pool, if pool is empty creates a new object with new()
+        /// </summary>
+        /// <returns>An instance of requested object</returns>
         public T Pop<T>() where T : new()
         {
             return Pop<T>(() => new T());
         }
 
+        /// <summary>
+        /// Returns an object from the pool, if pool is empty creates a new object with a generator function
+        /// </summary>
+        /// <param name="generator">Function returning a new object if not found in the pool</param>
+        /// <returns>An instance of object holder</returns>
         public ObjectHolder<T> PopWithHolder<T>(Func<T> generator)
         {
             ConcurrentBag<object> bag = cache.GetOrAdd(typeof(T), (t) => new ConcurrentBag<object>());
@@ -91,6 +124,10 @@ namespace Neon.Util.Pooling.Objects
             }
         }
 
+        /// <summary>
+        /// Returns objects to the pool
+        /// </summary>
+        /// <param name="values">Enumerator of objects</param>
         public void Return(IEnumerable<object> values)
         {
             foreach(var value in values)
@@ -99,6 +136,10 @@ namespace Neon.Util.Pooling.Objects
             }
         }
 
+        /// <summary>
+        /// Returns object to the pool
+        /// </summary>
+        /// <param name="value">Object to return</param>
         public void Return(object value)
         {
             Type type = value.GetType();

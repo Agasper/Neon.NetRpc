@@ -2,6 +2,9 @@
 {
     public delegate void DPollEvents();
 
+    /// <summary>
+    /// A wrapper for polling thread with convenient control
+    /// </summary>
     public sealed class Poller : Pollable
     {
         public new bool IsStarted => base.IsStarted;

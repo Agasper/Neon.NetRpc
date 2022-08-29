@@ -11,6 +11,11 @@
     <PackageLicenseFile>license/LICENSE</PackageLicenseFile>
     <PackageVersion>1.0.1</PackageVersion>
   </PropertyGroup>
+
+   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+     <DocumentationFile>bin\Release\netstandard2.0\Neon.Util.xml</DocumentationFile>
+     <NoWarn>1701;1702;1591</NoWarn>
+   </PropertyGroup>
     <ItemGroup>
         <None Include="../../LICENSE" Pack="true" PackagePath="license" />
     </ItemGroup>

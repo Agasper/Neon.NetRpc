@@ -226,7 +226,7 @@ namespace Neon.Networking.Tcp
         }
 
         /// <summary>
-        /// Disconnects & shutdown the client
+        /// Disconnects and shutdown the client
         /// </summary>
         public override void Shutdown()
         {

@@ -4,6 +4,9 @@ using System.Collections.Generic;
 
 namespace Neon.Util.Pooling.Objects
 {
+    /// <summary>
+    /// A generic object pool
+    /// </summary>
     public class GenericPool<T> : IDisposable
     {
         ConcurrentStack<T> stack;
@@ -42,8 +45,14 @@ namespace Neon.Util.Pooling.Objects
             stack = new ConcurrentStack<T>();
         }
 
+        /// <summary>
+        /// The amount of objects in the pool
+        /// </summary>
         public int Count => stack.Count;
 
+        /// <summary>
+        /// Clearing the pool and disposing objects
+        /// </summary>
         public void Clear()
         {
             bool isDisposable = typeof(IDisposable).IsAssignableFrom(typeof(T));
@@ -59,6 +68,9 @@ namespace Neon.Util.Pooling.Objects
                 stack.Clear();
         }
 
+        /// <summary>
+        /// Clearing the pool and disposing objects
+        /// </summary>
         public void Dispose()
         {
             disposed = true;
@@ -68,13 +80,17 @@ namespace Neon.Util.Pooling.Objects
             stack = null;
         }
 
-        public T CreateNew()
+        T CreateNew()
         {
             if (generator == null)
                 throw new InvalidOperationException("There is no more items");
             return generator();
         }
 
+        /// <summary>
+        /// Returns an object from the pool, if pool is empty creates a new object
+        /// </summary>
+        /// <returns>Object</returns>
         public T Pop()
         {
             CheckDisposed();
@@ -88,6 +104,10 @@ namespace Neon.Util.Pooling.Objects
                 return CreateNew();
         }
 
+        /// <summary>
+        /// Returns an object from the pool
+        /// </summary>
+        /// <returns>true if we found an object, false if pool is empty</returns>
         public bool TryPop(out T value)
         {
             if (stack.TryPop(out value))
@@ -99,6 +119,10 @@ namespace Neon.Util.Pooling.Objects
             return false;
         }
 
+        /// <summary>
+        /// Returns an object to the pool
+        /// </summary>
+        /// <param name="obj">Object to return</param>
         public void Return(T obj)
         {
             CheckDisposed();
