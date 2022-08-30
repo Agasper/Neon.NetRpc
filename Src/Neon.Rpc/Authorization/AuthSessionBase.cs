@@ -2,6 +2,9 @@ using Neon.Rpc.Payload;
 
 namespace Neon.Rpc.Authorization
 {
+    /// <summary>
+    /// Base auth session class
+    /// </summary>
     public abstract class AuthSessionBase : RpcSessionBase
     {
         public AuthSessionBase(RpcSessionContextBase sessionContext) : base(sessionContext)

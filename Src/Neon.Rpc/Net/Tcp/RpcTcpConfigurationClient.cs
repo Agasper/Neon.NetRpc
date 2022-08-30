@@ -1,14 +1,17 @@
-﻿using System.Threading;
+﻿using System.Net.Sockets;
+using System.Threading;
 using Neon.Logging;
 using Neon.Networking;
 using Neon.Networking.Tcp;
-using Neon.Rpc.Authorization;
 using Neon.Util.Pooling;
 
 namespace Neon.Rpc.Net.Tcp
 {
     public class RpcTcpConfigurationClient : RpcConfiguration
     {
+        /// <summary>
+        /// Allows you to simulate bad network behaviour. Packet loss applied only to UDP
+        /// </summary>
         public ConnectionSimulation ConnectionSimulation
         {
             get => tcpConfiguration.ConnectionSimulation;
@@ -19,6 +22,9 @@ namespace Neon.Rpc.Net.Tcp
             }
         }
 
+        /// <summary>
+        /// Sets socket send buffer size
+        /// </summary>
         public int SendBufferSize
         {
             get => tcpConfiguration.SendBufferSize;
@@ -29,6 +35,9 @@ namespace Neon.Rpc.Net.Tcp
             }
         }
 
+        /// <summary>
+        /// Sets socket receive buffer size
+        /// </summary>
         public int ReceiveBufferSize
         {
             get => tcpConfiguration.ReceiveBufferSize;
@@ -38,7 +47,23 @@ namespace Neon.Rpc.Net.Tcp
                 tcpConfiguration.ReceiveBufferSize = value;
             }
         }
+        
+        /// <summary>
+        /// Sets the socket linger options
+        /// </summary>
+        public LingerOption LingerOption
+        {
+            get => tcpConfiguration.LingerOption;
+            set
+            {
+                CheckLocked();
+                tcpConfiguration.LingerOption = value;
+            }
+        }
 
+        /// <summary>
+        /// Log manager for network logs
+        /// </summary>
         public ILogManager LogManagerNetwork
         {
             get => tcpConfiguration.LogManager;
@@ -50,6 +75,9 @@ namespace Neon.Rpc.Net.Tcp
             }
         }
 
+        /// <summary>
+        /// A manager which provide us streams and arrays for a temporary use
+        /// </summary>
         public IMemoryManager MemoryManager
         {
             get => tcpConfiguration.MemoryManager;
@@ -61,6 +89,9 @@ namespace Neon.Rpc.Net.Tcp
             }
         }
 
+        /// <summary>
+        /// If true we will send ping packets to the other peer every KeepAliveInterval
+        /// </summary>
         public bool KeepAliveEnabled
         {
             get => tcpConfiguration.KeepAliveEnabled;
@@ -71,6 +102,9 @@ namespace Neon.Rpc.Net.Tcp
             }
         }
 
+        /// <summary>
+        /// Interval for pings
+        /// </summary>
         public int KeepAliveInterval
         {
             get => tcpConfiguration.KeepAliveInterval;
@@ -81,6 +115,9 @@ namespace Neon.Rpc.Net.Tcp
             }
         }
 
+        /// <summary>
+        /// If we haven't got response for ping within timeout, we drop the connection
+        /// </summary>
         public int KeepAliveTimeout
         {
             get => tcpConfiguration.KeepAliveTimeout;
@@ -91,16 +128,9 @@ namespace Neon.Rpc.Net.Tcp
             }
         }
         
-        public int ConnectTimeout
-        {
-            get => tcpConfiguration.ConnectTimeout;
-            set
-            {
-                CheckLocked();
-                tcpConfiguration.ConnectTimeout = value;
-            }
-        }
-        
+        /// <summary>
+        /// Sets a value that specifies whether the socket is using the Nagle algorithm
+        /// </summary>
         public bool NoDelay
         {
             get => tcpConfiguration.NoDelay;
@@ -111,6 +141,9 @@ namespace Neon.Rpc.Net.Tcp
             }
         }
         
+        /// <summary>
+        /// Sets SocketOptionName.ReuseAddress
+        /// </summary>
         public bool ReuseAddress
         {
             get => tcpConfiguration.ReuseAddress;
@@ -120,8 +153,6 @@ namespace Neon.Rpc.Net.Tcp
                 tcpConfiguration.ReuseAddress = value;
             }
         }
-        
-        
         
         internal TcpConfigurationClient TcpConfiguration => tcpConfiguration;
 

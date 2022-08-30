@@ -15,15 +15,42 @@ namespace Neon.Rpc.Net
     public class RpcConfiguration
     {
         internal TaskScheduler TaskScheduler => taskScheduler;
-        
+     
+        /// <summary>
+        /// Default execution timeout for all methods (default: -1/infinite)
+        /// </summary>
         public int DefaultExecutionTimeout { get => defaultExecutionTimeout; set { CheckLocked(); CheckNull(value); defaultExecutionTimeout = value; } }
+        /// <summary>
+        /// Should methods be executed in the same order as come, or we can execute they simultaneously (default: false)
+        /// </summary>
         public bool OrderedExecution { get => orderedExecution; set { CheckLocked(); CheckNull(value); orderedExecution = value; } }
+        /// <summary>
+        /// If ordered execution is set, sets the maximum execution queue. Trying to execute method above limit cause exception (default: 32)
+        /// </summary>
         public int OrderedExecutionMaxQueue { get => orderedExecutionMaxQueue; set { CheckLocked(); CheckNull(value); orderedExecutionMaxQueue = value; } }
+        /// <summary>
+        /// Serializer for primitives and Protobuf messages
+        /// </summary>
         public RpcSerializer Serializer { get => serializer; set { CheckLocked(); CheckNull(value); serializer = value; } }
+        /// <summary>
+        /// Log manager for RPC logs
+        /// </summary>
         public ILogManager LogManager { get => logManager; set { CheckLocked(); CheckNull(value); logManager = value; } }
+        /// <summary>
+        /// User-defined session factory
+        /// </summary>
         public ISessionFactory SessionFactory { get => sessionFactory; set { CheckLocked(); CheckNull(value); sessionFactory = value; } }
+        /// <summary>
+        /// Allows you to restrict calls to some methods (default: AllowAsync = true, AllowLambdaExpressions = true, AllowNonVoid = true, AllowNonPublicMethods = true)
+        /// </summary>
         public RemotingInvocationRules RemotingInvocationRules { get => remotingInvocationRules; set { CheckLocked(); CheckNull(value); remotingInvocationRules = value; } }
+        /// <summary>
+        /// Threshold in bytes to compress your data
+        /// </summary>
         public int CompressionThreshold { get => compressionThreshold; set { CheckLocked(); compressionThreshold = value; } }
+        /// <summary>
+        /// Context synchronization mode: Send ro Post
+        /// </summary>
         public ContextSynchronizationMode ContextSynchronizationMode { get => contextSynchronizationMode; set { CheckLocked(); contextSynchronizationMode = value; } }
 
         ICipherFactory cipherFactory;

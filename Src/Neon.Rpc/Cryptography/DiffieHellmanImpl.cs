@@ -6,7 +6,7 @@ using Neon.Networking.Messages;
 
 namespace Neon.Rpc.Cryptography
 {
-    public class DiffieHellmanImpl
+    class DiffieHellmanImpl
     {
         public enum DhStatus
         {
@@ -78,8 +78,10 @@ namespace Neon.Rpc.Cryptography
 
         public void RecvHandshakeRequest(IRawMessage handshakeRequest, IRawMessage handshakeResponse)
         {
-            if (handshakeRequest == null) throw new ArgumentNullException(nameof(handshakeRequest));
-            if (handshakeResponse == null) throw new ArgumentNullException(nameof(handshakeResponse));
+            if (handshakeRequest == null) 
+                throw new ArgumentNullException(nameof(handshakeRequest));
+            if (handshakeResponse == null)
+                throw new ArgumentNullException(nameof(handshakeResponse));
             if (status != DhStatus.None)
                 throw new InvalidOperationException($"Wrong status {status}, expected: {DhStatus.None}");
             

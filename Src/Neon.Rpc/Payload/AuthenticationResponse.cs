@@ -3,7 +3,7 @@ using Neon.Rpc.Serialization;
 
 namespace Neon.Rpc.Payload
 {
-    public class AuthenticationResponse : RemotingPayload
+    class AuthenticationResponse : RemotingPayload
     {
         public RemotingException Exception { get; set; }
 

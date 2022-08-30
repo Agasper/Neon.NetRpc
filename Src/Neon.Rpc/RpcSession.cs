@@ -44,10 +44,10 @@ namespace Neon.Rpc
             this.defaultExecutionTimeout = sessionContext.DefaultExecutionTimeout;
         }
 
-        public bool Close()
+        public void Close()
         {
             if (closed)
-                return false;
+                return;
             closed = true;
             
             connection.Close();
@@ -72,8 +72,6 @@ namespace Neon.Rpc
             }
 
             this.logger.Debug($"{LogsSign} {this} closed!");
-            
-            return true;
         }
 
         protected virtual void OnClose(OnCloseEventArgs args)
@@ -347,8 +345,7 @@ namespace Neon.Rpc
             return request;
         }
         
-        protected virtual Task RemoteExecutionWrapper(RemotingRequest request, ExecutionOptions options,
-            Task executionTask)
+        protected virtual Task RemoteExecutionWrapper(ExecutionOptions options, Task executionTask)
         {
             return executionTask;
         }
@@ -365,7 +362,7 @@ namespace Neon.Rpc
                 int timeout = defaultExecutionTimeout;
                 if (options.Timeout > Timeout.Infinite)
                     timeout = options.Timeout;
-                await RemoteExecutionWrapper(request, options, request.WaitAsync(timeout, options.CancellationToken)).ConfigureAwait(false);
+                await RemoteExecutionWrapper(options, request.WaitAsync(timeout, options.CancellationToken)).ConfigureAwait(false);
                 float ms = request.Response.ExecutionTime / (float) TimeSpan.TicksPerMillisecond;
                 this.logger.Info($"{LogsSign} executed {request} remotely in {ms.ToString("0.00")}ms ({request.RemoteExecutionTime.TotalMilliseconds.ToString("0.00")}ms)");
                 OnRemoteExecutionCompleted(new RemoteExecutionCompletedEventArgs(executionRequest,
@@ -448,14 +445,14 @@ namespace Neon.Rpc
             return SendInternal(methodIdentity, SendingOptions.Default);
         }
 
-        public virtual Task Send(int methodIdentity, SendingOptions sendingOptions)
+        public virtual Task Send(int methodIdentity, SendingOptions options)
         {
-            return SendInternal(methodIdentity, sendingOptions);
+            return SendInternal(methodIdentity, options);
         }
 
-        public virtual Task Send(string methodIdentity, SendingOptions sendingOptions)
+        public virtual Task Send(string methodIdentity, SendingOptions options)
         {
-            return SendInternal(methodIdentity, sendingOptions);
+            return SendInternal(methodIdentity, options);
         }
 
         async Task SendInternal(object methodIdentity, SendingOptions sendingOptions)
@@ -490,14 +487,14 @@ namespace Neon.Rpc
             return SendInternal(methodIdentity, arg, SendingOptions.Default);
         }
 
-        public virtual Task Send<T>(int methodIdentity, T arg, SendingOptions sendingOptions)
+        public virtual Task Send<T>(int methodIdentity, T arg, SendingOptions options)
         {
-            return SendInternal(methodIdentity, arg, sendingOptions);
+            return SendInternal(methodIdentity, arg, options);
         }
 
-        public virtual Task Send<T>(string methodIdentity, T arg, SendingOptions sendingOptions)
+        public virtual Task Send<T>(string methodIdentity, T arg, SendingOptions options)
         {
-            return SendInternal(methodIdentity, arg, sendingOptions);
+            return SendInternal(methodIdentity, arg, options);
         }
 
         async Task SendInternal<T>(object methodIdentity, T arg, SendingOptions sendingOptions)

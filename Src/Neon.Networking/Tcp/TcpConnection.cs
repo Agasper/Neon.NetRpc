@@ -238,7 +238,7 @@ namespace Neon.Networking.Tcp
         }
 
         /// <summary>
-        /// Close the connection
+        /// Closes the connection
         /// </summary>
         public virtual void Close()
         {

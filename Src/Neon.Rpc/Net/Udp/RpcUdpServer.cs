@@ -15,16 +15,18 @@ namespace Neon.Rpc.Net.Udp
     {
         internal class InnerUdpServer : UdpServer
         {
-            RpcUdpServer parent;
+            readonly RpcUdpServer parent;
+            readonly RpcUdpConfigurationServer configuration;
 
             public InnerUdpServer(RpcUdpServer parent, RpcUdpConfigurationServer configuration) : base(configuration.UdpConfiguration)
             {
                 this.parent = parent;
+                this.configuration = configuration;
             }
-            
+
             protected override UdpConnection CreateConnection()
             {
-                return parent.CreateConnection();
+                return new RpcUdpConnection(this, parent, configuration);
             }
 
             protected override void OnConnectionClosed(ConnectionClosedEventArgs args)
@@ -40,8 +42,21 @@ namespace Neon.Rpc.Net.Udp
             }
         }
 
+        /// <summary>
+        /// User-defined tag
+        /// </summary>
+        public string Tag { get; set; }
+        /// <summary>
+        /// Raised when a new session is opened
+        /// </summary>
         public event DOnSessionOpened OnSessionOpenedEvent;
+        /// <summary>
+        /// Raised if previously opened session closed
+        /// </summary>
         public event DOnSessionClosed OnSessionClosedEvent;
+        /// <summary>
+        /// Server configuration
+        /// </summary>
         public RpcUdpConfigurationServer Configuration => configuration;
 
         readonly InnerUdpServer innerUdpServer;
@@ -61,8 +76,14 @@ namespace Neon.Rpc.Net.Udp
             this.logger.Meta["kind"] = this.GetType().Name;
         }
 
+        /// <summary>
+        /// The number of currently active sessions
+        /// </summary>
         public int SessionsCount => innerUdpServer.Connections.Count;
 
+        /// <summary>
+        /// Thread-safe sessions enumerator
+        /// </summary>
         public IEnumerable<RpcSession> Sessions
         {
             get
@@ -76,35 +97,58 @@ namespace Neon.Rpc.Net.Udp
             }
         }
 
+        /// <summary>
+        /// Start an internal network thread
+        /// </summary>
         public void Start()
         {
             innerUdpServer.Start();
         }
         
+        /// <summary>
+        /// Shutting down the peer, destroying all the connections and free memory
+        /// </summary>
         public void Shutdown()
         {
             innerUdpServer.Shutdown();
         }
         
+        /// <summary>
+        /// Places a server in a listening state
+        /// </summary>
+        /// <param name="port">A port the socket will bind to</param>
+        /// <exception cref="T:System.Net.Sockets.SocketException">An error occurred when attempting to access the socket.</exception>
+        /// <exception cref="T:System.ObjectDisposedException">The <see cref="T:System.Net.Sockets.Socket" /> has been closed.</exception>
+        /// <exception cref="T:System.Security.SecurityException">A caller higher in the call stack does not have permission for the requested operation.</exception>
         public void Listen(int port)
         {
             innerUdpServer.Listen(port);
         }
 
+        /// <summary>
+        /// Places a server in a listening state
+        /// </summary>
+        /// <param name="host">An ip address or domain the socket will bind to. Can be null, it wil use a default one</param>
+        /// <param name="port">A port the socket will bind to</param>
+        /// <exception cref="T:System.Net.Sockets.SocketException">An error occurred when attempting to access the socket.</exception>
+        /// <exception cref="T:System.ObjectDisposedException">The <see cref="T:System.Net.Sockets.Socket" /> has been closed.</exception>
+        /// <exception cref="T:System.Security.SecurityException">A caller higher in the call stack does not have permission for the requested operation.</exception>
         public void Listen(string host, int port)
         {
             innerUdpServer.Listen(host, port);
         }
 
+        /// <summary>
+        /// Places a server in a listening state
+        /// </summary>
+        /// <param name="endPoint">An ip endpoint the socket will bind to</param>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="endPoint" /> is <see langword="null" />.</exception>
+        /// <exception cref="T:System.Net.Sockets.SocketException">An error occurred when attempting to access the socket.</exception>
+        /// <exception cref="T:System.ObjectDisposedException">The <see cref="T:System.Net.Sockets.Socket" /> has been closed.</exception>
+        /// <exception cref="T:System.Security.SecurityException">A caller higher in the call stack does not have permission for the requested operation.</exception>
         public void Listen(IPEndPoint endPoint)
         {
             innerUdpServer.Listen(endPoint);
-        }
-
-        internal virtual RpcUdpConnection CreateConnection()
-        {
-            RpcUdpConnection connection = new RpcUdpConnection(innerUdpServer, this, configuration);
-            return connection;
         }
 
         internal void OnConnectionOpened(ConnectionOpenedEventArgs args)

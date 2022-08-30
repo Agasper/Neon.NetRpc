@@ -47,6 +47,11 @@ namespace Neon.Rpc
             return methodContainer;
         }
 
+        protected virtual bool OnValidateMethod(MethodContainer methodContainer)
+        {
+            
+        }
+
         void Init(RemotingInvocationRules configuration, Type entityType)
         {
             Dictionary<object, MethodContainer> myRemotingMethods2 = new Dictionary<object, MethodContainer>();

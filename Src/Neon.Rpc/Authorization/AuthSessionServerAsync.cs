@@ -5,6 +5,9 @@ using Neon.Util;
 
 namespace Neon.Rpc.Authorization
 {
+    /// <summary>
+    /// An async version of server authentication session
+    /// </summary>
     public abstract class AuthSessionServerAsync : AuthSessionServerBase
     {
         protected AuthSessionServerAsync(AuthSessionContext sessionContext)

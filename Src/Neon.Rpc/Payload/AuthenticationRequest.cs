@@ -2,7 +2,7 @@ using Neon.Rpc.Serialization;
 
 namespace Neon.Rpc.Payload
 {
-    public class AuthenticationRequest : RemotingPayload
+    class AuthenticationRequest : RemotingPayload
     {
         public override void WriteTo(IRpcMessage message)
         {

@@ -2,7 +2,7 @@
 
 namespace Neon.Rpc.Payload
 {
-    public class RemotingResponse : RemotingPayload
+    class RemotingResponse : RemotingPayload
     {
         public uint RequestId { get; set; }
         public ulong ExecutionTime { get; set; }

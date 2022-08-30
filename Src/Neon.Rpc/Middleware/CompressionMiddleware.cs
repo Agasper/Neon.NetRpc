@@ -8,7 +8,7 @@ using Neon.Rpc.Net.Tcp;
 
 namespace Middleware
 {
-    public class CompressionMiddleware : IMiddleware
+    class CompressionMiddleware : IMiddleware
     {
         readonly ILogger logger;
         readonly IMiddlewareConnection connection;

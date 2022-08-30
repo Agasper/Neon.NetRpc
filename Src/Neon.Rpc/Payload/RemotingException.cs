@@ -20,7 +20,9 @@ namespace Neon.Rpc.Payload
             UserDefined = 6
         }
         
-        // public override string Message => base.Message;
+        /// <summary>
+        /// Gets a string representation of the immediate frames on the call stack 
+        /// </summary>
         public override string StackTrace
         {
             get
@@ -31,8 +33,13 @@ namespace Neon.Rpc.Payload
                     return remoteStackTrace;
             }
         }
-
+        /// <summary>
+        /// Exception status code
+        /// </summary>
         public StatusCodeEnum StatusCode => statusCode;
+        /// <summary>
+        /// If this exception is caused by another one return a type of inner exception
+        /// </summary>
         public string InnerExceptionType => remoteType;
 
         string remoteStackTrace;

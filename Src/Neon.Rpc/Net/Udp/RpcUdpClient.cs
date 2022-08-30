@@ -40,12 +40,33 @@ namespace Neon.Rpc.Net.Udp
             }
         }
         
+        /// <summary>
+        /// User-defined tag
+        /// </summary>
+        public string Tag { get; set; }
+        /// <summary>
+        /// Client configuration
+        /// </summary>
         public RpcUdpConfigurationClient Configuration => configuration;
+        /// <summary>
+        /// Client session (can be null)
+        /// </summary>
         public RpcSession Session { get; private set; }
+        /// <summary>
+        /// Client status
+        /// </summary>
         public RpcClientStatus Status { get; private set; }
-        public bool Ready => Session != null;
+        /// <summary>
+        /// Raised when session is ready and status is SessionReady
+        /// </summary>
         public event DOnSessionOpened OnSessionOpenedEvent;
+        /// <summary>
+        /// Raised if previously open session closed
+        /// </summary>
         public event DOnSessionClosed OnSessionClosedEvent;
+        /// <summary>
+        /// Raised when client status changed
+        /// </summary>
         public event DOnClientStatusChanged OnStatusChangedEvent;
         
         readonly InnerUdpClient innerUdpClient;
@@ -79,21 +100,34 @@ namespace Neon.Rpc.Net.Udp
                 (state) => OnStatusChangedEvent?.Invoke(state as RpcClientStatusChangedEventArgs), args);
         }
         
+        /// <summary>
+        /// Start an internal network thread
+        /// </summary>
         public void Start()
         {
             innerUdpClient.Start();
         }
         
+        /// <summary>
+        /// Disconnects and shutdown the client
+        /// </summary>
         public void Shutdown()
         {
             innerUdpClient.Shutdown();
         }
         
+        /// <summary>
+        /// Starting a new client session without authentication if the connection is established
+        /// </summary>
         public Task StartSessionNoAuth()
         {
             return StartSessionNoAuth(default);
         }
 
+        /// <summary>
+        /// Starting a new client session without authentication if the connection is established
+        /// </summary>
+        /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete</param>
         public Task StartSessionNoAuth(CancellationToken cancellationToken)
         {
             RpcUdpConnection connection = innerUdpClient.Connection as RpcUdpConnection;
@@ -102,11 +136,20 @@ namespace Neon.Rpc.Net.Udp
             return connection.StartClientSession(false, null, cancellationToken);
         }
 
+        /// <summary>
+        /// Starting a new client session with authentication if the connection is established
+        /// </summary>
+        /// <param name="authObject">Authentication object passing to the server</param>
         public Task StartSessionWithAuth(object authObject)
         {
             return StartSessionWithAuth(authObject, default);
         }
         
+        /// <summary>
+        /// Starting a new client session with authentication if the connection is established
+        /// </summary>
+        /// <param name="authObject">Authentication object passing to the server</param>
+        /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete</param>
         public Task StartSessionWithAuth(object authObject, CancellationToken cancellationToken)
         {
             RpcUdpConnection connection = innerUdpClient.Connection as RpcUdpConnection;
@@ -115,11 +158,24 @@ namespace Neon.Rpc.Net.Udp
             return connection.StartClientSession(true, authObject, cancellationToken);
         }
 
+        /// <summary>
+        /// Starts a new connection to the server
+        /// </summary>
+        /// <param name="host">IP address or domain of the server</param>
+        /// <param name="port">Server port</param>
+        /// <param name="ipAddressSelectionRules">If destination host resolves to a few ap addresses, which we should take</param>
         public Task OpenConnectionAsync(string host, int port, IPAddressSelectionRules ipAddressSelectionRules = default)
         {
             return OpenConnectionAsync(host, port, ipAddressSelectionRules,default);
         }
         
+        /// <summary>
+        /// Starts a new connection to the server
+        /// </summary>
+        /// <param name="host">IP address or domain of the server</param>
+        /// <param name="port">Server port</param>
+        /// <param name="ipAddressSelectionRules">If destination host resolves to a few ap addresses, which we should take</param>
+        /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete</param>
         public async Task OpenConnectionAsync(string host, int port, IPAddressSelectionRules ipAddressSelectionRules, CancellationToken cancellationToken)
         {
             if (Session != null)
@@ -143,11 +199,20 @@ namespace Neon.Rpc.Net.Udp
             }
         }
 
+        /// <summary>
+        /// Starts a new connection to the server
+        /// </summary>
+        /// <param name="endpoint">IP endpoint of a desired host</param>
         public Task OpenConnectionAsync(IPEndPoint endpoint)
         {
             return OpenConnectionAsync(endpoint, default);
         }
 
+        /// <summary>
+        /// Starts a new connection to the server
+        /// </summary>
+        /// <param name="endpoint">IP endpoint of a desired host</param>
+        /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete</param>
         public async Task OpenConnectionAsync(IPEndPoint endpoint, CancellationToken cancellationToken)
         {
             if (Session != null)
@@ -170,6 +235,9 @@ namespace Neon.Rpc.Net.Udp
             }
         }
 
+        /// <summary>
+        /// Closing any established session/connection
+        /// </summary>
         public Task CloseAsync()
         {
             return innerUdpClient.DisconnectAsync();

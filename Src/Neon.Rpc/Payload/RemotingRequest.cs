@@ -6,7 +6,7 @@ using Neon.Util;
 
 namespace Neon.Rpc.Payload
 {
-    public class RemotingRequest : RemotingPayload
+    class RemotingRequest : RemotingPayload
     {
         public bool ExpectResult { get; set; }
         public bool ExpectResponse { get; set; }

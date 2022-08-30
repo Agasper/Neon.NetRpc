@@ -55,13 +55,37 @@ namespace Neon.Rpc.Net.Tcp
             }
         }
 
+        /// <summary>
+        /// User-defined tag
+        /// </summary>
         public string Tag { get; set; }
+        /// <summary>
+        /// Client configuration
+        /// </summary>
         public RpcTcpConfigurationClient Configuration => configuration;
+        /// <summary>
+        /// Client session (can be null)
+        /// </summary>
         public RpcSession Session { get; private set; }
+        /// <summary>
+        /// Client connection statistics
+        /// </summary>
         public TcpConnectionStatistics Statistics => innerTcpClient?.Connection?.Statistics;
+        /// <summary>
+        /// Client status
+        /// </summary>
         public RpcClientStatus Status { get; private set; }
+        /// <summary>
+        /// Raised when session is ready and status is SessionReady
+        /// </summary>
         public event DOnSessionOpened OnSessionOpenedEvent;
+        /// <summary>
+        /// Raised if previously open session closed
+        /// </summary>
         public event DOnSessionClosed OnSessionClosedEvent;
+        /// <summary>
+        /// Raised when client status changed
+        /// </summary>
         public event DOnClientStatusChanged OnStatusChangedEvent;
         
         readonly InnerTcpClient innerTcpClient;
@@ -84,21 +108,34 @@ namespace Neon.Rpc.Net.Tcp
             this.logger.Meta["tag"] = new RefLogLabel<RpcTcpClient>(this, s => s.Tag);
         }
         
+        /// <summary>
+        /// Start an internal network thread
+        /// </summary>
         public void Start()
         {
             innerTcpClient.Start();
         }
         
+        /// <summary>
+        /// Disconnects and shutdown the client
+        /// </summary>
         public void Shutdown()
         {
             innerTcpClient.Shutdown();
         }
 
+        /// <summary>
+        /// Starting a new client session without authentication if the connection is established
+        /// </summary>
         public Task StartSessionNoAuth()
         {
             return StartSessionNoAuth(default);
         }
 
+        /// <summary>
+        /// Starting a new client session without authentication if the connection is established
+        /// </summary>
+        /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete</param>
         public Task StartSessionNoAuth(CancellationToken cancellationToken)
         {
             RpcTcpConnection connection = innerTcpClient.Connection as RpcTcpConnection;
@@ -107,11 +144,20 @@ namespace Neon.Rpc.Net.Tcp
             return connection.StartClientSession(false, null, cancellationToken);
         }
 
+        /// <summary>
+        /// Starting a new client session with authentication if the connection is established
+        /// </summary>
+        /// <param name="authObject">Authentication object passing to the server</param>
         public Task StartSessionWithAuth(object authObject)
         {
             return StartSessionWithAuth(authObject, default);
         }
         
+        /// <summary>
+        /// Starting a new client session with authentication if the connection is established
+        /// </summary>
+        /// <param name="authObject">Authentication object passing to the server</param>
+        /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete</param>
         public Task StartSessionWithAuth(object authObject, CancellationToken cancellationToken)
         {
             RpcTcpConnection connection = innerTcpClient.Connection as RpcTcpConnection;
@@ -120,11 +166,24 @@ namespace Neon.Rpc.Net.Tcp
             return connection.StartClientSession(true, authObject, cancellationToken);
         }
         
+        /// <summary>
+        /// Starts a new connection to the server
+        /// </summary>
+        /// <param name="host">IP address or domain of the server</param>
+        /// <param name="port">Server port</param>
+        /// <param name="ipAddressSelectionRules">If destination host resolves to a few ap addresses, which we should take</param>
         public Task OpenConnectionAsync(string host, int port, IPAddressSelectionRules ipAddressSelectionRules = default)
         {
             return OpenConnectionAsync(host, port, ipAddressSelectionRules,default);
         }
 
+        /// <summary>
+        /// Starts a new connection to the server
+        /// </summary>
+        /// <param name="host">IP address or domain of the server</param>
+        /// <param name="port">Server port</param>
+        /// <param name="ipAddressSelectionRules">If destination host resolves to a few ap addresses, which we should take</param>
+        /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete</param>
         public async Task OpenConnectionAsync(string host, int port, IPAddressSelectionRules ipAddressSelectionRules, CancellationToken cancellationToken)
         {
             if (Status != RpcClientStatus.Disconnected)
@@ -148,11 +207,20 @@ namespace Neon.Rpc.Net.Tcp
             }
         }
         
+        /// <summary>
+        /// Starts a new connection to the server
+        /// </summary>
+        /// <param name="endpoint">IP endpoint of a desired host</param>
         public Task OpenConnectionAsync(IPEndPoint endpoint)
         {
             return OpenConnectionAsync(endpoint, default);
         }
         
+        /// <summary>
+        /// Starts a new connection to the server
+        /// </summary>
+        /// <param name="endpoint">IP endpoint of a desired host</param>
+        /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete</param>
         public async Task OpenConnectionAsync(IPEndPoint endpoint, CancellationToken cancellationToken)
         {
             if (Status != RpcClientStatus.Disconnected)
@@ -182,6 +250,9 @@ namespace Neon.Rpc.Net.Tcp
             ChangeStatus(RpcClientStatus.Disconnected);
         }
 
+        /// <summary>
+        /// Closing any established session/connection
+        /// </summary>
         public void Close()
         {
             CloseInternal();

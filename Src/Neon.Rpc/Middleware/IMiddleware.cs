@@ -4,7 +4,7 @@ using Neon.Networking.Messages;
 
 namespace Middleware
 {
-    public interface IMiddleware
+    interface IMiddleware
     {
         Task Start(CancellationToken cancellationToken);
         

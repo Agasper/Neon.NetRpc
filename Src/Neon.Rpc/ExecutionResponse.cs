@@ -4,7 +4,13 @@ namespace Neon.Rpc
 {
     public struct ExecutionResponse
     {
+        /// <summary>
+        /// Does response has result
+        /// </summary>
         public bool HasResult { get; private set; }
+        /// <summary>
+        /// Nullable response
+        /// </summary>
         public object Result { get; private set; }
         
         public ExecutionResponse(bool hasResult, object result)
@@ -13,13 +19,13 @@ namespace Neon.Rpc
             this.Result = result;
         }
         
-        public ExecutionResponse(RemotingResponse response)
+        internal ExecutionResponse(RemotingResponse response)
         {
             this.HasResult = response.HasArgument;
             this.Result = response.Argument;
         }
 
-        public static ExecutionResponse FromResult(object result)
+        internal static ExecutionResponse FromResult(object result)
         {
             return new ExecutionResponse()
             {
@@ -28,7 +34,7 @@ namespace Neon.Rpc
             };
         }
 
-        public static ExecutionResponse NoResponse
+        internal static ExecutionResponse NoResponse
         {
             get
             {

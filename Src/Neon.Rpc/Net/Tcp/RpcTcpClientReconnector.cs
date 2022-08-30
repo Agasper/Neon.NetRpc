@@ -6,6 +6,9 @@ using Neon.Networking;
 
 namespace Neon.Rpc.Net.Tcp
 {
+    /// <summary>
+    /// Helper for maintaining client to server connection active
+    /// </summary>
     public class RpcTcpClientReconnector : IDisposable
     {
         const int INTERVAL = 1000;
@@ -24,6 +27,14 @@ namespace Neon.Rpc.Net.Tcp
 
         DateTime? disconnectedFrom;
         
+        /// <summary>
+        /// Helper for maintaining client to server connection active
+        /// </summary>
+        /// <param name="client">Instance of RpcTcpClient</param>
+        /// <param name="delay">After connection dropped we should wait a delay before trying to establish a new connection</param>
+        /// <param name="endpoint">Server endpoint</param>
+        /// <param name="authRequired">Does server require authentication</param>
+        /// <param name="authObject">If server require authentication, the object we want to pass to</param>
         public RpcTcpClientReconnector(RpcTcpClient client, int delay, IPEndPoint endpoint, bool authRequired, object authObject)
         {
             this.delay = delay;
@@ -34,6 +45,16 @@ namespace Neon.Rpc.Net.Tcp
             this.useEndpoint = true;
         }
         
+        /// <summary>
+        /// Helper for maintaining client to server connection active
+        /// </summary>
+        /// <param name="client">Instance of RpcTcpClient</param>
+        /// <param name="delay">After connection dropped we should wait a delay before trying to establish a new connection</param>
+        /// <param name="host">Server IP address or domain</param>
+        /// <param name="port">Server port</param>
+        /// <param name="ipAddressSelectionRules">If destination host resolves to a few ap addresses, which we should take</param>
+        /// <param name="authRequired">Does server require authentication</param>
+        /// <param name="authObject">If server require authentication, the object we want to pass to</param>
         public RpcTcpClientReconnector(RpcTcpClient client, int delay, string host, int port, IPAddressSelectionRules ipAddressSelectionRules, bool authRequired, object authObject)
         {
             this.ipAddressSelectionRules = ipAddressSelectionRules;
@@ -46,12 +67,18 @@ namespace Neon.Rpc.Net.Tcp
             this.useEndpoint = false;
         }
 
+        /// <summary>
+        /// Starting a reconnection timer
+        /// </summary>
         public void Start()
         {
             Stop();
             timer = new Timer(Callback, null, INTERVAL, INTERVAL);
         }
 
+        /// <summary>
+        /// Stopping a reconnection timer
+        /// </summary>
         public void Stop()
         {
             timer?.Dispose();
@@ -115,6 +142,9 @@ namespace Neon.Rpc.Net.Tcp
             }
         }
 
+        /// <summary>
+        /// Releases all resources used by the current instance of <see cref="T:Neon.Rpc.Net.Tcp.RpcTcpClientReconnector" />
+        /// </summary>
         public void Dispose()
         {
             timer?.Dispose();

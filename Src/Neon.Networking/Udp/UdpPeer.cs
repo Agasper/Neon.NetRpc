@@ -109,11 +109,17 @@ namespace Neon.Networking.Udp
             }
         }
 
+        /// <summary>
+        /// Start an internal network thread
+        /// </summary>
         public virtual void Start()
         {
             this.poller.StartPolling();
         }
 
+        /// <summary>
+        /// Disconnects and shutdown the client
+        /// </summary>
         public virtual void Shutdown()
         {
             this.socketArgsPool.Clear();

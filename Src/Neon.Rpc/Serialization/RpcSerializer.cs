@@ -15,14 +15,15 @@ namespace Neon.Rpc.Serialization
 {
     public class RpcSerializer
     {
-        // static ILogger logger = LogManager.Default.GetLogger(nameof(RpcSerializer));
-        //
-        public enum PayloadType : byte
+        enum PayloadType : byte
         {
             TypeCode,
             Protobuf
         }
         
+        /// <summary>
+        /// Serializer encoding
+        /// </summary>
         public Encoding Encoding { get; }
 
         protected Dictionary<string, MessageInfo> messageMap;
@@ -53,28 +54,34 @@ namespace Neon.Rpc.Serialization
             return type.GetInterfaces().Contains(typeof(IMessage));
         }
 
+        /// <summary>
+        /// Registering a new protobuf message type
+        /// </summary>
+        /// <param name="type">Message type</param>
+        /// <returns>true if message registered, false if already registered</returns>
+        /// <exception cref="NullReferenceException">if type is null</exception>
+        /// <exception cref="ArgumentException">if type is not protobuf message, it's descriptor or parser not found</exception>
         public bool RegisterType(Type type)
         {
+            if (type == null) 
+                throw new ArgumentNullException(nameof(type));
+            
             if (!IsValidType(type))
-                throw new InvalidOperationException(
+                throw new ArgumentException(
                     $"The provided type {type.FullName} must be inherited from {nameof(IMessage)}");
 
             MessageDescriptor descriptor = type.GetProperty("Descriptor",
                 BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as MessageDescriptor;
 
             if (descriptor == null)
-                throw new NullReferenceException(
+                throw new ArgumentException(
                     $"{nameof(MessageDescriptor)} not found for message {type.FullName}");
-
-            ConstructorInfo constructorInfo = descriptor.ClrType.GetConstructor(Type.EmptyTypes);
-            if (constructorInfo == null)
-                throw new ArgumentException($"Message {descriptor.ClrType.Name} doesn't have public parameterless constructor");
             
             MessageParser parser = type.GetProperty("Parser",
                 BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as MessageParser;
 
             if (parser == null)
-                throw new NullReferenceException(
+                throw new ArgumentException(
                     $"{nameof(MessageParser)} not found for message {type.FullName}");
 
             uint? messageId = null;
@@ -129,6 +136,10 @@ namespace Neon.Rpc.Serialization
             
         }
 
+        /// <summary>
+        /// Registering all the protobuf messages from current assembly 
+        /// </summary>
+        /// <exception cref="NullReferenceException">couldn't get current assembly</exception>
         public void RegisterTypesFromCurrentAssembly()
         {
             Assembly assembly = Assembly.GetEntryAssembly();
@@ -137,6 +148,10 @@ namespace Neon.Rpc.Serialization
             this.RegisterTypesFromAssembly(assembly);
         }
 
+        /// <summary>
+        /// Registering all the protobuf messages from the specified assemblies
+        /// </summary>
+        /// <param name="assemblies">Assemblies</param>
         public void RegisterTypesFromAssembly(params Assembly[] assemblies)
         {
             if (assemblies == null)
@@ -153,6 +168,14 @@ namespace Neon.Rpc.Serialization
             }
         }
 
+        /// <summary>
+        /// Deserializes object from the message
+        /// </summary>
+        /// <param name="message">Message</param>
+        /// <returns>An instance of new object</returns>
+        /// <exception cref="ArgumentNullException">Message is null</exception>
+        /// <exception cref="ArgumentException">Wrong message format</exception>
+        /// <exception cref="InvalidOperationException">Message type is not registered in this serializer, or message has wrong payload type</exception>
         public object ParseBinary(IRawMessage message)
         {
             if (message == null) throw new ArgumentNullException(nameof(message));
@@ -202,6 +225,15 @@ namespace Neon.Rpc.Serialization
             throw new InvalidOperationException($"Unsupported payload type {(int)payloadType}");
         }
 
+        /// <summary>
+        /// Serializes object to the message
+        /// </summary>
+        /// <param name="message">Message</param>
+        /// <param name="value">Object instance</param>
+        /// <exception cref="ArgumentNullException">Message is null</exception>
+        /// <exception cref="ArgumentException">Object has wrong type (not protobuf and not primitive)</exception>
+        /// <exception cref="InvalidOperationException">Message type is not registered in this serializer</exception>
+        /// <exception cref="NotImplementedException"></exception>
         public void WriteBinary(IRawMessage message, object value)
         {
             if (message == null) throw new ArgumentNullException(nameof(message));
@@ -216,7 +248,7 @@ namespace Neon.Rpc.Serialization
                 var type = value.GetType();
                 if (!messageMapReverse.ContainsKey(type))
                 {
-                    throw new ArgumentException($"IMessage with clr type {type.FullName} not found in registry. Please register the type.");
+                    throw new InvalidOperationException($"IMessage with clr type {type.FullName} not found in registry. Please register the type.");
                 }
                 var messageInfo = messageMapReverse[type];
 
@@ -259,7 +291,7 @@ namespace Neon.Rpc.Serialization
                 throw new ArgumentException($"{nameof(value)} should be IMessage, IneonMessage or primitive type, but got {value.GetType().Name}");
         }
         
-        public static bool IsPrimitive(Type type)
+        static bool IsPrimitive(Type type)
         {
             TypeCode typeCode = Type.GetTypeCode(type);
             if (typeCode == TypeCode.Empty || 

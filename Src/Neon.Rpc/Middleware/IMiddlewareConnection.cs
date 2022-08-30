@@ -4,7 +4,7 @@ using Neon.Networking.Udp.Messages;
 
 namespace Middleware
 {
-    public interface IMiddlewareConnection
+    interface IMiddlewareConnection
     {
         long Id { get; }
         bool Connected { get; }

@@ -7,21 +7,51 @@ using Neon.Rpc.Payload;
 
 namespace Neon.Rpc
 {
+    
+    /// <summary>
+    /// Container optimizes any method execution with a lambda expressions
+    /// </summary>
     public class MethodContainer
     {
         delegate object InvokeDelegate(object session, params object[] obj);
 
         delegate object DTaskResultDelegate(Task task);
         static readonly ConcurrentDictionary<Type, DTaskResultDelegate> taskResultsCache = new ConcurrentDictionary<Type, DTaskResultDelegate>();
+        
+        /// <summary>
+        /// Does this method return Task or Task<>
+        /// </summary>
+        public bool IsReturnTask { get;  }
+        
+        /// <summary>
+        /// false if this method void or return Task, otherwise true
+        /// </summary>
+        public bool DoesReturnValue { get;  }
+        
+        /// <summary>
+        /// If this method void
+        /// </summary>
+        public bool IsVoidMethod { get;  }
+        
+        /// <summary>
+        /// Method info
+        /// </summary>
+        public MethodInfo MethodInfo { get; }
+        
+        /// <summary>
+        /// Method arguments
+        /// </summary>
+        public ParameterInfo[] Parameters { get; }
+        
+        /// <summary>
+        /// Method return type
+        /// </summary>
+        public Type ReturnType { get; }
 
-        public bool IsAsyncMethod { get; private set; }
-        public bool DoesReturnValue { get; private set; }
-        public bool IsVoidMethod { get; private set; }
-        public MethodInfo MethodInfo { get; private set; }
-        public ParameterInfo[] Parameters { get; private set; }
-        public Type ReturnType { get; private set; }
-
-        public bool CanUseLambda { get; private set; }
+        /// <summary>
+        /// Can we use lambda functions for invocation optimizations
+        /// </summary>
+        public bool CanUseLambda { get; }
 
         InvokeDelegate invokeDelegate;
 
@@ -35,9 +65,9 @@ namespace Neon.Rpc
 
             this.Parameters = methodInfo.GetParameters();
 
-            IsAsyncMethod = methodInfo.ReturnType.IsGenericType &&
+            IsReturnTask = methodInfo.ReturnType.IsGenericType &&
                 methodInfo.ReturnType.GetGenericTypeDefinition() == typeof(Task<>);
-            IsAsyncMethod |= methodInfo.ReturnType == typeof(Task);
+            IsReturnTask |= methodInfo.ReturnType == typeof(Task);
 
             DoesReturnValue = methodInfo.ReturnType != typeof(void) &&
                 methodInfo.ReturnType != typeof(Task);
@@ -55,11 +85,11 @@ namespace Neon.Rpc
         {
             if (IsVoidMethod)
             {
-                invokeDelegate = (session, obj) => MethodInfo.Invoke(session, obj);
+                invokeDelegate = (entity, obj) => MethodInfo.Invoke(entity, obj);
             }
             else
             {
-                invokeDelegate = (session, obj) => MethodInfo.Invoke(session, obj);
+                invokeDelegate = (entity, obj) => MethodInfo.Invoke(entity, obj);
             }
         }
 
@@ -95,12 +125,12 @@ namespace Neon.Rpc
 
 
             Expression resultBody;
-            var excepParam = Expression.Parameter(typeof(Exception));
+            // var exceptionParam = Expression.Parameter(typeof(Exception));
             if (IsVoidMethod)
             {
                 Expression funcBody = Expression.Block(callBody, Expression.Constant(null));
 
-                resultBody = funcBody;// Expression.TryCatch(funcBody, Expression.Catch(excepParam, Expression.Throw(Expression.New(InvokationException.GetConstructorInfo(), excepParam), typeof(object))));
+                resultBody = funcBody;// Expression.TryCatch(funcBody, Expression.Catch(exceptionParam, Expression.Throw(Expression.New(InvokationException.GetConstructorInfo(), excepParam), typeof(object))));
             }
             else
             {
@@ -108,7 +138,7 @@ namespace Neon.Rpc
                 if (ReturnType.GetTypeInfo().IsValueType)
                     funcBody = Expression.Convert(funcBody, typeof(object));
 
-                resultBody = funcBody;// Expression.TryCatch(funcBody, Expression.Catch(excepParam, Expression.Throw(Expression.New(InvokationException.GetConstructorInfo(), excepParam), funcBody.Type)));
+                resultBody = funcBody;// Expression.TryCatch(funcBody, Expression.Catch(exceptionParam, Expression.Throw(Expression.New(InvokationException.GetConstructorInfo(), excepParam), funcBody.Type)));
             }
 
             invokeDelegate = Expression.Lambda<InvokeDelegate>(resultBody, entityParam, arrayObjectParam).Compile();
@@ -116,8 +146,8 @@ namespace Neon.Rpc
 
         object InvokeInternal(object entity, params object[] arguments)
         {
-            if (arguments.Length != Parameters.Length)
-                throw new RemotingException($"Invalid method {MethodInfo.DeclaringType.Name}.{MethodInfo.Name} parameters count", RemotingException.StatusCodeEnum.MethodSignatureMismatch);
+            // if (arguments.Length != Parameters.Length)
+            //     throw new RemotingException($"Invalid method {MethodInfo.DeclaringType.Name}.{MethodInfo.Name} parameters count", RemotingException.StatusCodeEnum.MethodSignatureMismatch);
 
             //try
             //{
@@ -129,17 +159,30 @@ namespace Neon.Rpc
             //}
         }
 
+        /// <summary>
+        /// Invoke non-async method
+        /// </summary>
+        /// <param name="entity">Instance of entity</param>
+        /// <param name="arguments">Method arguments</param>
+        /// <returns>Result of method invocation</returns>
+        /// <exception cref="InvalidOperationException">If method is async</exception>
         public object Invoke(object entity, params object[] arguments)
         {
-            if (IsAsyncMethod)
+            if (IsReturnTask)
                 throw new InvalidOperationException("Async methods can be executed only by InvokeAsync method");
 
             return InvokeInternal(entity, arguments);
         }
 
+        /// <summary>
+        /// Invoke async method
+        /// </summary>
+        /// <param name="entity">Instance of entity</param>
+        /// <param name="arguments">Method arguments</param>
+        /// <returns>A task that represents result of method invocation</returns>
         public async Task<object> InvokeAsync(object entity, params object[] arguments)
         {
-            if (!IsAsyncMethod)
+            if (!IsReturnTask)
                 return Invoke(entity, arguments);
 
             Task task = InvokeInternal(entity, arguments) as Task;

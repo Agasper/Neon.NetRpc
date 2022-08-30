@@ -15,7 +15,7 @@ using Neon.Rpc.Net.Tcp;
 
 namespace Middleware
 {
-    public class EncryptionMiddleware : IMiddleware, IDisposable
+    class EncryptionMiddleware : IMiddleware, IDisposable
     {
         DiffieHellmanImpl dh;
         ICipher cipher;

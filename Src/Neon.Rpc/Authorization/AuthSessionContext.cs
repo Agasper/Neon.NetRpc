@@ -6,6 +6,9 @@ namespace Neon.Rpc.Authorization
 {
     public class AuthSessionContext : RpcSessionContextBase
     {
+        /// <summary>
+        /// A task scheduler from configuration
+        /// </summary>
         public TaskScheduler TaskScheduler { get; }
         internal DAuthPassedCallback SuccessCallback { get; }
 

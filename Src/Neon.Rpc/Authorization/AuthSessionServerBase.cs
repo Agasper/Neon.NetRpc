@@ -5,6 +5,9 @@ using Neon.Util;
 
 namespace Neon.Rpc.Authorization
 {
+    /// <summary>
+    /// A base class for server auth sessions
+    /// </summary>
     public abstract class AuthSessionServerBase : AuthSessionBase
     {
         private protected readonly TaskFactory<Task<object>> taskFactory;

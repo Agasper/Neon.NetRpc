@@ -80,7 +80,7 @@ namespace Neon.Networking.Tcp
         }
 
         /// <summary>
-        /// Creating a new empty message with a length defaulted my memory manager 
+        /// Creating a new empty message with a length defaulted by memory manager 
         /// </summary>
         /// <returns>A new message</returns>
         public RawMessage CreateMessage()

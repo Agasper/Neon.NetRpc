@@ -23,19 +23,19 @@ namespace Neon.Networking.Tcp
         /// </summary>
         public bool NoDelay { get => noDelay; set { CheckLocked(); noDelay = value; } }
         /// <summary>
-        /// Set SocketOptionName.ReuseAddress
+        /// Sets SocketOptionName.ReuseAddress
         /// </summary>
         public bool ReuseAddress { get => reuseAddress; set { CheckLocked(); reuseAddress = value; } }
         /// <summary>
-        /// Set socket send buffer size
+        /// Sets socket send buffer size
         /// </summary>
         public int SendBufferSize { get => sendBufferSize; set { CheckLocked(); sendBufferSize = value; } }
         /// <summary>
-        /// Set socket receive buffer size
+        /// Sets socket receive buffer size
         /// </summary>
         public int ReceiveBufferSize { get => receiveBufferSize; set { CheckLocked(); receiveBufferSize = value; } }
         /// <summary>
-        /// A manager who provide us streams and arrays for a temporary use
+        /// A manager which provide us streams and arrays for a temporary use
         /// </summary>
         public IMemoryManager MemoryManager { get => memoryManager; set { CheckLocked(); CheckNull(value); memoryManager = value; } }
         /// <summary>

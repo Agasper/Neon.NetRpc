@@ -8,7 +8,10 @@ namespace Neon.Rpc.Net.Udp
 {
     public class RpcUdpConfigurationServer : RpcConfiguration
     {
-             public ConnectionSimulation ConnectionSimulation
+        /// <summary>
+        /// Allows you to simulate bad network behaviour
+        /// </summary>
+        public ConnectionSimulation ConnectionSimulation
         {
             get => udpConfiguration.ConnectionSimulation;
             set
@@ -18,6 +21,9 @@ namespace Neon.Rpc.Net.Udp
             }
         }
 
+        /// <summary>
+        /// Set socket send buffer size
+        /// </summary>
         public int SendBufferSize
         {
             get => udpConfiguration.SendBufferSize;
@@ -28,6 +34,9 @@ namespace Neon.Rpc.Net.Udp
             }
         }
 
+        /// <summary>
+        /// Set socket receive buffer size
+        /// </summary>
         public int ReceiveBufferSize
         {
             get => udpConfiguration.ReceiveBufferSize;
@@ -38,6 +47,9 @@ namespace Neon.Rpc.Net.Udp
             }
         }
 
+        /// <summary>
+        /// Log manager for network logs
+        /// </summary>
         public ILogManager NetworkLogManager
         {
             get => udpConfiguration.LogManager;
@@ -49,6 +61,9 @@ namespace Neon.Rpc.Net.Udp
             }
         }
 
+        /// <summary>
+        /// A manager who provide us streams and arrays for a temporary use
+        /// </summary>
         public IMemoryManager MemoryManager
         {
             get => udpConfiguration.MemoryManager;
@@ -59,7 +74,10 @@ namespace Neon.Rpc.Net.Udp
                 udpConfiguration.MemoryManager = value;
             }
         }
-
+        
+        /// <summary>
+        /// Interval for pings
+        /// </summary>
         public int KeepAliveInterval
         {
             get => udpConfiguration.KeepAliveInterval;
@@ -70,6 +88,9 @@ namespace Neon.Rpc.Net.Udp
             }
         }
 
+        /// <summary>
+        /// If no packets received within this timeout, connection considered dead
+        /// </summary>
         public int ConnectionTimeout
         {
             get => udpConfiguration.ConnectionTimeout;
@@ -80,6 +101,9 @@ namespace Neon.Rpc.Net.Udp
             }
         }
         
+        /// <summary>
+        /// Do not expand MTU greater than this value
+        /// </summary>
         public int LimitMtu
         {
             get => udpConfiguration.LimitMtu;
@@ -90,6 +114,9 @@ namespace Neon.Rpc.Net.Udp
             }
         }
 
+        /// <summary>
+        /// Connection will be destroyed after linger timeout
+        /// </summary>
         public int ConnectionLingerTimeout
         {
             get => udpConfiguration.ConnectionLingerTimeout;
@@ -100,6 +127,9 @@ namespace Neon.Rpc.Net.Udp
             }
         }
         
+        /// <summary>
+        /// The amount of threads for grabbing packets from the socket
+        /// </summary>
         public int NetworkReceiveThreads
         {
             get => udpConfiguration.NetworkReceiveThreads;
@@ -110,6 +140,9 @@ namespace Neon.Rpc.Net.Udp
             }
         }
         
+        /// <summary>
+        /// Set SocketOptionName.ReuseAddress
+        /// </summary>
         public bool ReuseAddress
         {
             get => udpConfiguration.ReuseAddress;
@@ -120,6 +153,9 @@ namespace Neon.Rpc.Net.Udp
             }
         }
         
+        /// <summary>
+        /// Sets the authentication for processing authentication. If set server will require client authentication
+        /// </summary>
         public IAuthSessionFactory AuthSessionFactory
         {
             get => authSessionFactory;

@@ -6,7 +6,7 @@ using Neon.Networking.Messages;
 
 namespace Middleware
 {
-    public class Middlewares
+    class Middlewares
     {
         List<IMiddleware> middlewares;
         volatile int startIndex;

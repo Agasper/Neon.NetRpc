@@ -17,13 +17,34 @@ namespace Neon.Rpc
         void Close();
     }
     
+    /// <summary>
+    /// Representation of the transport connection
+    /// </summary>
     public interface IRpcConnection
     {
+        /// <summary>
+        /// Unique connection identifier
+        /// </summary>
         long Id { get; }
+        /// <summary>
+        /// User-defined tag
+        /// </summary>
         object Tag { get; }
+        /// <summary>
+        /// Connection statistics
+        /// </summary>
         IConnectionStatistics Statistics { get; }
+        /// <summary>
+        /// Does connection belongs to the client
+        /// </summary>
         bool IsClientConnection { get; }
+        /// <summary>
+        /// Is connection active
+        /// </summary>
         bool Connected { get; }
+        /// <summary>
+        /// Connection endpoint
+        /// </summary>
         EndPoint RemoteEndpoint { get; }
     }
 }

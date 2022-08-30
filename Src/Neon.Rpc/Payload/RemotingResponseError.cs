@@ -2,7 +2,7 @@
 
 namespace Neon.Rpc.Payload
 {
-    public class RemotingResponseError : INeonMessage
+    class RemotingResponseError : INeonMessage
     {
         public uint RequestId { get; set; }
         public object MethodKey { get; set; }

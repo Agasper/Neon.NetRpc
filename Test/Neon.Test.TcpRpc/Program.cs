@@ -93,7 +93,6 @@ namespace Neon.Test.TcpRpc
             configurationClient.LogManagerNetwork = logManagerNetworkClient;
             configurationClient.LogManager = logManagerRpcClient;
             configurationClient.OrderedExecution = true;
-            configurationClient.ConnectTimeout = 5000;
             configurationClient.SetCipher<Aes256Cipher>();
             configurationClient.SessionFactory = new SessionFactory(context);
             configurationClient.ContextSynchronizationMode = ContextSynchronizationMode.Post;

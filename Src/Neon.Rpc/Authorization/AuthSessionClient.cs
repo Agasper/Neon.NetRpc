@@ -5,8 +5,14 @@ using Neon.Rpc.Payload;
 
 namespace Neon.Rpc.Authorization
 {
+    /// <summary>
+    /// RpcClient auth session
+    /// </summary>
     public class AuthSessionClient : AuthSessionBase
     {
+        /// <summary>
+        /// Result of a remote authentication operation
+        /// </summary>
         public object AuthResult { get; private set; }
 
         TaskCompletionSource<object> tcs;

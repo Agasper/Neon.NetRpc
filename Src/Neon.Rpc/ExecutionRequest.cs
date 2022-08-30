@@ -4,8 +4,17 @@ namespace Neon.Rpc
 {
     public class ExecutionRequest
     {
+        /// <summary>
+        /// Does request has the argument
+        /// </summary>
         public bool HasArgument { get; private set; }
+        /// <summary>
+        /// Nullable argument
+        /// </summary>
         public object Argument { get; private set; }
+        /// <summary>
+        /// Method identifier
+        /// </summary>
         public object MethodKey { get; private set; }
 
         public ExecutionRequest(bool hasArgument, object argument, object methodKey)
@@ -15,7 +24,7 @@ namespace Neon.Rpc
             this.MethodKey = methodKey;
         }
 
-        public ExecutionRequest(RemotingRequest request) : this(request.HasArgument, request.Argument,
+        internal ExecutionRequest(RemotingRequest request) : this(request.HasArgument, request.Argument,
             request.MethodKey)
         {
             

@@ -2,7 +2,7 @@
 
 namespace Neon.Rpc.Payload
 {
-    public class RemotingPayload : INeonMessage
+    class RemotingPayload : INeonMessage
     {
         public bool HasArgument { get; set; }
         public object Argument { get; set; }

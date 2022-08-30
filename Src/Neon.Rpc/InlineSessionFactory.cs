@@ -5,6 +5,9 @@ namespace Neon.Rpc
 {
     public delegate RpcSession DCreateSession(RpcSessionContext context);
 
+    /// <summary>
+    /// Session factory helper class to create sessions from lambda
+    /// </summary>
     public class InlineSessionFactory : ISessionFactory
     {
         DCreateSession generator;

@@ -18,7 +18,13 @@ namespace Neon.Rpc.Net.Tcp
 {
     public class RpcTcpConnection : TcpConnection, IRpcConnectionInternal, IMiddlewareConnection
     {
+        /// <summary>
+        /// Current session bound (can be null)
+        /// </summary>
         public RpcSession Session => session;
+        /// <summary>
+        /// Connection statistics
+        /// </summary>
         IConnectionStatistics IRpcConnection.Statistics => this.Statistics;
 
         RpcSession session;
@@ -44,14 +50,17 @@ namespace Neon.Rpc.Net.Tcp
             this.middlewares = new Middlewares();
             this.logger = configuration.LogManager.GetLogger(nameof(RpcTcpConnection));
         }
-
+        
+        /// <summary>
+        /// Returns the memory used by this connection
+        /// </summary>
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
             this.encryptionMiddleware?.Dispose();
         }
 
-        public async Task Start(CancellationToken cancellationToken)
+        internal async Task Start(CancellationToken cancellationToken)
         {
             this.middlewares.Add(new CompressionMiddleware(configuration.CompressionThreshold, this,
                 configuration.LogManager));
@@ -72,7 +81,7 @@ namespace Neon.Rpc.Net.Tcp
             logger.Trace($"#{Id} middlewares started!");
         }
 
-        public void StartServerSession()
+        internal void StartServerSession()
         {
             if (!(configuration is RpcTcpConfigurationServer serverConf))
                 throw new InvalidOperationException(
@@ -92,7 +101,7 @@ namespace Neon.Rpc.Net.Tcp
             }
         }
 
-        public async Task StartClientSession(bool authRequired, object authObject, CancellationToken cancellationToken)
+        internal async Task StartClientSession(bool authRequired, object authObject, CancellationToken cancellationToken)
         {
             using (CancellationTokenSource mergedTcs =
                    CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, base.CancellationToken))
@@ -132,21 +141,39 @@ namespace Neon.Rpc.Net.Tcp
                 throw new OperationCanceledException("Connection was closed prematurely");
         }
 
+        /// <summary>
+        /// Creating a new empty message with a length defaulted by memory manager 
+        /// </summary>
+        /// <returns>A new message</returns>
         public RawMessage CreateMessage()
         {
             return Parent.CreateMessage();
         }
 
+        /// <summary>
+        /// Creating a new empty message with a predefined size. Returning message size may be bigger than requested value
+        /// </summary>
+        /// <param name="size">Size in bytes</param>
+        /// <returns>A new message</returns>
         public RawMessage CreateMessage(int length)
         {
             return Parent.CreateMessage(length);
         }
         
+        /// <summary>
+        /// Creating a new empty RPC message with a length defaulted by memory manager 
+        /// </summary>
+        /// <returns>A new RPC message</returns>
         public RpcMessage CreateRpcMessage()
         {
             return new RpcMessage(configuration.Serializer, Parent.CreateMessage());
         }
         
+        /// <summary>
+        /// Creating a new empty RPC message with a predefined size. Returning message size may be bigger than requested value
+        /// </summary>
+        /// <param name="size">Size in bytes</param>
+        /// <returns>A new RPC message</returns>
         public RpcMessage CreateRpcMessage(int length)
         {
             return new RpcMessage(configuration.Serializer, Parent.CreateMessage(length));
