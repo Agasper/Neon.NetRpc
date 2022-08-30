@@ -13,15 +13,13 @@ namespace Neon.Rpc
     /// </summary>
     public class MethodContainer
     {
-        delegate object InvokeDelegate(object session, params object[] obj);
+        delegate object DInvokeDelegate(object session, params object[] obj);
+        delegate object DGetTaskResult(Task task);
 
-        delegate object DTaskResultDelegate(Task task);
-        static readonly ConcurrentDictionary<Type, DTaskResultDelegate> taskResultsCache = new ConcurrentDictionary<Type, DTaskResultDelegate>();
-        
         /// <summary>
-        /// Does this method return Task or Task<>
+        /// Does this method return Task or Task`
         /// </summary>
-        public bool IsReturnTask { get;  }
+        public bool DoesReturnTask { get;  }
         
         /// <summary>
         /// false if this method void or return Task, otherwise true
@@ -53,7 +51,8 @@ namespace Neon.Rpc
         /// </summary>
         public bool CanUseLambda { get; }
 
-        InvokeDelegate invokeDelegate;
+        DGetTaskResult getTaskResultDelegate;
+        DInvokeDelegate invokeDelegate;
 
         public MethodContainer(MethodInfo methodInfo, bool canUseLambda)
         {
@@ -65,9 +64,10 @@ namespace Neon.Rpc
 
             this.Parameters = methodInfo.GetParameters();
 
-            IsReturnTask = methodInfo.ReturnType.IsGenericType &&
-                methodInfo.ReturnType.GetGenericTypeDefinition() == typeof(Task<>);
-            IsReturnTask |= methodInfo.ReturnType == typeof(Task);
+            bool doesReturnGenericTask = methodInfo.ReturnType.IsGenericType &&
+                                         methodInfo.ReturnType.GetGenericTypeDefinition() == typeof(Task<>);
+            
+            DoesReturnTask = doesReturnGenericTask || methodInfo.ReturnType == typeof(Task);
 
             DoesReturnValue = methodInfo.ReturnType != typeof(void) &&
                 methodInfo.ReturnType != typeof(Task);
@@ -79,6 +79,40 @@ namespace Neon.Rpc
                 CreateDelegate();
             else
                 CreateDelegateNoLambda();
+
+            if (DoesReturnTask && DoesReturnValue)
+            {
+                if (canUseLambda)
+                    CreateTaskResultDelegate();
+                else
+                    CreateTaskResultDelegateNoLambda();
+            }
+        }
+        
+        void CreateTaskResultDelegateNoLambda()
+        {
+            PropertyInfo resultGetProperty = ReturnType.GetProperty("Result");
+            getTaskResultDelegate = task => resultGetProperty.GetValue(task);
+        }
+
+        void CreateTaskResultDelegate()
+        {
+            Type taskType = ReturnType;
+            
+            MethodInfo methodInfo = taskType.GetProperty("Result").GetGetMethod();
+
+            ParameterExpression param0 = Expression.Parameter(typeof(Task), "task");
+
+            MethodCallExpression body = Expression.Call(
+                Expression.Convert(param0, taskType),
+                methodInfo);
+
+            Expression newBody = body;
+            Type resultType = methodInfo.ReturnType;
+            if (resultType.GetTypeInfo().IsValueType)
+                newBody = Expression.Convert(body, typeof(object));
+
+            getTaskResultDelegate = Expression.Lambda<DGetTaskResult>(newBody, param0).Compile();
         }
 
         void CreateDelegateNoLambda()
@@ -141,7 +175,7 @@ namespace Neon.Rpc
                 resultBody = funcBody;// Expression.TryCatch(funcBody, Expression.Catch(exceptionParam, Expression.Throw(Expression.New(InvokationException.GetConstructorInfo(), excepParam), funcBody.Type)));
             }
 
-            invokeDelegate = Expression.Lambda<InvokeDelegate>(resultBody, entityParam, arrayObjectParam).Compile();
+            invokeDelegate = Expression.Lambda<DInvokeDelegate>(resultBody, entityParam, arrayObjectParam).Compile();
         }
 
         object InvokeInternal(object entity, params object[] arguments)
@@ -168,7 +202,7 @@ namespace Neon.Rpc
         /// <exception cref="InvalidOperationException">If method is async</exception>
         public object Invoke(object entity, params object[] arguments)
         {
-            if (IsReturnTask)
+            if (DoesReturnTask)
                 throw new InvalidOperationException("Async methods can be executed only by InvokeAsync method");
 
             return InvokeInternal(entity, arguments);
@@ -182,7 +216,7 @@ namespace Neon.Rpc
         /// <returns>A task that represents result of method invocation</returns>
         public async Task<object> InvokeAsync(object entity, params object[] arguments)
         {
-            if (!IsReturnTask)
+            if (!DoesReturnTask)
                 return Invoke(entity, arguments);
 
             Task task = InvokeInternal(entity, arguments) as Task;
@@ -203,38 +237,8 @@ namespace Neon.Rpc
             if (!DoesReturnValue)
                 return null;
 
-            if (CanUseLambda)
-                return GetTaskResult(task);
-            else
-                return task.GetType().GetProperty("Result").GetValue(task);
+            return getTaskResultDelegate(task);
         }
 
-        object GetTaskResult(Task task)
-        {
-            Type taskType = task.GetType();
-            if (taskResultsCache.TryGetValue(taskType, out DTaskResultDelegate taskResultDelegate))
-            {
-                return taskResultDelegate(task);
-            }
-            else
-            {
-                MethodInfo methodInfo = taskType.GetProperty("Result").GetGetMethod();
-
-                ParameterExpression param0 = Expression.Parameter(typeof(object), "task");
-
-                MethodCallExpression body = Expression.Call(
-                    Expression.Convert(param0, taskType),
-                    methodInfo);
-
-                Expression newBody = body;
-                Type resultType = methodInfo.ReturnType;
-                if (resultType.GetTypeInfo().IsValueType)
-                    newBody = Expression.Convert(body, typeof(object));
-
-                taskResultDelegate = Expression.Lambda<DTaskResultDelegate>(newBody, param0).Compile();
-                taskResultsCache.TryAdd(taskType, taskResultDelegate);
-                return taskResultDelegate(task);
-            }
-        }
     }
 }

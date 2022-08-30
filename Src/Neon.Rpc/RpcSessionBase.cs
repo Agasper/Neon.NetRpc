@@ -1,15 +1,10 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
 using System.Threading.Tasks;
 using Neon.Logging;
 using Neon.Networking.Udp;
 using Neon.Networking.Udp.Messages;
-using Neon.Rpc.Events;
 using Neon.Rpc.Payload;
 using Neon.Rpc.Serialization;
-using Neon.Util;
 using MessageType = Neon.Rpc.Payload.MessageType;
 
 namespace Neon.Rpc
@@ -18,8 +13,14 @@ namespace Neon.Rpc
     {
         internal const int MESSAGE_TOKEN = 241;
 
-        public long Id => connection.Id;
+        /// <summary>
+        /// User-defined tag
+        /// </summary>
         public object Tag { get; set; }
+        
+        /// <summary>
+        /// Underlying transport connection
+        /// </summary>
         public IRpcConnection Connection => connection;
         
         private protected readonly IRpcConnectionInternal connection;
@@ -115,7 +116,7 @@ namespace Neon.Rpc
             }
         }
         
-        private protected void LogMessageReceived(INeonMessage message)
+        void LogMessageReceived(INeonMessage message)
         {
             this.logger.Trace($"{LogsSign} received {message}");
         }

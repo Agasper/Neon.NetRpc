@@ -31,7 +31,7 @@ namespace Neon.Rpc
             _tasks.Enqueue(task);
             _context.Post(PostCallback, _tasks);
         }
-        
+
         // preallocated SendOrPostCallback delegate
 
         // this is where the actual task invocation occures
@@ -40,7 +40,7 @@ namespace Neon.Rpc
             // Task task = (Task) obj;
             ConcurrentQueue<Task> _tasks = (ConcurrentQueue<Task>) obj;
             Task nextTask;
-            if (_tasks.TryDequeue(out nextTask)) 
+            if (_tasks.TryDequeue(out nextTask))
                 TryExecuteTask(nextTask);
         }
 
@@ -61,6 +61,9 @@ namespace Neon.Rpc
         }
 
         /// <summary>Gets the maximum concurrency level supported by this scheduler.</summary>
-        public override int MaximumConcurrencyLevel { get { return 1; } }
+        public override int MaximumConcurrencyLevel
+        {
+            get { return 1; }
+        }
     }
 }

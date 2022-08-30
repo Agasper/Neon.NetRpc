@@ -57,6 +57,19 @@ public class Session : RpcSessionImpl
         return bufferTestMessage;
     }
 
+    [RemotingMethod]
+    async Task<int> TestGenericTask(int arg)
+    {
+        await Task.Delay(100);
+        return arg;
+    }
+    
+    [RemotingMethod]
+    async Task TestNonGenericTask()
+    {
+        await Task.Delay(100);
+    }
+
     protected override void OnLocalExecutionException(LocalExecutionExceptionEventArgs args)
     {
         logger.Critical($"Exception on method execution: {args.Request.MethodKey}");

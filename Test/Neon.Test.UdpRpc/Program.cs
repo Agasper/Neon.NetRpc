@@ -175,8 +175,10 @@ namespace Neon.Test.TcpRpc
             await basicTestServer.Run().ConfigureAwait(false);
 
             BufferTest bufferTest = new BufferTest(client.Session, 100000);
-            
             await bufferTest.Run().ConfigureAwait(false);
+            
+            TaskTest taskTest = new TaskTest(client.Session);
+            await taskTest.Run().ConfigureAwait(false);
 
             await client.CloseAsync().ConfigureAwait(false);
         }

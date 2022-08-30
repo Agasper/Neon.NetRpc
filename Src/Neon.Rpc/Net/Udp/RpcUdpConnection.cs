@@ -190,7 +190,7 @@ namespace Neon.Rpc.Net.Udp
         /// <summary>
         /// Creating a new empty message with a predefined size. Returning message size may be bigger than requested value
         /// </summary>
-        /// <param name="size">Size in bytes</param>
+        /// <param name="length">Size in bytes</param>
         /// <returns>A new message</returns>
         public RawMessage CreateMessage(int length)
         {
@@ -210,7 +210,7 @@ namespace Neon.Rpc.Net.Udp
         /// <summary>
         /// Creating a new empty RPC message with a predefined size. Returning message size may be bigger than requested value
         /// </summary>
-        /// <param name="size">Size in bytes</param>
+        /// <param name="length">Size in bytes</param>
         /// <returns>A new RPC message</returns>
         public RpcMessage CreateRpcMessage(int length)
         {

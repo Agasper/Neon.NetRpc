@@ -11,6 +11,9 @@ namespace Neon.Rpc
 {
     public abstract class RpcSession : RpcSessionBase, IRpcSession
     {
+        /// <summary>
+        /// Is session closed or not
+        /// </summary>
         public bool IsClosed => closed;
 
         readonly Dictionary<uint, RemotingRequest> requests;
@@ -44,6 +47,9 @@ namespace Neon.Rpc
             this.defaultExecutionTimeout = sessionContext.DefaultExecutionTimeout;
         }
 
+        /// <summary>
+        /// Closing the session, causes all awaiting requests are cancelled and connection closed
+        /// </summary>
         public void Close()
         {
             if (closed)
@@ -87,19 +93,16 @@ namespace Neon.Rpc
 
         private protected override void RemotingRequest(RemotingRequest remotingRequest)
         {
-            LogMessageReceived(remotingRequest);
             EnqueueRequest(remotingRequest);
         }
 
         private protected override void RemotingResponse(RemotingResponse remotingResponse)
         {
-            LogMessageReceived(remotingResponse);
             ExecuteResponse(remotingResponse);
         }
 
         private protected override void RemotingResponseError(RemotingResponseError remotingResponseError)
         {
-            LogMessageReceived(remotingResponseError);
             ExecuteResponseError(remotingResponseError);
         }
 
@@ -110,8 +113,6 @@ namespace Neon.Rpc
                 RemotingException.StatusCodeEnum.AccessDenied);
             _ = SendNeonMessage(authenticationResponse);
         }
-
-
 
         void ExecuteResponseError(RemotingResponseError remotingResponseError)
         {
@@ -379,9 +380,34 @@ namespace Neon.Rpc
             }
         }
         
+        /// <summary>
+        /// Executes remoting method identified by integer with no result awaiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <returns>A task that represents remote method completion</returns>
         public virtual Task ExecuteAsync(int methodIdentity) => ExecuteAsyncInternal(methodIdentity, ExecutionOptions.Default);
+        
+        /// <summary>
+        /// Executes remoting method identified by string name with no result awaiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <returns>A task that represents remote method completion</returns>
         public virtual Task ExecuteAsync(string methodIdentity) => ExecuteAsyncInternal(methodIdentity, ExecutionOptions.Default);
+        
+        /// <summary>
+        /// Executes remoting method identified by integer with no result awaiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <param name="options">Execution options</param>
+        /// <returns>A task that represents remote method completion</returns>
         public virtual Task ExecuteAsync(int methodIdentity, ExecutionOptions options) => ExecuteAsyncInternal(methodIdentity, options);
+        
+        /// <summary>
+        /// Executes remoting method identified by string name with no result awaiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <param name="options">Execution options</param>
+        /// <returns>A task that represents remote method completion</returns>
         public virtual Task ExecuteAsync(string methodIdentity, ExecutionOptions options) => ExecuteAsyncInternal(methodIdentity, options);
 
         Task ExecuteAsyncInternal(object methodIdentity, ExecutionOptions options)
@@ -392,9 +418,38 @@ namespace Neon.Rpc
             return SendAndWait(request, options);
         }
 
+        /// <summary>
+        /// Executes remoting method identified by integer with argument passed and no result awaiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <param name="arg">Method argument</param>
+        /// <returns>A task that represents remote method completion</returns>
         public virtual Task ExecuteAsync<A>(int methodIdentity, A arg) => ExecuteAsyncInternal(methodIdentity, arg, ExecutionOptions.Default);
+        
+        /// <summary>
+        /// Executes remoting method identified by string name with argument passed and no result awaiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <param name="arg">Method argument</param>
+        /// <returns>A task that represents remote method completion</returns>
         public virtual Task ExecuteAsync<A>(string methodIdentity, A arg) => ExecuteAsyncInternal(methodIdentity, arg, ExecutionOptions.Default);
+        
+        /// <summary>
+        /// Executes remoting method identified by integer with argument passed and no result awaiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <param name="arg">Method argument</param>
+        /// <param name="options">Execution options</param>
+        /// <returns>A task that represents remote method completion</returns>
         public virtual Task ExecuteAsync<A>(int methodIdentity, A arg, ExecutionOptions options) => ExecuteAsyncInternal(methodIdentity, arg, options);
+        
+        /// <summary>
+        /// Executes remoting method identified by string name with argument passed and no result awaiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <param name="arg">Method argument</param>
+        /// <param name="options">Execution options</param>
+        /// <returns>A task that represents remote method completion</returns>
         public virtual Task ExecuteAsync<A>(string methodIdentity, A arg, ExecutionOptions options) => ExecuteAsyncInternal(methodIdentity, arg, options);
 
         Task ExecuteAsyncInternal<A>(object methodIdentity, A arg, ExecutionOptions options)
@@ -406,9 +461,34 @@ namespace Neon.Rpc
             return SendAndWait(request, options);
         }
 
+        /// <summary>
+        /// Executes remoting method identified by integer with result awaiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <returns>A task that represents remote method completion</returns>
         public virtual Task<R> ExecuteAsync<R>(int methodIdentity) => ExecuteAsyncInternal<R>(methodIdentity, ExecutionOptions.Default);
+        
+        /// <summary>
+        /// Executes remoting method identified by string name with result awaiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <returns>A task that represents remote method completion</returns>
         public virtual Task<R> ExecuteAsync<R>(string methodIdentity) => ExecuteAsyncInternal<R>(methodIdentity, ExecutionOptions.Default);
+        
+        /// <summary>
+        /// Executes remoting method identified by integer with result awaiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <param name="options">Execution options</param>
+        /// <returns>A task that represents remote method completion</returns>
         public virtual Task<R> ExecuteAsync<R>(int methodIdentity, ExecutionOptions options) => ExecuteAsyncInternal<R>(methodIdentity, options);
+        
+        /// <summary>
+        /// Executes remoting method identified by string name with result awaiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <param name="options">Execution options</param>
+        /// <returns>A task that represents remote method completion</returns>
         public virtual Task<R> ExecuteAsync<R>(string methodIdentity, ExecutionOptions options) => ExecuteAsyncInternal<R>(methodIdentity, options);
 
         async Task<R> ExecuteAsyncInternal<R>(object methodIdentity, ExecutionOptions options)
@@ -420,9 +500,38 @@ namespace Neon.Rpc
             return (R)request.Result;
         }
 
+        /// <summary>
+        /// Executes remoting method identified by integer with argument passed and result awaiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <param name="arg">Method argument</param>
+        /// <returns>A task that represents remote method completion</returns>
         public virtual Task<R> ExecuteAsync<R, A>(int methodIdentity, A arg) => ExecuteAsyncInternal<R, A>(methodIdentity, arg, ExecutionOptions.Default);
+        
+        /// <summary>
+        /// Executes remoting method identified by string name with argument passed and result awaiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <param name="arg">Method argument</param>
+        /// <returns>A task that represents remote method completion</returns>
         public virtual Task<R> ExecuteAsync<R, A>(string methodIdentity, A arg) => ExecuteAsyncInternal<R, A>(methodIdentity, arg, ExecutionOptions.Default);
+        
+        /// <summary>
+        /// Executes remoting method identified by integer with argument passed and result awaiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <param name="arg">Method argument</param>
+        /// <param name="options">Execution options</param>
+        /// <returns>A task that represents remote method completion</returns>
         public virtual Task<R> ExecuteAsync<R, A>(int methodIdentity, A arg, ExecutionOptions options) => ExecuteAsyncInternal<R, A>(methodIdentity, arg, options);
+        
+        /// <summary>
+        /// Executes remoting method identified by string name with argument passed and result awaiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <param name="arg">Method argument</param>
+        /// <param name="options">Execution options</param>
+        /// <returns>A task that represents remote method completion</returns>
         public virtual Task<R> ExecuteAsync<R, A>(string methodIdentity, A arg, ExecutionOptions options) => ExecuteAsyncInternal<R, A>(methodIdentity, arg, options);
 
         async Task<R> ExecuteAsyncInternal<R, A>(object methodIdentity, A arg, ExecutionOptions options)
@@ -435,21 +544,43 @@ namespace Neon.Rpc
             return (R)request.Result;
         }
 
+        /// <summary>
+        /// Executes remoting method identified by integer with no completion waiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <returns>A task that represents operation of RPC request sending</returns>
         public virtual Task Send(int methodIdentity)
         {
             return SendInternal(methodIdentity, SendingOptions.Default);
         }
 
+        /// <summary>
+        /// Executes remoting method identified by string name with no completion waiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <returns>A task that represents operation of RPC request sending</returns>
         public virtual Task Send(string methodIdentity)
         {
             return SendInternal(methodIdentity, SendingOptions.Default);
         }
 
+        /// <summary>
+        /// Executes remoting method identified by integer with no completion waiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <param name="options">Sending options</param>
+        /// <returns>A task that represents operation of RPC request sending</returns>
         public virtual Task Send(int methodIdentity, SendingOptions options)
         {
             return SendInternal(methodIdentity, options);
         }
 
+        /// <summary>
+        /// Executes remoting method identified by string name with no completion waiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <param name="options">Sending options</param>
+        /// <returns>A task that represents operation of RPC request sending</returns>
         public virtual Task Send(string methodIdentity, SendingOptions options)
         {
             return SendInternal(methodIdentity, options);
@@ -477,21 +608,47 @@ namespace Neon.Rpc
             }
         }
 
+        /// <summary>
+        /// Executes remoting method identified by integer with argument, but no completion waiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <param name="arg">Method argument</param>
+        /// <returns>A task that represents operation of RPC request sending</returns>
         public virtual Task Send<T>(int methodIdentity, T arg)
         {
             return SendInternal(methodIdentity, arg, SendingOptions.Default);
         }
 
+        /// <summary>
+        /// Executes remoting method identified by string name with argument, but no completion waiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <param name="arg">Method argument</param>
+        /// <returns>A task that represents operation of RPC request sending</returns>
         public virtual Task Send<T>(string methodIdentity, T arg)
         {
             return SendInternal(methodIdentity, arg, SendingOptions.Default);
         }
 
+        /// <summary>
+        /// Executes remoting method identified by integer with argument, but no completion waiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <param name="arg">Method argument</param>
+        /// <param name="options">Sending options</param>
+        /// <returns>A task that represents operation of RPC request sending</returns>
         public virtual Task Send<T>(int methodIdentity, T arg, SendingOptions options)
         {
             return SendInternal(methodIdentity, arg, options);
         }
 
+        /// <summary>
+        /// Executes remoting method identified by string name with argument, but no completion waiting
+        /// </summary>
+        /// <param name="methodIdentity">Method identity</param>
+        /// <param name="arg">Method argument</param>
+        /// <param name="options">Sending options</param>
+        /// <returns>A task that represents operation of RPC request sending</returns>
         public virtual Task Send<T>(string methodIdentity, T arg, SendingOptions options)
         {
             return SendInternal(methodIdentity, arg, options);

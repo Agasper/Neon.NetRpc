@@ -34,7 +34,7 @@ namespace Neon.Rpc.Payload
                 if (response == null)
                     throw new InvalidOperationException("Response is not received yet");
                 if (!response.HasArgument)
-                    throw new InvalidOperationException("Remote method is void. No result received");
+                    throw new InvalidOperationException("Remote method return type is void or Task. Method executed but no result received");
                 return response.Argument;
             }
         }

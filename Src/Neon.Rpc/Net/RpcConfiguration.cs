@@ -41,7 +41,7 @@ namespace Neon.Rpc.Net
         /// </summary>
         public ISessionFactory SessionFactory { get => sessionFactory; set { CheckLocked(); CheckNull(value); sessionFactory = value; } }
         /// <summary>
-        /// Allows you to restrict calls to some methods (default: AllowAsync = true, AllowLambdaExpressions = true, AllowNonVoid = true, AllowNonPublicMethods = true)
+        /// Configures the invocation rules (default: AllowLambdaExpressions = true, AllowNonPublicMethods = true)
         /// </summary>
         public RemotingInvocationRules RemotingInvocationRules { get => remotingInvocationRules; set { CheckLocked(); CheckNull(value); remotingInvocationRules = value; } }
         /// <summary>
