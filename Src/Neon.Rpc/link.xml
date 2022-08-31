@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<linker>
+    <assembly fullname="Neon.Logging" preserve="all"/>
+    <assembly fullname="Neon.Util" preserve="all"/>
+    <assembly fullname="Neon.Networking" preserve="all"/>
+    <assembly fullname="Neon.Rpc" preserve="all"/>
+    <assembly fullname="Google.Protobuf" preserve="all"/>
+</linker>
