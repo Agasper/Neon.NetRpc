@@ -5,6 +5,10 @@
         <TargetFramework>net6.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <AssemblyName>Neon.Test.Tcp</AssemblyName>
+        <RootNamespace>Neon.Test.Tcp</RootNamespace>
+        <IsPublishable>false</IsPublishable>
+        <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>

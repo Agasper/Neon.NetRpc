@@ -2,6 +2,7 @@
 .idea
 .vs
 protoc/
+bin/
 
 
 ## Ignore Visual Studio temporary files, build results, and

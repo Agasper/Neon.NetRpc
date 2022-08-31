@@ -2,14 +2,17 @@
 
   <PropertyGroup>
     <RootNamespace>Neon.Logging</RootNamespace>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Authors>Neon</Authors>
     <PackageLicenseFile>license/LICENSE</PackageLicenseFile>
     <RepositoryUrl>https://github.com/Agasper/Neon.NetRpc</RepositoryUrl>
-    <PackageVersion>1.0.1</PackageVersion>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <Version>1.0.0</Version>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>SN\SN.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
+
+  <PropertyGroup><ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles></PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <DocumentationFile>bin\Release\Neon.Logging.xml</DocumentationFile>
@@ -19,14 +22,22 @@
   <ItemGroup>
     <None Include="../../LICENSE" Pack="true" PackagePath="license" />
     <None Remove="Neon.Logging.csproj.DotSettings" />
+    <None Update="link.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Remove="SN\**" />
   </ItemGroup>
   
   <ItemGroup>
-    <Folder Include="Properties\" />
     <Folder Include="Formatters\" />
     <Folder Include="Handlers\" />
   </ItemGroup>
+  
   <ItemGroup>
-    <None Remove="SN\SN.snk" />
+    <Compile Remove="SN\**" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <EmbeddedResource Remove="SN\**" />
   </ItemGroup>
 </Project>

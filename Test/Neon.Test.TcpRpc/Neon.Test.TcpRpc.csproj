@@ -6,6 +6,8 @@
         <Nullable>disable</Nullable>
         <AssemblyName>Neon.Test.TcpRpc</AssemblyName>
         <RootNamespace>Neon.Test.TcpRpc</RootNamespace>
+        <IsPublishable>false</IsPublishable>
+        <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>
