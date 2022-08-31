@@ -3,6 +3,7 @@
 .vs
 protoc/
 bin/
+upload_nuget.sh
 
 
 ## Ignore Visual Studio temporary files, build results, and
