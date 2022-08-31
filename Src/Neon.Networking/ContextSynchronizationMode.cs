@@ -2,7 +2,7 @@
 {
     public enum ContextSynchronizationMode
     {
-        Send,
-        Post
+        Post,
+        Send
     }
 }

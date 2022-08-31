@@ -14,55 +14,55 @@ namespace Neon.Networking.Udp
         }
 
         /// <summary>
-        /// Log manager for network logs
+        /// Log manager for network logs (default: LogManager.Dummy)
         /// </summary>
         public ILogManager LogManager { get => logManager; set { CheckLocked(); CheckNull(value); logManager = value; } }
         /// <summary>
-        /// A manager who provide us streams and arrays for a temporary use
+        /// A manager who provide us streams and arrays for a temporary use (default: MemoryManager.Shared)
         /// </summary>
         public IMemoryManager MemoryManager { get => memoryManager; set { CheckLocked(); CheckNull(value); memoryManager = value; } }
         /// <summary>
-        /// Allows you to simulate bad network behaviour
+        /// Allows you to simulate bad network behaviour (default: null)
         /// </summary>
         public ConnectionSimulation ConnectionSimulation { get => connectionSimulation; set { CheckLocked(); connectionSimulation = value; } }
         /// <summary>
-        /// Set socket send buffer size
+        /// Set socket send buffer size (default: 65535)
         /// </summary>
         public int SendBufferSize { get => sendBufferSize; set { CheckLocked(); sendBufferSize = value; } }
         /// <summary>
-        /// Set socket receive buffer size
+        /// Set socket receive buffer size (default: 1048676)
         /// </summary>
         public int ReceiveBufferSize { get => receiveBufferSize; set { CheckLocked(); receiveBufferSize = value; } }
         /// <summary>
-        /// Set SocketOptionName.ReuseAddress
+        /// Set SocketOptionName.ReuseAddress (default: true)
         /// </summary>
         public bool ReuseAddress { get => reuseAddress; set { CheckLocked(); reuseAddress = value; } }
         /// <summary>
-        /// If no packets received within this timeout, connection considered dead
+        /// If no packets received within this timeout, connection considered dead (default: 10000)
         /// </summary>
         public int ConnectionTimeout { get => connectionTimeout; set { CheckLocked(); connectionTimeout = value; } }
         /// <summary>
-        /// The amount of threads for grabbing packets from the socket
+        /// The amount of threads for grabbing packets from the socket (default: Math.Max(1, Environment.ProcessorCount - 1))
         /// </summary>
         public int NetworkReceiveThreads { get => networkReceiveThreads; set { CheckLocked(); networkReceiveThreads = value; } }
         /// <summary>
-        /// Do not expand MTU greater than this value
+        /// Do not expand MTU greater than this value (default: int.MaxValue)
         /// </summary>
         public int LimitMtu { get => limitMtu; set { CheckLocked(); limitMtu = value; } }
         /// <summary>
-        /// Interval for pings
+        /// Interval for pings (default: 1000)
         /// </summary>
         public int KeepAliveInterval { get => keepAliveInterval; set { CheckLocked(); keepAliveInterval = value; } }
         /// <summary>
-        /// Connection will be destroyed after linger timeout
+        /// Connection will be destroyed after linger timeout (default: 60000)
         /// </summary>
         public int ConnectionLingerTimeout { get => connectionLingerTimeout; set { CheckLocked(); connectionLingerTimeout = value; } }
         /// <summary>
-        /// If you try to send too large unreliable message (that couldn't be fragmented) what we should do: drop it ot throw an exception
+        /// If you try to send too large unreliable message (that couldn't be fragmented) what we should do: drop it ot throw an exception (default: RaiseException)
         /// </summary>
         public TooLargeMessageBehaviour TooLargeUnreliableMessageBehaviour { get => tooLargeMessageBehaviour; set { CheckLocked(); tooLargeMessageBehaviour = value; } }
         /// <summary>
-        /// Context synchronizations mode Send ot Post
+        /// Context synchronizations mode Send ot Post (default: Post)
         /// </summary>
         public ContextSynchronizationMode ContextSynchronizationMode { get => contextSynchronizationMode; set { CheckLocked(); contextSynchronizationMode = value; } }
 
@@ -157,7 +157,7 @@ namespace Neon.Networking.Udp
             reuseAddress = true;
             synchronizationContext = new SynchronizationContext();
             tooLargeMessageBehaviour = TooLargeMessageBehaviour.RaiseException;
-            contextSynchronizationMode = ContextSynchronizationMode.Send;
+            contextSynchronizationMode = ContextSynchronizationMode.Post;
             networkReceiveThreads = Math.Max(1, Environment.ProcessorCount - 1);
             memoryManager = Neon.Util.Pooling.MemoryManager.Shared;
             logManager = Logging.LogManager.Dummy;

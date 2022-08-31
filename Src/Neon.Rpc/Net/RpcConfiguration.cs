@@ -49,7 +49,7 @@ namespace Neon.Rpc.Net
         /// </summary>
         public int CompressionThreshold { get => compressionThreshold; set { CheckLocked(); compressionThreshold = value; } }
         /// <summary>
-        /// Context synchronization mode: Send ro Post (default: Send)
+        /// Context synchronization mode: Send ro Post (default: Post)
         /// </summary>
         public ContextSynchronizationMode ContextSynchronizationMode { get => contextSynchronizationMode; set { CheckLocked(); contextSynchronizationMode = value; } }
 
@@ -132,7 +132,7 @@ namespace Neon.Rpc.Net
             serializer = new RpcSerializer(MemoryManager.Shared);
             remotingInvocationRules = RemotingInvocationRules.Default;
             synchronizationContext = new DummySynchronizationContext();
-            contextSynchronizationMode = ContextSynchronizationMode.Send;
+            contextSynchronizationMode = ContextSynchronizationMode.Post;
             taskScheduler = TaskScheduler.Default;
             logManager = Logging.LogManager.Dummy;
             defaultExecutionTimeout = -1;

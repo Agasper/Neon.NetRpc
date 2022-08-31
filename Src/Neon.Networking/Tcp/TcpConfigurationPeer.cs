@@ -11,53 +11,53 @@ namespace Neon.Networking.Tcp
     public abstract class TcpConfigurationPeer
     {
         /// <summary>
-        /// Allows you to simulate bad network behaviour. Packet loss applied only to UDP
+        /// Allows you to simulate bad network behaviour. Packet loss applied only to UDP (default: null)
         /// </summary>
         public ConnectionSimulation ConnectionSimulation { get => connectionSimulation; set { CheckLocked(); connectionSimulation = value; } }
         /// <summary>
-        /// Sets the socket linger options
+        /// Sets the socket linger options (default: (true, 15))
         /// </summary>
         public LingerOption LingerOption { get => lingerOption; set { CheckLocked(); CheckNull(value); lingerOption = value; } }
         /// <summary>
-        /// Sets a value that specifies whether the socket is using the Nagle algorithm
+        /// Sets a value that specifies whether the socket is using the Nagle algorithm (default: true)
         /// </summary>
         public bool NoDelay { get => noDelay; set { CheckLocked(); noDelay = value; } }
         /// <summary>
-        /// Sets SocketOptionName.ReuseAddress
+        /// Sets SocketOptionName.ReuseAddress (default: true)
         /// </summary>
         public bool ReuseAddress { get => reuseAddress; set { CheckLocked(); reuseAddress = value; } }
         /// <summary>
-        /// Sets socket send buffer size
+        /// Sets socket send buffer size (default: 16384)
         /// </summary>
         public int SendBufferSize { get => sendBufferSize; set { CheckLocked(); sendBufferSize = value; } }
         /// <summary>
-        /// Sets socket receive buffer size
+        /// Sets socket receive buffer size (default: 16384)
         /// </summary>
         public int ReceiveBufferSize { get => receiveBufferSize; set { CheckLocked(); receiveBufferSize = value; } }
         /// <summary>
-        /// A manager which provide us streams and arrays for a temporary use
+        /// A manager which provide us streams and arrays for a temporary use (default: MemoryManager.Shared)
         /// </summary>
         public IMemoryManager MemoryManager { get => memoryManager; set { CheckLocked(); CheckNull(value); memoryManager = value; } }
         /// <summary>
-        /// Log manager for network logs
+        /// Log manager for network logs (default: LogManager.Dummy)
         /// </summary>
         public ILogManager LogManager { get => logManager; set { CheckLocked(); CheckNull(value); logManager = value; } }
 
         /// <summary>
-        /// If true we will send ping packets to the other peer every KeepAliveInterval
+        /// If true we will send ping packets to the other peer every KeepAliveInterval (default: true)
         /// </summary>
         public bool KeepAliveEnabled { get => keepAliveEnabled; set { CheckLocked(); keepAliveEnabled = value; } }
         /// <summary>
-        /// Interval for pings
+        /// Interval for pings (default: 1000)
         /// </summary>
         public int KeepAliveInterval { get => keepAliveInterval; set { CheckLocked(); keepAliveInterval = value; } }
         /// <summary>
-        /// If we haven't got response for ping within timeout, we drop the connection
+        /// If we haven't got response for ping within timeout, we drop the connection (default: 10000)
         /// </summary>
         public int KeepAliveTimeout { get => keepAliveTimeout; set { CheckLocked(); keepAliveTimeout = value; } }
 
         /// <summary>
-        /// Context synchronizations mode Send ot Post
+        /// Context synchronizations mode Send ot Post (default: Post)
         /// </summary>
         public ContextSynchronizationMode ContextSynchronizationMode { get => contextSynchronizationMode; set { CheckLocked(); contextSynchronizationMode = value; } }
 
@@ -150,7 +150,7 @@ namespace Neon.Networking.Tcp
         public TcpConfigurationPeer()
         {
             synchronizationContext = new DummySynchronizationContext();
-            contextSynchronizationMode = ContextSynchronizationMode.Send;
+            contextSynchronizationMode = ContextSynchronizationMode.Post;
 
             memoryManager = Neon.Util.Pooling.MemoryManager.Shared;
             sendBufferSize = 16384;
