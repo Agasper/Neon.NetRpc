@@ -54,6 +54,8 @@ namespace Neon.Test.TcpRpc
             context.Start();
 
             TestAuthSessionFactory authSessionFactory = new TestAuthSessionFactory();
+            RpcSerializer serializer = new RpcSerializer(memoryManager);
+            serializer.RegisterTypesFromAssembly(typeof(TestMessage).Assembly);
 
             RpcUdpConfigurationServer configurationServer = new RpcUdpConfigurationServer();
             configurationServer.MemoryManager = memoryManager;
@@ -70,9 +72,8 @@ namespace Neon.Test.TcpRpc
             configurationServer.ConnectionTimeout = 10000;
             configurationServer.CompressionThreshold = 0;
             configurationServer.AuthSessionFactory = authSessionFactory;
-            configurationServer.Serializer = new RpcSerializer(memoryManager);
-            configurationServer.Serializer.RegisterTypesFromAssembly(typeof(TestMessage).Assembly);
-            
+            configurationServer.Serializer = serializer;
+
             RpcUdpServer server = new RpcUdpServer(configurationServer);
             server.OnSessionClosedEvent += ServerOnOnSessionClosedEvent;
             server.OnSessionOpenedEvent += ServerOnOnSessionOpenedEvent;
@@ -93,8 +94,7 @@ namespace Neon.Test.TcpRpc
             configurationClient.KeepAliveInterval = 1000;
             configurationClient.ConnectionTimeout = 10000;
             // configurationClient.ConnectionSimulation = new ConnectionSimulation(2000, 1000);
-            configurationClient.Serializer = new RpcSerializer(memoryManager);
-            configurationClient.Serializer.RegisterTypesFromAssembly(typeof(TestMessage).Assembly);
+            configurationClient.Serializer = serializer;
 
             RpcUdpClient client = new RpcUdpClient(configurationClient);
             client.OnSessionClosedEvent += ClientOnOnSessionClosedEvent;

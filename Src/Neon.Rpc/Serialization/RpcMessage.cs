@@ -46,10 +46,10 @@ namespace Neon.Rpc.Serialization
             set => message.Position = value;
         }
         
-        readonly RpcSerializer serializer;
+        readonly IRpcSerializer serializer;
         readonly RawMessage message;
 
-        public RpcMessage(RpcSerializer serializer, RawMessage message)
+        public RpcMessage(IRpcSerializer serializer, RawMessage message)
         {
             this.serializer = serializer;
             this.message = message;

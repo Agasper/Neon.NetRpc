@@ -1,19 +1,17 @@
 ﻿using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
-using Neon.Logging;
 using Neon.Networking.IO;
 using Neon.Networking.Messages;
 using Neon.Util.Pooling;
 
 namespace Neon.Rpc.Serialization
 {
-    public class RpcSerializer
+    public class RpcSerializer : IRpcSerializer
     {
         enum PayloadType : byte
         {

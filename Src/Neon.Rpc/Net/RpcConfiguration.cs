@@ -29,15 +29,15 @@ namespace Neon.Rpc.Net
         /// </summary>
         public int OrderedExecutionMaxQueue { get => orderedExecutionMaxQueue; set { CheckLocked(); CheckNull(value); orderedExecutionMaxQueue = value; } }
         /// <summary>
-        /// Serializer for primitives and Protobuf messages
+        /// Serializer for primitives and Protobuf messages (default: an empty one)
         /// </summary>
-        public RpcSerializer Serializer { get => serializer; set { CheckLocked(); CheckNull(value); serializer = value; } }
+        public IRpcSerializer Serializer { get => serializer; set { CheckLocked(); CheckNull(value); serializer = value; } }
         /// <summary>
-        /// Log manager for RPC logs
+        /// Log manager for RPC logs (default: LogManager.Dummy)
         /// </summary>
         public ILogManager LogManager { get => logManager; set { CheckLocked(); CheckNull(value); logManager = value; } }
         /// <summary>
-        /// User-defined session factory
+        /// User-defined session factory (default: null)
         /// </summary>
         public ISessionFactory SessionFactory { get => sessionFactory; set { CheckLocked(); CheckNull(value); sessionFactory = value; } }
         /// <summary>
@@ -45,11 +45,11 @@ namespace Neon.Rpc.Net
         /// </summary>
         public RemotingInvocationRules RemotingInvocationRules { get => remotingInvocationRules; set { CheckLocked(); CheckNull(value); remotingInvocationRules = value; } }
         /// <summary>
-        /// Threshold in bytes to compress your data
+        /// Threshold in bytes to compress your data (default: 1024)
         /// </summary>
         public int CompressionThreshold { get => compressionThreshold; set { CheckLocked(); compressionThreshold = value; } }
         /// <summary>
-        /// Context synchronization mode: Send ro Post
+        /// Context synchronization mode: Send ro Post (default: Send)
         /// </summary>
         public ContextSynchronizationMode ContextSynchronizationMode { get => contextSynchronizationMode; set { CheckLocked(); contextSynchronizationMode = value; } }
 
@@ -60,7 +60,7 @@ namespace Neon.Rpc.Net
         bool orderedExecution;
         int orderedExecutionMaxQueue;
         int compressionThreshold;
-        RpcSerializer serializer;
+        IRpcSerializer serializer;
         TaskScheduler taskScheduler;
         SynchronizationContext synchronizationContext;
         RemotingInvocationRules remotingInvocationRules;
