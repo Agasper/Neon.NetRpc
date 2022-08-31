@@ -346,7 +346,7 @@ namespace Neon.Rpc
             return request;
         }
         
-        protected virtual Task RemoteExecutionWrapper(ExecutionOptions options, Task executionTask)
+        protected virtual Task RemoteExecutionWrapper(ExecutionRequest request, ExecutionOptions options, Task executionTask)
         {
             return executionTask;
         }
@@ -363,7 +363,7 @@ namespace Neon.Rpc
                 int timeout = defaultExecutionTimeout;
                 if (options.Timeout > Timeout.Infinite)
                     timeout = options.Timeout;
-                await RemoteExecutionWrapper(options, request.WaitAsync(timeout, options.CancellationToken)).ConfigureAwait(false);
+                await RemoteExecutionWrapper(new ExecutionRequest(request), options, request.WaitAsync(timeout, options.CancellationToken)).ConfigureAwait(false);
                 float ms = request.Response.ExecutionTime / (float) TimeSpan.TicksPerMillisecond;
                 this.logger.Info($"{LogsSign} executed {request} remotely in {ms.ToString("0.00")}ms ({request.RemoteExecutionTime.TotalMilliseconds.ToString("0.00")}ms)");
                 OnRemoteExecutionCompleted(new RemoteExecutionCompletedEventArgs(executionRequest,

@@ -289,7 +289,7 @@ namespace Neon.Rpc.Serialization
                 throw new ArgumentException($"{nameof(value)} should be IMessage, IneonMessage or primitive type, but got {value.GetType().Name}");
         }
         
-        static bool IsPrimitive(Type type)
+        public static bool IsPrimitive(Type type)
         {
             TypeCode typeCode = Type.GetTypeCode(type);
             if (typeCode == TypeCode.Empty || 

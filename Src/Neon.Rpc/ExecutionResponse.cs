@@ -25,7 +25,7 @@ namespace Neon.Rpc
             this.Result = response.Argument;
         }
 
-        internal static ExecutionResponse FromResult(object result)
+        public static ExecutionResponse FromResult(object result)
         {
             return new ExecutionResponse()
             {
@@ -34,7 +34,7 @@ namespace Neon.Rpc
             };
         }
 
-        internal static ExecutionResponse NoResponse
+        public static ExecutionResponse NoResult
         {
             get
             {
