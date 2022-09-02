@@ -28,6 +28,7 @@
     <None Include="../../LICENSE" Pack="true" PackagePath="license" />
     <None Update="link.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <PackageCopyToOutput>true</PackageCopyToOutput> <!-- https://github.com/NuGet/Home/issues/9879 -->
     </None>
   </ItemGroup>
   <ItemGroup>

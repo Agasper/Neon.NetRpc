@@ -24,6 +24,7 @@
     <None Remove="Neon.Logging.csproj.DotSettings" />
     <None Update="link.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <PackageCopyToOutput>true</PackageCopyToOutput> <!-- https://github.com/NuGet/Home/issues/9879 -->
     </None>
     <None Remove="SN\**" />
   </ItemGroup>
