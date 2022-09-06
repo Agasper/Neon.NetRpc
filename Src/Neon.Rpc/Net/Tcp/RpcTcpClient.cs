@@ -108,6 +108,12 @@ namespace Neon.Rpc.Net.Tcp
             this.logger.Meta["tag"] = new RefLogLabel<RpcTcpClient>(this, s => s.Tag);
         }
         
+        protected void CheckStarted()
+        {
+            if (!innerTcpClient.IsStarted)
+                throw new InvalidOperationException("Please call Start() first");
+        }
+        
         /// <summary>
         /// Start an internal network thread
         /// </summary>
@@ -186,6 +192,7 @@ namespace Neon.Rpc.Net.Tcp
         /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete</param>
         public async Task OpenConnectionAsync(string host, int port, IPAddressSelectionRules ipAddressSelectionRules, CancellationToken cancellationToken)
         {
+            CheckStarted();
             if (Status != RpcClientStatus.Disconnected)
                 throw new InvalidOperationException($"Wrong status {Status}, expected {RpcClientStatus.Disconnected}");
             
@@ -223,6 +230,7 @@ namespace Neon.Rpc.Net.Tcp
         /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete</param>
         public async Task OpenConnectionAsync(IPEndPoint endpoint, CancellationToken cancellationToken)
         {
+            CheckStarted();
             if (Status != RpcClientStatus.Disconnected)
                 throw new InvalidOperationException($"Wrong status {Status}, expected {RpcClientStatus.Disconnected}");
 

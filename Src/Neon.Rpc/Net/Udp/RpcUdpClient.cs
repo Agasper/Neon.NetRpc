@@ -86,6 +86,12 @@ namespace Neon.Rpc.Net.Udp
             this.logger.Meta["kind"] = this.GetType().Name;
         }
         
+        protected void CheckStarted()
+        {
+            if (!innerUdpClient.IsStarted)
+                throw new InvalidOperationException("Please call Start() first");
+        }
+        
         void ChangeStatus(RpcClientStatus newStatus)
         {
             if (Status == newStatus)
@@ -178,6 +184,7 @@ namespace Neon.Rpc.Net.Udp
         /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete</param>
         public async Task OpenConnectionAsync(string host, int port, IPAddressSelectionRules ipAddressSelectionRules, CancellationToken cancellationToken)
         {
+            CheckStarted();
             if (Session != null)
                 throw new InvalidOperationException("Session already started");
             
@@ -215,6 +222,7 @@ namespace Neon.Rpc.Net.Udp
         /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete</param>
         public async Task OpenConnectionAsync(IPEndPoint endpoint, CancellationToken cancellationToken)
         {
+            CheckStarted();
             if (Session != null)
                 throw new InvalidOperationException("Session already started");
             try
