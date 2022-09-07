@@ -1,4 +1,5 @@
-﻿using Neon.Networking.Udp;
+﻿using System;
+using Neon.Networking.Udp;
 using Neon.Networking.Udp.Messages;
 
 namespace Neon.Rpc
@@ -12,6 +13,7 @@ namespace Neon.Rpc
         /// <summary>
         /// Should we ask server for method completion status to call OnRemoteExecutionException in case of exception
         /// </summary>
+        [Obsolete]
         public bool ExpectResponse { get; set; }
         /// <summary>
         /// For UDP transport sets channel
@@ -35,7 +37,18 @@ namespace Neon.Rpc
             this.ExpectResponse = expectResponse;
             return this;
         }
+        
+        public SendingOptions WithDeliveryType(DeliveryType deliveryType)
+        {
+            this.DeliveryType = deliveryType;
+            return this;
+        }
 
+        public SendingOptions WithChannel(int channel)
+        {
+            this.Channel = channel;
+            return this;
+        }
 
         public static SendingOptions Default => new SendingOptions(false, null, UdpConnection.DEFAULT_CHANNEL, DeliveryType.ReliableOrdered);
 
