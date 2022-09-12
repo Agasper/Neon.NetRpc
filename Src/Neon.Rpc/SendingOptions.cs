@@ -27,11 +27,14 @@ namespace Neon.Rpc
         public SendingOptions(bool expectResponse, object state, int channel, DeliveryType deliveryType)
         {
             this.State = state;
+#pragma warning disable CS0612
             this.ExpectResponse = expectResponse;
+#pragma warning restore CS0612
             this.Channel = channel;
             this.DeliveryType = deliveryType;
         }
 
+        [Obsolete()]
         public SendingOptions WithExpectResponse(bool expectResponse)
         {
             this.ExpectResponse = expectResponse;
