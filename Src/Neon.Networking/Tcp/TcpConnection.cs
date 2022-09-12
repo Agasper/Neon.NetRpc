@@ -473,12 +473,11 @@ namespace Neon.Networking.Tcp
                     {
                         try
                         {
+                            keepAliveResponseGot = false;
+                            this.lastKeepAliveSent = DateTime.UtcNow;
                             SendMessageAsync(new TcpMessage(
                                 new TcpMessageHeader(0, TcpMessageTypeEnum.KeepAliveRequest, TcpMessageFlagsEnum.None),
                                 null));
-                            
-                            keepAliveResponseGot = false;
-                            this.lastKeepAliveSent = DateTime.UtcNow;
                         }
                         catch (Exception ex)
                         {
