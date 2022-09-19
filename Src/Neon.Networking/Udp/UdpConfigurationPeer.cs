@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
 using Neon.Logging;
+using Neon.Util;
 using Neon.Util.Pooling;
 
 namespace Neon.Networking.Udp
@@ -155,7 +156,7 @@ namespace Neon.Networking.Udp
             sendBufferSize = 65535;
             receiveBufferSize = 1048676;
             reuseAddress = true;
-            synchronizationContext = new SynchronizationContext();
+            synchronizationContext = new DummySynchronizationContext();
             tooLargeMessageBehaviour = TooLargeMessageBehaviour.RaiseException;
             contextSynchronizationMode = ContextSynchronizationMode.Post;
             networkReceiveThreads = Math.Max(1, Environment.ProcessorCount - 1);
