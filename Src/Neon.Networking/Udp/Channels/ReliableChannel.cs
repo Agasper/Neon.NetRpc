@@ -335,25 +335,24 @@ namespace Neon.Networking.Udp.Channels
 
         async Task<bool> SendImmediately(Datagram datagram)
         {
-            bool lockWasTaken = false;
-            try
+            bool result = false;
+            lock (channelMutex)
             {
-                Monitor.Enter(channelMutex, ref lockWasTaken);
                 if (CanSendImmediately())
                 {
+                    result = true;
                     datagram.Sequence = GetNextSequenceOut();
                     sendPendingPackets[datagram.Sequence % START_WINDOW_SIZE].Init(datagram);
-                    await connection.SendDatagramAsync(datagram).ConfigureAwait(false);
-                    return true;
                 }
+            }
 
-                return false;
-            }
-            finally
+            if (result)
             {
-                if (lockWasTaken) 
-                    Monitor.Exit(channelMutex);
+                await connection.SendDatagramAsync(datagram).ConfigureAwait(false);
+                return true;
             }
+
+            return false;
         }
 
         bool CanSendImmediately()

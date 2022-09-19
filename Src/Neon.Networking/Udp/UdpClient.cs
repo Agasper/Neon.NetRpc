@@ -202,7 +202,7 @@ namespace Neon.Networking.Udp
             }
             catch (Exception)
             {
-                await DisconnectAsync().ConfigureAwait(false);
+                Disconnect();
                 throw;
             }
         }
@@ -218,6 +218,22 @@ namespace Neon.Networking.Udp
             {
                 ChangeStatus(UdpClientStatus.Disconnecting);
                 await connection_.CloseAsync().ConfigureAwait(false);
+            }
+
+            DestroySocket();
+            ChangeStatus(UdpClientStatus.Disconnected);
+        }
+        
+        /// <summary>
+        /// Terminate the current connection
+        /// </summary>
+        void Disconnect()
+        {
+            CheckStarted();
+            var connection_ = this.connection;
+            if (connection_ != null)
+            {
+                connection_.CloseImmediately();
             }
 
             DestroySocket();
