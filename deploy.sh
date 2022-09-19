@@ -22,4 +22,7 @@ mkdir -p ./bin/releases
 tar -zcvf ./bin/releases/Neon.NetRpc.${VERSION}.tar.gz ./bin/stage/Neon.NetRpc
 zip -r ./bin/releases/Neon.NetRpc.${VERSION}.zip ./bin/stage/Neon.NetRpc
 
+rm -rf ./bin/releases/libs
+cp -r ./bin/stage/Neon.NetRpc ./bin/releases/libs
+
 rm -rf ./bin/stage/
