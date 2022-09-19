@@ -71,7 +71,7 @@ namespace Neon.Test.TcpRpc
             configurationServer.MemoryManager = memoryManager; //Setting our memory manager
             configurationServer.SendBufferSize = 4096; //Setting small buffer for debug purposes
             configurationServer.ReceiveBufferSize = 4096; //Setting small buffer for debug purposes
-            configurationServer.NetworkLogManager = logManagerNetworkServer;  //Setting our log manager for network
+            configurationServer.LogManagerNetwork = logManagerNetworkServer;  //Setting our log manager for network
             configurationServer.LogManager = logManagerRpcServer; //Setting our log manager for PRC
             configurationServer.OrderedExecution = true; //Setting the ordered execution of methods
             configurationServer.SetCipher<Aes128Cipher>(); //Adding strong encryption
@@ -97,7 +97,7 @@ namespace Neon.Test.TcpRpc
             configurationClient.MemoryManager = memoryManager; //Setting our memory manager
             configurationClient.SendBufferSize = 4096; //Setting small buffer for debug purposes
             configurationClient.ReceiveBufferSize = 4096; //Setting small buffer for debug purposes
-            configurationClient.NetworkLogManager = logManagerNetworkClient; //Setting our log manager for network
+            configurationClient.LogManagerNetwork = logManagerNetworkClient; //Setting our log manager for network
             configurationClient.LogManager = logManagerRpcClient; //Setting our log manager for PRC
             configurationClient.OrderedExecution = true; //Setting the ordered execution of methods
             configurationClient.SetCipher<Aes128Cipher>(); //Adding strong encryption (should be same as in server)

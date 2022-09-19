@@ -50,7 +50,7 @@ namespace Neon.Rpc.Net.Udp
         /// <summary>
         /// Log manager for network logs
         /// </summary>
-        public ILogManager NetworkLogManager
+        public ILogManager LogManagerNetwork
         {
             get => udpConfiguration.LogManager;
             set
