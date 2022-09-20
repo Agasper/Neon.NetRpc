@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package neon_server_example;
+
+option csharp_namespace = "Neon.ServerExample.Proto";
+
+message PlayerProfileProto {
+  int32 money = 1;
+}

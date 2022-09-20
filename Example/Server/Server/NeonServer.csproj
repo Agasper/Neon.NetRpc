@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Neon.ServerExample</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="..\Neon Multiplayer Game\Assets\Server\**\*.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Mono.Posix.NETStandard" Version="5.20.1-preview" />
+      <PackageReference Include="NDesk.Options.Core" Version="1.2.5" />
+      <PackageReference Include="Neon.Rpc" Version="1.0.4" />
+      <PackageReference Include="System.Data.SQLite" Version="1.0.116" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\CommonLib\CommonLib.csproj" />
+    </ItemGroup>
+
+</Project>

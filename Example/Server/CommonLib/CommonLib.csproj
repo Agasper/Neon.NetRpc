@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>disable</Nullable>
+        <LangVersion>10</LangVersion>
+        <AssemblyName>NeonServerCommonLib</AssemblyName>
+        <RootNamespace>Neon.ServerExample.NeonServerCommonLib</RootNamespace>
+    </PropertyGroup>
+
+    <PropertyGroup><ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles></PropertyGroup>
+
+    <ItemGroup>
+      <Folder Include="Generated" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="protoc\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="protoc\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="protoc\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Neon.Protobuf-Unity" Version="3.21.1" />
+      <PackageReference Include="Neon.Rpc" Version="1.0.4" />
+    </ItemGroup>
+
+    <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+        <Exec Command=".\protoc\bin\protoc -I .\Source --csharp_out=.\Generated .\Source\*.proto" />
+    </Target>
+
+</Project>
