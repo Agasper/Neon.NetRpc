@@ -204,7 +204,7 @@ namespace Neon.Rpc
                 double timeSeconds = sw.ElapsedTicks / (double) Stopwatch.Frequency;
                 ulong timeSpanTicks = (ulong) (timeSeconds * TimeSpan.TicksPerSecond);
                 float ms = timeSpanTicks / (float) TimeSpan.TicksPerMillisecond;
-                logger.Info($"{LogsSign} executed {request} locally in {ms.ToString("0.00")}ms");
+                logger.Debug($"{LogsSign} executed {request} locally in {ms.ToString("0.00")}ms");
 
                 LocalExecutionCompletedEventArgs eventArgsCompleted =
                     new LocalExecutionCompletedEventArgs(executionRequest, executionResponse, ms);
@@ -365,7 +365,7 @@ namespace Neon.Rpc
                     timeout = options.Timeout;
                 await RemoteExecutionWrapper(new ExecutionRequest(request), options, request.WaitAsync(timeout, options.CancellationToken)).ConfigureAwait(false);
                 float ms = request.Response.ExecutionTime / (float) TimeSpan.TicksPerMillisecond;
-                this.logger.Info($"{LogsSign} executed {request} remotely in {ms.ToString("0.00")}ms ({request.RemoteExecutionTime.TotalMilliseconds.ToString("0.00")}ms)");
+                this.logger.Debug($"{LogsSign} executed {request} remotely in {ms.ToString("0.00")}ms ({request.RemoteExecutionTime.TotalMilliseconds.ToString("0.00")}ms)");
                 OnRemoteExecutionCompleted(new RemoteExecutionCompletedEventArgs(executionRequest,
                     new ExecutionResponse(request.Response), options, ms));
             }
@@ -595,7 +595,7 @@ namespace Neon.Rpc
                 request.HasArgument = false;
                 await SendInternalFinal(request, sendingOptions).ConfigureAwait(false);
 
-                this.logger.Info($"{LogsSign} sent {request} remotely with no waiting");
+                this.logger.Debug($"{LogsSign} sent {request} remotely with no waiting");
             }
             catch (Exception ex)
             {
@@ -664,7 +664,7 @@ namespace Neon.Rpc
                 request.Argument = arg;
                 await SendInternalFinal(request, sendingOptions).ConfigureAwait(false);
 
-                this.logger.Info($"{LogsSign} sent {request} remotely with no waiting");
+                this.logger.Debug($"{LogsSign} sent {request} remotely with no waiting");
             }
             catch (Exception ex)
             {
