@@ -1,6 +1,9 @@
 # Overview
 
-**Neon** - is a C# native Networking & RPC library over TCP/UDP, designed especially for games in Unity3D.
+<img align="left" src="https://github.com/Agasper/Neon.NetRpc/raw/master/logo.png" width="64"/>
+
+**Neon** - is a C# native Networking & RPC library over TCP/UDP, designed especially for games in Unity3D. 
+
 
 Features:
 * Easy to setup and use
@@ -16,10 +19,16 @@ Features:
 * Packet loss and latency simulation
 * Connection statisitcs
 
+Discord: [![Discord](https://img.shields.io/discord/1022151329122095165)](https://discord.gg/gwQtFyxTNM)
+
+
+
 # NuGet packages
 
-* [Neon.Rpc](https://www.nuget.org/packages/Neon.Rpc/)
-* [Neon.Networking](https://www.nuget.org/packages/Neon.Networking/)
+* [Neon.Rpc](https://www.nuget.org/packages/Neon.Rpc/) [![Nuget package Neon.Rpc](https://img.shields.io/nuget/v/Neon.Rpc)](https://www.nuget.org/packages/Neon.Rpc/) [![Nuget package Neon.Rpc](https://img.shields.io/nuget/dt/Neon.Rpc)](https://www.nuget.org/packages/Neon.Rpc/)
+* [Neon.Networking](https://www.nuget.org/packages/Neon.Networking/)  [![Nuget package Neon.Networking](https://img.shields.io/nuget/v/Neon.Networking)](https://www.nuget.org/packages/Neon.Networking/) [![Nuget package Neon.Networking](https://img.shields.io/nuget/dt/Neon.Networking)](https://www.nuget.org/packages/Neon.Networking/)
+* [Neon.Logging](https://www.nuget.org/packages/Neon.Logging/)  [![Nuget package Neon.Logging](https://img.shields.io/nuget/v/Neon.Logging)](https://www.nuget.org/packages/Neon.Logging/) [![Nuget package Neon.Logging](https://img.shields.io/nuget/dt/Neon.Logging)](https://www.nuget.org/packages/Neon.Logging/)
+* [Neon.Util](https://www.nuget.org/packages/Neon.Util/)  [![Nuget package Neon.Util](https://img.shields.io/nuget/v/Neon.Util)](https://www.nuget.org/packages/Neon.Util/) [![Nuget package Neon.Util](https://img.shields.io/nuget/dt/Neon.Util)](https://www.nuget.org/packages/Neon.Util/)
 
 # Documentation
 
