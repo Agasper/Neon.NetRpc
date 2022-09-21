@@ -4,8 +4,10 @@
 
 **Neon** - is a C# native Networking & RPC library over TCP/UDP, designed especially for games in Unity3D. 
 
+&nbsp;
 
-Features:
+# Features
+
 * Easy to setup and use
 * Primitives & Protobuf serialization/deserialization is out of the box
 * Supports IPv4 & IPv6 (dual mode coming soon)
@@ -18,6 +20,7 @@ Features:
 * Two transport options UDP/TCP. UDP supports reliable delivery
 * Packet loss and latency simulation
 * Connection statisitcs
+* Supports netstandard2.0 and above
 
 Discord: [![Discord](https://img.shields.io/discord/1022151329122095165)](https://discord.gg/gwQtFyxTNM)
 
