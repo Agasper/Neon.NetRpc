@@ -25,4 +25,5 @@ Features:
 
 * [Networking - Getting started](https://github.com/Agasper/Neon.NetRpc/wiki/Networking-Getting-started)
 * [RPC - Getting started](https://github.com/Agasper/Neon.NetRpc/wiki/RPC-Getting-started)
+* [Example project](https://github.com/Agasper/Neon.NetRpc/wiki/Example-project)
 * [Wiki](https://github.com/Agasper/Neon.NetRpc/wiki)
