@@ -9,6 +9,7 @@
     ".NETStandard,Version=v2.0/": {
       "NeonServerCommonLib/1.0.0": {
         "dependencies": {
+          "Grpc.Tools": "2.48.1",
           "NETStandard.Library": "2.0.3",
           "Neon.Protobuf-Unity": "3.21.1",
           "Neon.Rpc": "1.0.4"
@@ -17,6 +18,7 @@
           "NeonServerCommonLib.dll": {}
         }
       },
+      "Grpc.Tools/2.48.1": {},
       "Microsoft.IO.RecyclableMemoryStream/2.2.0": {
         "dependencies": {
           "System.Memory": "4.5.4"
@@ -146,6 +148,13 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "Grpc.Tools/2.48.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-OHUorqVY2Ya9y5PQItM132EeklQUTu1OI1g90YDIJ6a+yUvu9dsJxnEYw56L57DplD1O22QC6sVUxpnJD7/txg==",
+      "path": "grpc.tools/2.48.1",
+      "hashPath": "grpc.tools.2.48.1.nupkg.sha512"
     },
     "Microsoft.IO.RecyclableMemoryStream/2.2.0": {
       "type": "package",

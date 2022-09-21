@@ -12,10 +12,6 @@
     <PropertyGroup><ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles></PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Generated" />
-    </ItemGroup>
-
-    <ItemGroup>
       <Compile Remove="protoc\**" />
     </ItemGroup>
 
@@ -24,16 +20,16 @@
     </ItemGroup>
 
     <ItemGroup>
-      <None Remove="protoc\**" />
+        <Protobuf Include="Source\*.proto" />
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Grpc.Tools" Version="2.48.1">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
       <PackageReference Include="Neon.Protobuf-Unity" Version="3.21.1" />
       <PackageReference Include="Neon.Rpc" Version="1.0.4" />
     </ItemGroup>
-
-    <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-        <Exec Command=".\protoc\bin\protoc -I .\Source --csharp_out=.\Generated .\Source\*.proto" />
-    </Target>
 
 </Project>
