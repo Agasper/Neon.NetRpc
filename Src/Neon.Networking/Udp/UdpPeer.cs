@@ -38,13 +38,16 @@ namespace Neon.Networking.Udp
             {
                 var arg = new SocketAsyncEventArgs();
                 arg.SetBuffer(new byte[ushort.MaxValue], 0, ushort.MaxValue);
-                if (socket.LocalEndPoint.AddressFamily == AddressFamily.InterNetwork)
+                var socket_ = this.socket;
+                if (socket_ == null)
+                    throw new ObjectDisposedException(nameof(socket));
+                if (socket_.LocalEndPoint.AddressFamily == AddressFamily.InterNetwork)
                     arg.RemoteEndPoint = new IPEndPoint(IPAddress.Any, 0);
-                else if (socket.LocalEndPoint.AddressFamily == AddressFamily.InterNetworkV6)
+                else if (socket_.LocalEndPoint.AddressFamily == AddressFamily.InterNetworkV6)
                     arg.RemoteEndPoint = new IPEndPoint(IPAddress.IPv6Any, 0);
                 else
                     throw new InvalidOperationException(
-                    $"Invalid socket address family: {socket.LocalEndPoint.AddressFamily}");
+                    $"Invalid socket address family: {socket_.LocalEndPoint.AddressFamily}");
                 arg.Completed += IO_Complete;
                 return arg;
             }, 0);
