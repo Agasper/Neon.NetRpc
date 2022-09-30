@@ -35,7 +35,7 @@ Discord: [![Discord](https://img.shields.io/discord/1022151329122095165)](https:
 
 # Documentation
 
-* [Networking - Getting started](https://github.com/Agasper/Neon.NetRpc/wiki/Networking-Getting-started)
 * [RPC - Getting started](https://github.com/Agasper/Neon.NetRpc/wiki/RPC-Getting-started)
+* [Networking - Getting started](https://github.com/Agasper/Neon.NetRpc/wiki/Networking-Getting-started)
 * [Example project](https://github.com/Agasper/Neon.NetRpc/wiki/Example-project)
 * [Wiki](https://github.com/Agasper/Neon.NetRpc/wiki)
