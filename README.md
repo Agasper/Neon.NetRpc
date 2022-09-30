@@ -15,8 +15,8 @@
 * Minimum traffic overhead
 * Works with Unity (tested on 2017+)
 * Works with messages, not a streams
-* Support compression with GZip
-* Support encryption with Aes128, Aes256 with Diffie-Hellman key exchange
+* Supports compression with GZip
+* Supports encryption with Aes128, Aes256 with Diffie-Hellman key exchange
 * Two transport options UDP/TCP. UDP supports reliable delivery
 * Packet loss and latency simulation
 * Connection statisitcs
