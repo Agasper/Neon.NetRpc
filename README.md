@@ -4,8 +4,10 @@
 
 **Neon** - is a C# native Networking & RPC library over TCP/UDP, designed especially for games in Unity3D. 
 
+&nbsp;
 
-Features:
+# Features
+
 * Easy to setup and use
 * Primitives & Protobuf serialization/deserialization is out of the box
 * Supports IPv4 & IPv6 (dual mode coming soon)
@@ -13,11 +15,12 @@ Features:
 * Minimum traffic overhead
 * Works with Unity (tested on 2017+)
 * Works with messages, not a streams
-* Support compression with GZip
-* Support encryption with Aes128, Aes256 with Diffie-Hellman key exchange
+* Supports compression with GZip
+* Supports encryption with Aes128, Aes256 with Diffie-Hellman key exchange
 * Two transport options UDP/TCP. UDP supports reliable delivery
 * Packet loss and latency simulation
 * Connection statisitcs
+* Supports netstandard2.0 and above
 
 Discord: [![Discord](https://img.shields.io/discord/1022151329122095165)](https://discord.gg/gwQtFyxTNM)
 
@@ -32,7 +35,7 @@ Discord: [![Discord](https://img.shields.io/discord/1022151329122095165)](https:
 
 # Documentation
 
-* [Networking - Getting started](https://github.com/Agasper/Neon.NetRpc/wiki/Networking-Getting-started)
 * [RPC - Getting started](https://github.com/Agasper/Neon.NetRpc/wiki/RPC-Getting-started)
+* [Networking - Getting started](https://github.com/Agasper/Neon.NetRpc/wiki/Networking-Getting-started)
 * [Example project](https://github.com/Agasper/Neon.NetRpc/wiki/Example-project)
 * [Wiki](https://github.com/Agasper/Neon.NetRpc/wiki)
