@@ -286,7 +286,7 @@ namespace Neon.Rpc.Serialization
                 WritePrimitive(message, value);
             }
             else
-                throw new ArgumentException($"{nameof(value)} should be IMessage, IneonMessage or primitive type, but got {value.GetType().Name}");
+                throw new ArgumentException($"{nameof(value)} should be {nameof(IMessage)}, {nameof(INeonMessage)} or primitive type, but got {value.GetType().Name}");
         }
         
         public static bool IsPrimitive(Type type)
