@@ -131,7 +131,7 @@ namespace Neon.Rpc.Net
             Assembly assembly = Assembly.GetEntryAssembly();
             serializer = new RpcSerializer(MemoryManager.Shared);
             remotingInvocationRules = RemotingInvocationRules.Default;
-            synchronizationContext = new DummySynchronizationContext();
+            synchronizationContext = new NeonSynchronizationContext();
             contextSynchronizationMode = ContextSynchronizationMode.Post;
             taskScheduler = TaskScheduler.Default;
             logManager = Logging.LogManager.Dummy;

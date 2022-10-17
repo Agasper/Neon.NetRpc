@@ -90,8 +90,8 @@ namespace Neon.Networking.Udp
             if (peer == null)
                 throw new ArgumentNullException(nameof(peer));
             Random rnd = new Random();
-            this.connectingTcs = new TaskCompletionSource<object>();
-            this.disconnectingTcs = new TaskCompletionSource<object>();
+            this.connectingTcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+            this.disconnectingTcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
             this.connectionCancellationToken = new CancellationTokenSource();
             this.Id = peer.GetNextConnectionId();
             this.status = UdpConnectionStatus.InitialWaiting;

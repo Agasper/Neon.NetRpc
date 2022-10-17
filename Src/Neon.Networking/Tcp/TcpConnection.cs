@@ -586,7 +586,7 @@ namespace Neon.Networking.Tcp
                 sendTask = sendTask.ContinueWith(
                         (task, msg) =>
                         {
-                            return SendMessageInternalAsync(msg as TcpMessage);
+                            return SendMessageImmediatelyInternalAsync(msg as TcpMessage);
                         }, message, TaskContinuationOptions.ExecuteSynchronously)
                     .Unwrap();
 
@@ -596,7 +596,7 @@ namespace Neon.Networking.Tcp
             await newSendTask.ConfigureAwait(false);
         }
 
-        async Task SendMessageInternalAsync(TcpMessage message)
+        async Task SendMessageImmediatelyInternalAsync(TcpMessage message)
         {
             await sendSemaphore.WaitAsync().ConfigureAwait(false);
             try

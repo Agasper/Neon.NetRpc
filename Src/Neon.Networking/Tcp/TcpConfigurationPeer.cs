@@ -149,7 +149,7 @@ namespace Neon.Networking.Tcp
 
         public TcpConfigurationPeer()
         {
-            synchronizationContext = new DummySynchronizationContext();
+            synchronizationContext = new NeonSynchronizationContext();
             contextSynchronizationMode = ContextSynchronizationMode.Post;
 
             memoryManager = Neon.Util.Pooling.MemoryManager.Shared;

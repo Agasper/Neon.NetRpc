@@ -156,7 +156,7 @@ namespace Neon.Networking.Udp
             sendBufferSize = 65535;
             receiveBufferSize = 1048676;
             reuseAddress = true;
-            synchronizationContext = new DummySynchronizationContext();
+            synchronizationContext = new NeonSynchronizationContext();
             tooLargeMessageBehaviour = TooLargeMessageBehaviour.RaiseException;
             contextSynchronizationMode = ContextSynchronizationMode.Post;
             networkReceiveThreads = Math.Max(1, Environment.ProcessorCount - 1);

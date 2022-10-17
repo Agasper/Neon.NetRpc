@@ -14,7 +14,7 @@ namespace Neon.Networking.Udp.Channels
         public DelayedPacket(Datagram datagram)
         {
             this.Datagram = datagram;
-            this.tcs = new TaskCompletionSource<object>();
+            this.tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
         }
 
         public void Dispose()

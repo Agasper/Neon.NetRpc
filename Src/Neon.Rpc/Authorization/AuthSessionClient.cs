@@ -27,7 +27,7 @@ namespace Neon.Rpc.Authorization
             if (this.tcs != null)
                 throw new InvalidOperationException($"{nameof(Start)} could be called only once");
             
-            this.tcs = new TaskCompletionSource<object>();
+            this.tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
             
             AuthenticationRequest request = new AuthenticationRequest();
             request.Argument = arg;
