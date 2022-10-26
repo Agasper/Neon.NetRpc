@@ -173,6 +173,7 @@ namespace Neon.Rpc.Net.Udp
         public RpcUdpConfigurationServer() : base()
         {
             udpConfiguration = new UdpConfigurationServer();
+            udpConfiguration.ContextSynchronizationMode = ContextSynchronizationMode.Send;
             CompressionThreshold = UdpConnection.INITIAL_MTU;
         }
     }

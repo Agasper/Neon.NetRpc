@@ -162,6 +162,7 @@ namespace Neon.Rpc.Net.Tcp
         {
             tcpConfiguration = new TcpConfigurationClient();
             tcpConfiguration.ConnectTimeout = Timeout.Infinite;
+            tcpConfiguration.ContextSynchronizationMode = ContextSynchronizationMode.Send;
         }
     }
 }

@@ -201,6 +201,7 @@ namespace Neon.Rpc.Net.Tcp
         public RpcTcpConfigurationServer() : base()
         {
             tcpConfiguration = new TcpConfigurationServer();
+            tcpConfiguration.ContextSynchronizationMode = ContextSynchronizationMode.Send;
         }
     }
 }
