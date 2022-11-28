@@ -339,7 +339,7 @@ namespace Neon.Networking.Tcp
 
                         if (awaitingNextMessageHeaderValid)
                         {
-                            if (awaitingMessageHeader.MessageSize > 0)
+                            // if (awaitingMessageHeader.MessageSize > 0)
                             {
                                 Guid newGuid = Guid.NewGuid();
                                 awaitingNextMessage = new RawMessage(Parent.Configuration.MemoryManager,
@@ -349,8 +349,8 @@ namespace Neon.Networking.Tcp
                                     awaitingMessageHeader.Flags.HasFlag(TcpMessageFlagsEnum.Encrypted),
                                     newGuid);
                             }
-                            else
-                                awaitingNextMessage = null;
+                            // else
+                            //     awaitingNextMessage = null;
                             awaitingNextMessageWrote = 0;
                             logger.Trace($"#{Id} ReceiveCallback(): Creating awaiting message...");
                         }

@@ -240,6 +240,7 @@ namespace Neon.Rpc.Net.Tcp
             if (args == null) 
                 throw new ArgumentNullException(nameof(args));
             
+            logger.Trace($"#{Id} received {args.Message}");
             try
             {
                 using (RawMessage message = this.middlewares.ProcessRecvMessage(args.Message))
@@ -252,6 +253,8 @@ namespace Neon.Rpc.Net.Tcp
                             authSession_.OnMessage(new RpcMessage(configuration.Serializer, message));
                         else if (session_ != null)
                             session_.OnMessage(new RpcMessage(configuration.Serializer, message));
+                        else
+                            throw new InvalidOperationException("No session to handle message");
                     }
                 }
             }

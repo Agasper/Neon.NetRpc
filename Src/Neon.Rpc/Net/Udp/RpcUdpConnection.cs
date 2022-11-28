@@ -258,6 +258,8 @@ namespace Neon.Rpc.Net.Udp
                             authSession_.OnMessage(new RpcMessage(configuration.Serializer, message));
                         else if (session_ != null)
                             session_.OnMessage(new RpcMessage(configuration.Serializer, message));
+                        else
+                            throw new InvalidOperationException("No session to handle message");
                     }
                 }
             }

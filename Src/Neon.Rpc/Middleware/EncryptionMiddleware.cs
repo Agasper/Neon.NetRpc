@@ -65,7 +65,7 @@ namespace Middleware
             Reset();
             this.cipher = cipher ?? throw new ArgumentNullException(nameof(cipher));
             this.dh = new DiffieHellmanImpl(cipher);
-            this.tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+            this.tcs = new TaskCompletionSource<object>();
         }
 
         void CheckCipher()
