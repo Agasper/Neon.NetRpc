@@ -33,7 +33,7 @@ namespace Neon.Networking.Udp
             this.configuration = configuration;
             this.connections = new ConcurrentDictionary<UdpNetEndpoint, UdpConnection>();
             this.connectionsEnumerator = this.connections.GetEnumerator();
-            this.logger = configuration.LogManager.GetLogger(nameof(UdpServer));
+            this.logger = configuration.LogManager.GetLogger(typeof(UdpServer));
             this.logger.Meta["kind"] = this.GetType().Name;
         }
         

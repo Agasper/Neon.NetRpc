@@ -17,9 +17,9 @@ namespace Neon.Logging.Formatters
         /// <param name="meta">Final meta information</param>
         /// <param name="logger">Parent logger</param>
         /// <returns>Log string</returns>
-        public override string Format(LogSeverity severity, object message, LoggingMeta meta, ILogger logger)
+        public override string Format(LogSeverity severity, object message, Exception exception, LoggingMeta meta, ILogger logger)
         {
-            string messageFormatted = base.Format(severity, message, meta, logger).Replace("\"", "\\\"").Replace("\n", "\\n");
+            string messageFormatted = base.Format(severity, message, exception, meta, logger).Replace("\"", "\\\"").Replace("\n", "\\n");
             var stringBuilder = GetStringBuilder();
             try
             {

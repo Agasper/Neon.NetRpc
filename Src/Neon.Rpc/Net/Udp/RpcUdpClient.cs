@@ -82,7 +82,7 @@ namespace Neon.Rpc.Net.Udp
             configuration.Lock();
             this.configuration = configuration;
             this.innerUdpClient = new InnerUdpClient(this, configuration);
-            this.logger = configuration.LogManager.GetLogger(nameof(RpcUdpClient));
+            this.logger = configuration.LogManager.GetLogger(typeof(RpcUdpClient));
             this.logger.Meta["kind"] = this.GetType().Name;
         }
         

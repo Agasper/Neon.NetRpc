@@ -99,7 +99,7 @@ namespace Neon.Networking.Udp
             this.channels = new ConcurrentDictionary<ChannelDescriptor, IChannel>();
             this.lastStatusChange = DateTime.UtcNow;
             this.peer = peer;
-            this.logger = peer.Configuration.LogManager.GetLogger(nameof(UdpConnection));
+            this.logger = peer.Configuration.LogManager.GetLogger(typeof(UdpConnection));
             this.logger.Meta["kind"] = this.GetType().Name;
             this.logger.Meta["id"] = this.Id;
             this.Statistics = new UdpConnectionStatistics();

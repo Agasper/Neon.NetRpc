@@ -72,7 +72,7 @@ namespace Neon.Rpc.Net.Udp
             configuration.Lock();
             this.configuration = configuration;
             this.innerUdpServer = new InnerUdpServer(this, configuration);
-            this.logger = configuration.LogManager.GetLogger(nameof(RpcUdpServer));
+            this.logger = configuration.LogManager.GetLogger(typeof(RpcUdpServer));
             this.logger.Meta["kind"] = this.GetType().Name;
         }
 

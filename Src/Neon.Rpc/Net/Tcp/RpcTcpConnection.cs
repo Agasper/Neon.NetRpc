@@ -48,7 +48,7 @@ namespace Neon.Rpc.Net.Tcp
             this.configuration = configuration;
             this.rpcPeer = rpcPeer;
             this.middlewares = new Middlewares();
-            this.logger = configuration.LogManager.GetLogger(nameof(RpcTcpConnection));
+            this.logger = configuration.LogManager.GetLogger(typeof(RpcTcpConnection));
         }
         
         /// <summary>

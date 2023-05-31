@@ -46,7 +46,7 @@ namespace Neon.Networking.Udp
         public UdpClient(UdpConfigurationClient configuration) : base(configuration)
         {
             this.configuration = configuration;
-            this.logger = configuration.LogManager.GetLogger(nameof(UdpClient));
+            this.logger = configuration.LogManager.GetLogger(typeof(UdpClient));
             this.logger.Meta["kind"] = this.GetType().Name;
         }
         

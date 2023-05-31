@@ -28,7 +28,7 @@ namespace Middleware
 
         public EncryptionMiddleware(IMiddlewareConnection connection, ILogManager logManager)
         {
-            this.logger = logManager.GetLogger(nameof(EncryptionMiddleware));
+            this.logger = logManager.GetLogger(typeof(EncryptionMiddleware));
             this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
         }
 

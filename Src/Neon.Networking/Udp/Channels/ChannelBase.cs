@@ -23,7 +23,7 @@ namespace Neon.Networking.Udp.Channels
         {
             this.Descriptor = descriptor;
             this.connection = connection;
-            this.logger = logManager.GetLogger(this.GetType().Name);
+            this.logger = logManager.GetLogger(this.GetType());
             this.logger.Meta.Add("delivery_type", this.Descriptor.DeliveryType);
             this.logger.Meta.Add("channel", this.Descriptor.Channel);
             this.logger.Meta.Add("connection_id", this.connection.Id);

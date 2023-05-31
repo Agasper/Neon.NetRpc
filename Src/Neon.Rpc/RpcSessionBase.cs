@@ -34,7 +34,7 @@ namespace Neon.Rpc
                 throw new ArgumentNullException(nameof(sessionContext.LogManager));
             
             this.connection = sessionContext.ConnectionInternal;
-            this.logger = sessionContext.LogManager.GetLogger(nameof(RpcSessionBase));
+            this.logger = sessionContext.LogManager.GetLogger(typeof(RpcSessionBase));
             this.logger.Meta["kind"] = this.GetType().Name;
             this.logger.Meta["connection_id"] = this.connection.Id;
             this.logger.Meta["connection_endpoint"] = new RefLogLabel<IRpcConnection>(this.connection, s => s.RemoteEndpoint);

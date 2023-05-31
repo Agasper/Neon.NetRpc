@@ -44,7 +44,7 @@ namespace Neon.Networking.Tcp
             if (configuration == null)
                 throw new ArgumentNullException(nameof(configuration));
             this.configuration = configuration;
-            this.logger = configuration.LogManager.GetLogger(nameof(TcpClient));
+            this.logger = configuration.LogManager.GetLogger(typeof(TcpClient));
             this.logger.Meta.Add("kind", this.GetType().Name);
             status = TcpClientStatus.Disconnected;
         }

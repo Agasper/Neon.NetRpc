@@ -38,11 +38,7 @@ namespace Neon.Logging
                 throw new ArgumentNullException(nameof(logManager));
             logManagerDefault = logManager;
         }
-
-        /// <summary>
-        /// LogManager severity
-        /// </summary>
-        public LogSeverity Severity { get; set; }
+        
         /// <summary>
         /// LogManager meta information, will be merged with Logger meta and record meta 
         /// </summary>
@@ -51,36 +47,29 @@ namespace Neon.Logging
         /// LogManager handlers
         /// </summary>
         public LoggingHandlers Handlers => handlers;
+        /// <summary>
+        /// LogManager name filters
+        /// </summary>
+        public LoggingNameFilters LoggingNameFilters => filters;
 
         LoggingHandlers handlers;
+        LoggingNameFilters filters;
 
-        public LogManager(LogSeverity severity, params ILoggingHandler[] handlers) : this(severity)
+        public LogManager(params ILoggingHandler[] handlers) : this()
         {
             this.handlers.Add(handlers);
-        }
-
-        public LogManager(LogSeverity severity) : this()
-        {
-            this.Severity = severity;
         }
 
         public LogManager()
         {
             this.Meta = new LoggingMeta();
-            this.Severity = LogSeverity.TRACE;
             this.handlers = new LoggingHandlers();
+            this.filters = new LoggingNameFilters();
         }
-
-        /// <summary>
-        /// Check whether severity level is available
-        /// </summary>
-        /// <param name="level">Severity level</param>
-        /// <returns>True if enabled, False if not</returns>
-        public virtual bool IsLevelEnabled(LogSeverity level)
+        
+        internal bool IsFiltered(ILogger logger, LogSeverity severity)
         {
-            if (level < this.Severity)
-                return false;
-            return true;
+            return filters.IsFiltered(logger, severity);
         }
 
         /// <summary>
@@ -101,6 +90,27 @@ namespace Neon.Logging
         public virtual Logger GetLogger(string name)
         {
             var logger = new Logger(name, this);
+            return logger;
+        }
+        
+        /// <summary>
+        /// Creates a new child instance of the logger 
+        /// </summary>
+        /// <param name="type">Logger type</param>
+        /// <returns>New instance of the logger</returns>
+        ILogger ILogManager.GetLogger(Type type)
+        {
+            return GetLogger(type.FullName);
+        }
+
+        /// <summary>
+        /// Creates a new child instance of the logger 
+        /// </summary>
+        /// <param name="type">Logger type</param>
+        /// <returns>New instance of the logger</returns>
+        public virtual Logger GetLogger(Type type)
+        {
+            var logger = new Logger(type.FullName, this);
             return logger;
         }
     }

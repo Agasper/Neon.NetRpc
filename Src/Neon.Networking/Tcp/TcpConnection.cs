@@ -123,7 +123,7 @@ namespace Neon.Networking.Tcp
             this.sendBuffer = parent.Configuration.MemoryManager.RentArray(parent.Configuration.SendBufferSize);
             this.awaitingMessageHeaderFactory = new TcpMessageHeaderFactory();
             this.Parent = parent;
-            this.logger = parent.Configuration.LogManager.GetLogger(nameof(TcpConnection));
+            this.logger = parent.Configuration.LogManager.GetLogger(typeof(TcpConnection));
             this.logger.Meta["kind"] = this.GetType().Name;
             this.logger.Meta["connection_endpoint"] = new RefLogLabel<TcpConnection>(this, v => v.RemoteEndpoint);
             this.logger.Meta["connected"] = new RefLogLabel<TcpConnection>(this, s => s.Connected);

@@ -36,7 +36,7 @@ namespace Neon.Logging.Formatters
         /// <param name="meta">Final meta information</param>
         /// <param name="logger">Parent logger</param>
         /// <returns>Log string</returns>
-        public virtual string Format(LogSeverity severity, object message, LoggingMeta meta, ILogger logger)
+        public virtual string Format(LogSeverity severity, object message, Exception exception, LoggingMeta meta, ILogger logger)
         {
             if (message == null) throw new ArgumentNullException(nameof(message));
             var stringBuilder = GetStringBuilder();
@@ -49,7 +49,13 @@ namespace Neon.Logging.Formatters
                 if (IncludeSeverityInMessage)
                     stringBuilder.Append($"[{severity}] ");
 
-                stringBuilder.Append(message.ToString().Replace("\r", @"\r").Replace("\n", @"\n").Replace("\t", @"\t"));
+                string finalMessage = message.ToString();
+                if (exception != null)
+                {
+                    finalMessage += " -> " + exception.ToString();
+                }
+
+                stringBuilder.Append(finalMessage.ToString().Replace("\r", @"\r").Replace("\n", @"\n").Replace("\t", @"\t"));
                 return stringBuilder.ToString();
             }
             finally

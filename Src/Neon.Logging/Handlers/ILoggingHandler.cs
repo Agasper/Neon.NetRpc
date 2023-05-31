@@ -1,4 +1,6 @@
-﻿namespace Neon.Logging.Handlers
+﻿using System;
+
+namespace Neon.Logging.Handlers
 {
     public interface ILoggingHandler
     {
@@ -7,8 +9,9 @@
         /// </summary>
         /// <param name="severity">Log string severity</param>
         /// <param name="message">Logging object</param>
+        /// <param name="exception">Exception object</param>
         /// <param name="meta">Final meta information</param>
         /// <param name="logger">Parent logger</param>
-        void Write(LogSeverity severity, object message, LoggingMeta meta, ILogger logger);
+        void Write(LogSeverity severity, object message, Exception exception, LoggingMeta meta, ILogger logger);
     }
 }

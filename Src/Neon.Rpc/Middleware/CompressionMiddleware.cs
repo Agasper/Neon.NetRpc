@@ -18,7 +18,7 @@ namespace Middleware
         {
             this.compressionThreshold = compressionThreshold;
             this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
-            this.logger = logManager.GetLogger(nameof(CompressionMiddleware));
+            this.logger = logManager.GetLogger(typeof(CompressionMiddleware));
             this.logger.Meta["connection_id"] = connection.Id;
         }
 

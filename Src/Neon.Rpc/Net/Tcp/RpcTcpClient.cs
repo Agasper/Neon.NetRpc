@@ -103,7 +103,7 @@ namespace Neon.Rpc.Net.Tcp
             configuration.Lock();
             this.configuration = configuration;
             this.innerTcpClient = new InnerTcpClient(this, configuration);
-            this.logger = configuration.LogManager.GetLogger(nameof(RpcTcpClient));
+            this.logger = configuration.LogManager.GetLogger(typeof(RpcTcpClient));
             this.logger.Meta["kind"] = this.GetType().Name;
             this.logger.Meta["tag"] = new RefLogLabel<RpcTcpClient>(this, s => s.Tag);
         }

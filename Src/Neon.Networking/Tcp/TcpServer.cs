@@ -36,7 +36,7 @@ namespace Neon.Networking.Tcp
                 Math.Min(configuration.MaximumConnections, 101));
             this.connectionsEnumerator = this.connections.GetEnumerator();
             this.configuration = configuration;
-            this.logger = configuration.LogManager.GetLogger(nameof(TcpServer));
+            this.logger = configuration.LogManager.GetLogger(typeof(TcpServer));
             this.logger.Meta.Add("kind", this.GetType().Name);
         }
 

@@ -1,14 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Neon.Logging.Handlers;
 
 namespace Neon.Logging
 {
     public interface ILogger
     {
-        /// <summary>
-        /// Logger severity level
-        /// </summary>
-        LogSeverity Severity { get; set; }
         /// <summary>
         /// Logger name
         /// </summary>
@@ -17,10 +14,6 @@ namespace Neon.Logging
         /// Logger meta information, will be merged with LogManager meta and record meta 
         /// </summary>
         LoggingMeta Meta { get; }
-        /// <summary>
-        /// Logger extra handlers
-        /// </summary>
-        LoggingHandlers Handlers { get; }
 
         /// <summary>Writes the specified object with TRACE logging severity</summary>
         /// <param name="message">The value to write.</param>
@@ -53,33 +46,55 @@ namespace Neon.Logging
         /// <summary>Writes the specified object with ERROR logging severity</summary>
         /// <param name="message">The value to write.</param>
         void Error(object message);
+        /// <summary>Writes the specified object with ERROR logging severity</summary>
+        /// <param name="message">The value to write.</param>
+        /// <param name="exception">Exception object.</param>
+        void Error(object message, Exception exception);
         /// <summary>Writes the specified object and its meta with ERROR logging severity</summary>
         /// <param name="message">The value to write.</param>
         /// <param name="meta">Meta information of the record</param>
         void Error(object message, LoggingMeta meta);
+        /// <summary>Writes the specified object with ERROR logging severity</summary>
+        /// <param name="message">The value to write.</param>
+        /// <param name="exception">Exception object.</param>
+        /// <param name="meta">Meta information of the record</param>
+        void Error(object message, Exception exception, LoggingMeta meta);
         /// <summary>Writes the specified object with CRITICAL logging severity</summary>
         /// <param name="message">The value to write.</param>
         void Critical(object message);
+        /// <summary>Writes the specified object with CRITICAL logging severity</summary>
+        /// <param name="message">The value to write.</param>
+        /// <param name="exception">Exception object.</param>
+        void Critical(object message, Exception exception);
         /// <summary>Writes the specified object and its meta with CRITICAL logging severity</summary>
         /// <param name="message">The value to write.</param>
         /// <param name="meta">Meta information of the record</param>
         void Critical(object message, LoggingMeta meta);
-
+        /// <summary>Writes the specified object with CRITICAL logging severity</summary>
+        /// <param name="message">The value to write.</param>
+        /// <param name="exception">Exception object.</param>
+        /// <param name="meta">Meta information of the record</param>
+        void Critical(object message, Exception exception, LoggingMeta meta);
+        
         /// <summary>Writes the specified object</summary>
         /// <param name="message">The value to write.</param>
         /// <param name="severity">Severity of the record</param>
         void Write(LogSeverity severity, object message);
         /// <summary>Writes the specified object</summary>
         /// <param name="message">The value to write.</param>
+        /// <param name="exception">Exception object</param>
         /// <param name="severity">Severity of the record</param>
+        void Write(LogSeverity severity, object message, Exception exception);
+        /// <summary>Writes the specified object</summary>
+        /// <param name="message">The value to write.</param>
         /// <param name="meta">Meta information of the record</param>
+        /// <param name="severity">Severity of the record</param>
         void Write(LogSeverity severity, object message, LoggingMeta meta);
-
-        /// <summary>
-        /// Check whether severity level is available
-        /// </summary>
-        /// <param name="level">Severity level</param>
-        /// <returns>True if enabled, False if not</returns>
-        bool IsLevelEnabled(LogSeverity level);
+        /// <summary>Writes the specified object</summary>
+        /// <param name="message">The value to write.</param>
+        /// <param name="severity">Severity of the record</param>
+        /// <param name="exception">Exception object</param>
+        /// <param name="meta">Meta information of the record</param>
+        void Write(LogSeverity severity, object message, Exception exception, LoggingMeta meta);
     }
 }
