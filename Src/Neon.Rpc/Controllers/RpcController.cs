@@ -78,40 +78,42 @@ namespace Neon.Rpc.Controllers
                         return;
                     }
 
-                    IRpcCipher rpcCipher = null;
+                    IRpcCipher rpcCipher = CryptographyHelper.CreateCipher(_context.Configuration.CryptographyConfiguration
+                        .EncryptionAlgorithm);
                     try
                     {
-                        rpcCipher = CryptographyHelper.CreateCipher(_context.Configuration.CryptographyConfiguration
-                            .EncryptionAlgorithm);
-                        IKeyExchangeAlgorithm keyExchangeAlgorithm =
-                            CryptographyHelper.CreateKeyExchangeAlgorithm(_context.Configuration.MemoryManager,
-                                _context.Configuration.CryptographyConfiguration.KeyExchangeAlgorithm,
-                                rpcCipher);
-                        
-                        handshakeRequest.EncryptionRequest = new EncryptionRequestProto();
-                        handshakeRequest.EncryptionRequest.EncryptionAlgorithm = _context.Configuration
-                            .CryptographyConfiguration.EncryptionAlgorithm.ToString();
-                        handshakeRequest.EncryptionRequest.KeyExchangeAlgorithm = _context.Configuration
-                            .CryptographyConfiguration.KeyExchangeAlgorithm.ToString();
-                        handshakeRequest.EncryptionRequest.ClientKeyData = keyExchangeAlgorithm.GenerateClientKeyData();
+                        using (IKeyExchangeAlgorithm keyExchangeAlgorithm =
+                               CryptographyHelper.CreateKeyExchangeAlgorithm(_context.Configuration.MemoryManager,
+                                   _context.Configuration.CryptographyConfiguration.KeyExchangeAlgorithm,
+                                   rpcCipher))
+                        {
 
-                        combinedCts.Token.ThrowIfCancellationRequested();
-                        RpcHandshakeResponseProto handshakeResponse =
-                            await ExecuteInternalAsync<RpcHandshakeResponseProto>(HANDSHAKE_METHOD,
-                                    handshakeRequest,
-                                    ExecutionOptions.Default.WithCancellationToken(combinedCts.Token))
-                                .ConfigureAwait(false);
-                        keyExchangeAlgorithm.UpdateServerKeyData(handshakeResponse.EncryptionResponse
+                            handshakeRequest.EncryptionRequest = new EncryptionRequestProto();
+                            handshakeRequest.EncryptionRequest.EncryptionAlgorithm = _context.Configuration
+                                .CryptographyConfiguration.EncryptionAlgorithm.ToString();
+                            handshakeRequest.EncryptionRequest.KeyExchangeAlgorithm = _context.Configuration
+                                .CryptographyConfiguration.KeyExchangeAlgorithm.ToString();
+                            handshakeRequest.EncryptionRequest.ClientKeyData =
+                                keyExchangeAlgorithm.GenerateClientKeyData();
+
+                            combinedCts.Token.ThrowIfCancellationRequested();
+                            RpcHandshakeResponseProto handshakeResponse =
+                                await ExecuteInternalAsync<RpcHandshakeResponseProto>(HANDSHAKE_METHOD,
+                                        handshakeRequest,
+                                        ExecutionOptions.Default.WithCancellationToken(combinedCts.Token))
+                                    .ConfigureAwait(false);
+                            keyExchangeAlgorithm.UpdateServerKeyData(handshakeResponse.EncryptionResponse
                                 .ServerKeyData);
 
-                        rpcCipher.SetKey(keyExchangeAlgorithm.GetKey());
-                        await SendInternalAsync(SET_ENCRYPTION_METHOD, null,
-                            SendingOptions.Default.WithCancellationToken(combinedCts.Token)).ConfigureAwait(false);
-                        
-                        _handshakeState.NegotiatedRpcCipher = rpcCipher;
-                        base._cipher = rpcCipher;
-                        _handshakeState._handshakeCompleted = true;
-                        
+                            rpcCipher.SetKey(keyExchangeAlgorithm.GetKey());
+                            await SendInternalAsync(SET_ENCRYPTION_METHOD, null,
+                                SendingOptions.Default.WithCancellationToken(combinedCts.Token)).ConfigureAwait(false);
+
+                            _handshakeState.NegotiatedRpcCipher = rpcCipher;
+                            base._cipher = rpcCipher;
+                            _handshakeState._handshakeCompleted = true;
+                        }
+
                     }
                     catch
                     {
@@ -275,26 +277,28 @@ namespace Neon.Rpc.Controllers
                     throw new RpcException($"Key exchange algorithm mismatch, required {_context.Configuration.CryptographyConfiguration.EncryptionAlgorithm}",
                         RpcResponseStatusCode.NotSupported);
 
-                IRpcCipher rpcCipher = null;
+                IRpcCipher rpcCipher = CryptographyHelper.CreateCipher(_context.Configuration.CryptographyConfiguration
+                    .EncryptionAlgorithm);
                 try
                 {
-                    rpcCipher = CryptographyHelper.CreateCipher(_context.Configuration.CryptographyConfiguration
-                        .EncryptionAlgorithm);
-                    IKeyExchangeAlgorithm keyExchangeAlgorithm =
-                        CryptographyHelper.CreateKeyExchangeAlgorithm(_context.Configuration.MemoryManager,
-                            _context.Configuration.CryptographyConfiguration.KeyExchangeAlgorithm,
-                            rpcCipher);
-                    var serverKeyData = keyExchangeAlgorithm.KeyDataExchange(handshakeRequest.EncryptionRequest.ClientKeyData);
+                    using (IKeyExchangeAlgorithm keyExchangeAlgorithm =
+                           CryptographyHelper.CreateKeyExchangeAlgorithm(_context.Configuration.MemoryManager,
+                               _context.Configuration.CryptographyConfiguration.KeyExchangeAlgorithm,
+                               rpcCipher))
+                    {
+                        var serverKeyData =
+                            keyExchangeAlgorithm.KeyDataExchange(handshakeRequest.EncryptionRequest.ClientKeyData);
 
-                    RpcHandshakeResponseProto handshakeResponse = new RpcHandshakeResponseProto();
-                    handshakeResponse.EncryptionResponse = new EncryptionResponseProto();
-                    handshakeResponse.EncryptionResponse.ServerKeyData = serverKeyData;
+                        RpcHandshakeResponseProto handshakeResponse = new RpcHandshakeResponseProto();
+                        handshakeResponse.EncryptionResponse = new EncryptionResponseProto();
+                        handshakeResponse.EncryptionResponse.ServerKeyData = serverKeyData;
 
-                    rpcCipher.SetKey(keyExchangeAlgorithm.GetKey());
-                    _handshakeState.NegotiatedRpcCipher = rpcCipher;
-                    _handshakeState._handshakeCompleted = true;
+                        rpcCipher.SetKey(keyExchangeAlgorithm.GetKey());
+                        _handshakeState.NegotiatedRpcCipher = rpcCipher;
+                        _handshakeState._handshakeCompleted = true;
+                        return handshakeResponse;
+                    }
 
-                    return handshakeResponse;
                 }
                 catch
                 {

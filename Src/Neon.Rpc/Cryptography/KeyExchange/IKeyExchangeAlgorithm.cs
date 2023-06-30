@@ -1,8 +1,9 @@
+using System;
 using Google.Protobuf;
 
 namespace Neon.Rpc.Cryptography.KeyExchange
 {
-    interface IKeyExchangeAlgorithm
+    interface IKeyExchangeAlgorithm : IDisposable
     {
         KeyExchangeStatus Status { get; }
         int KeySize { get; }

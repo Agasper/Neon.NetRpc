@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Google.Protobuf;
 using Neon.Util;
@@ -8,7 +7,7 @@ using Neon.Util.Pooling;
 
 namespace Neon.Rpc.Cryptography.KeyExchange
 {
-    class RsaKeyExchange : IKeyExchangeAlgorithm, IDisposable
+    class RsaKeyExchange : IKeyExchangeAlgorithm
     {
         public KeyExchangeStatus Status { get; private set; }
         public int KeySize => _keySize;
