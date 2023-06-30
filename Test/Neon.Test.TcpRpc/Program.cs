@@ -6,6 +6,7 @@ using System.Buffers;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.IO;
 using Neon.Logging;
 using Neon.Logging.Handlers;
@@ -13,6 +14,7 @@ using Neon.Networking;
 using Neon.Networking.Cryptography;
 using Neon.Rpc;
 using Neon.Rpc.Cryptography;
+using Neon.Rpc.Messages;
 using Neon.Rpc.Net.Events;
 using Neon.Rpc.Net.Tcp;
 using Neon.Rpc.Net.Tcp.Events;
@@ -99,8 +101,21 @@ namespace Neon.Test.TcpRpc
             //Starting the client
             client.Start();
             
+            //Testing bad login
+            try
+            {
+                await Test(client, server, new AuthenticationInfo(), CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (RpcException rex)
+            {
+                if (rex.StatusCode != RpcResponseStatusCode.Unauthenticated)
+                    throw;
+            }
+
             //Testing normal login
-            await TestNormalAuth(client, server, new AuthenticationInfo(), CancellationToken.None).ConfigureAwait(false);
+            await Test(client, server,
+                new AuthenticationInfo(Any.Pack(new AuthRequestMessage() {Login = "test", Password = "test"})),
+                CancellationToken.None).ConfigureAwait(false);
 
             //Closing the connection
             client.Close();
@@ -113,29 +128,30 @@ namespace Neon.Test.TcpRpc
             logger.Info("DONE!");
         }
 
-        static void MemoryManagerOnOnObjectFinalized(object sender, ObjectFinalizedEventArgs e)
+        static async Task Test(RpcTcpClient client, RpcTcpServer server, AuthenticationInfo authenticationInfo, CancellationToken cancellationToken)
         {
-            logger!.Critical($"Object finalized ({sender}): {e.ObjectType} #{e.Id} -> {e.AllocationStack}");
-        }
+            try
+            {
+                await client.StartSessionAsync("127.0.0.1", 10000, IPAddressSelectionRules.OnlyIpv4, authenticationInfo,
+                    cancellationToken);
 
-        static async Task TestNormalAuth(RpcTcpClient client, RpcTcpServer server, AuthenticationInfo authenticationInfo, CancellationToken cancellationToken)
-        {
-            await client.StartSessionAsync("127.0.0.1", 10000, IPAddressSelectionRules.OnlyIpv4, authenticationInfo, cancellationToken);
-            
-            //Testing methods from the client
-            BasicTest basicTestClient = new BasicTest(client.Session);
-            await basicTestClient.Run().ConfigureAwait(false);
-            
-            //Testing method from the server
-            BasicTest basicTestServer = new BasicTest(server.Sessions.First());
-            await basicTestServer.Run().ConfigureAwait(false);
+                //Testing methods from the client
+                BasicTest basicTestClient = new BasicTest(client.Session);
+                await basicTestClient.Run().ConfigureAwait(false);
 
-            //Testing big messages
-            BufferTest bufferTest = new BufferTest(client.Session, 100000);
-            await bufferTest.Run().ConfigureAwait(false);
-            
-            //Closing connection
-            client.Close();
+                //Testing method from the server
+                BasicTest basicTestServer = new BasicTest(server.Sessions.First());
+                await basicTestServer.Run().ConfigureAwait(false);
+
+                //Testing big messages
+                BufferTest bufferTest = new BufferTest(client.Session, 100000);
+                await bufferTest.Run().ConfigureAwait(false);
+            }
+            finally
+            {
+                //Closing connection
+                client.Close();
+            }
         }
 
         static void ContextOnException(Exception ex)

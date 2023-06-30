@@ -80,7 +80,7 @@ namespace Neon.Rpc.Controllers
                 
                 using (var decryptedMessage = rawMessage.Decrypt(_cipher))
                 {
-                    _logger.Trace($"{GetLogsSign()} decrypting message {rawMessage} from {rawMessage.Length} to {decryptedMessage.Length}");
+                    _logger.Trace($"{GetLogsSign()} decrypting message {rawMessage} to {decryptedMessage}");
                     OnMessageDecrypted(decryptedMessage);
                 }
             }
@@ -100,7 +100,7 @@ namespace Neon.Rpc.Controllers
             {
                 using (var decompressedMessage = rawMessage.Decompress())
                 {
-                    _logger.Trace($"{GetLogsSign()} decompressing message {rawMessage} from {rawMessage.Length} to {decompressedMessage.Length}");
+                    _logger.Trace($"{GetLogsSign()} decompressing message {rawMessage} to {decompressedMessage}");
                     OnMessageClear(decompressedMessage);
                 }
             }
@@ -124,14 +124,14 @@ namespace Neon.Rpc.Controllers
                             RpcRequest rpcRequest = new RpcRequest(_context.Configuration.MemoryManager, header, payload);
                             baseMessage = rpcRequest;
                             if (!_logger.IsFiltered(LogSeverity.TRACE))
-                                _logger.Trace($"{GetLogsSign()} received a message {rpcRequest.ToString(_context.Configuration.LogMessageBody)}");
+                                _logger.Trace($"{GetLogsSign()} received a message {rpcRequest.ToString(_context.Configuration.LogMessageBody)} from {rawMessage}");
                             OnRpcRequest(rpcRequest);
                             break;
                         case RpcMessageHeaderDataProto.MessageTypeOneofCase.RpcResponse:
                             RpcResponse rpcResponse = new RpcResponse(_context.Configuration.MemoryManager, header, payload);
                             baseMessage = rpcResponse;
                             if (!_logger.IsFiltered(LogSeverity.TRACE))
-                                _logger.Trace($"{GetLogsSign()} received a message {rpcResponse.ToString(_context.Configuration.LogMessageBody)}");
+                                _logger.Trace($"{GetLogsSign()} received a message {rpcResponse.ToString(_context.Configuration.LogMessageBody)} from {rawMessage}");
                             OnRpcResponse(rpcResponse);
                             break;
                         default:
@@ -350,13 +350,14 @@ namespace Neon.Rpc.Controllers
         async Task SendRpcMessageAsync(RpcMessageBase rpcMessage, DeliveryType deliveryType, int channel, CancellationToken cancellationToken)
         {
             CheckDisposed();
-            if (!_logger.IsFiltered(LogSeverity.TRACE))
-                _logger.Trace($"{GetLogsSign()} sending {rpcMessage.ToString(_context.Configuration.LogMessageBody)}");
             using (var rawMessage = _context.Connection.CreateMessage(rpcMessage.CalculateSize()))
             {
                 try
                 {
                     rpcMessage.WriteTo(rawMessage);
+                    
+                    if (!_logger.IsFiltered(LogSeverity.TRACE))
+                        _logger.Trace($"{GetLogsSign()} sending {rpcMessage.ToString(_context.Configuration.LogMessageBody)} as {rawMessage}");
 
                     await CompressAndSendRawMessageAsync(rawMessage, deliveryType, channel, cancellationToken);
                     _logger.Debug($"{GetLogsSign()} sent {rpcMessage}");
@@ -375,7 +376,7 @@ namespace Neon.Rpc.Controllers
             {
                 using (var compressedMessage = rawMessage.Compress(CompressionLevel.Optimal))
                 {
-                    _logger.Trace($"{GetLogsSign()} compressing message {rawMessage} from {rawMessage.Length} to {compressedMessage.Length}");
+                    _logger.Trace($"{GetLogsSign()} compressing message {rawMessage} to {compressedMessage}");
                     await EncryptAndSendRawMessageAsync(compressedMessage, deliveryType, channel, cancellationToken);
                 }
             }
@@ -390,7 +391,7 @@ namespace Neon.Rpc.Controllers
             {
                 using (var encryptedMessage = rawMessage.Encrypt(_cipher))
                 {
-                    _logger.Trace($"{GetLogsSign()} encrypting message {rawMessage} from {rawMessage.Length} to {encryptedMessage.Length}");
+                    _logger.Trace($"{GetLogsSign()} encrypting message {rawMessage} to {encryptedMessage}");
                     await _context.Connection.SendMessage(encryptedMessage, deliveryType, channel, cancellationToken)
                         .ConfigureAwait(false);
                 }

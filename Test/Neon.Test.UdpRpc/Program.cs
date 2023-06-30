@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.IO;
 using Neon.Logging;
 using Neon.Logging.Handlers;
@@ -6,6 +7,7 @@ using Neon.Networking;
 using Neon.Networking.Cryptography;
 using Neon.Rpc;
 using Neon.Rpc.Cryptography.Ciphers;
+using Neon.Rpc.Messages;
 using Neon.Rpc.Net.Events;
 using Neon.Rpc.Net.Udp;
 using Neon.Rpc.Net.Udp.Events;
@@ -93,8 +95,21 @@ namespace Neon.Test.TcpRpc
             //Starting client
             client.Start();
 
+            //Testing bad login
+            try
+            {
+                await Test(client, server, new AuthenticationInfo(), CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (RpcException rex)
+            {
+                if (rex.StatusCode != RpcResponseStatusCode.Unauthenticated)
+                    throw;
+            }
+
             //Testing normal login
-            await TestNormalAuth(client, server, new AuthenticationInfo(), CancellationToken.None).ConfigureAwait(false);
+            await Test(client, server,
+                new AuthenticationInfo(Any.Pack(new AuthRequestMessage() {Login = "test", Password = "test"})),
+                CancellationToken.None).ConfigureAwait(false);
             
             //Shutting down everything
             client.Shutdown();
@@ -105,24 +120,30 @@ namespace Neon.Test.TcpRpc
             logger.Info("DONE!");
         }
 
-        static async Task TestNormalAuth(RpcUdpClient client, RpcUdpServer server, AuthenticationInfo authenticationInfo, CancellationToken cancellationToken)
+        static async Task Test(RpcUdpClient client, RpcUdpServer server, AuthenticationInfo authenticationInfo, CancellationToken cancellationToken)
         {
-            await client.StartSessionAsync("127.0.0.1", 10000, IPAddressSelectionRules.OnlyIpv4, authenticationInfo, cancellationToken);
-            
-            //Testing methods from the client
-            BasicTest basicTestClient = new BasicTest(client.Session);
-            await basicTestClient.Run().ConfigureAwait(false);
-            
-            //Testing method from the server
-            BasicTest basicTestServer = new BasicTest(server.Sessions.First());
-            await basicTestServer.Run().ConfigureAwait(false);
+            try
+            {
+                await client.StartSessionAsync("127.0.0.1", 10000, IPAddressSelectionRules.OnlyIpv4, authenticationInfo,
+                    cancellationToken);
 
-            //Testing big messages
-            BufferTest bufferTest = new BufferTest(client.Session, 100000);
-            await bufferTest.Run().ConfigureAwait(false);
-            
-            //Closing connection
-            await client.CloseAsync();
+                //Testing methods from the client
+                BasicTest basicTestClient = new BasicTest(client.Session);
+                await basicTestClient.Run().ConfigureAwait(false);
+
+                //Testing method from the server
+                BasicTest basicTestServer = new BasicTest(server.Sessions.First());
+                await basicTestServer.Run().ConfigureAwait(false);
+
+                //Testing big messages
+                BufferTest bufferTest = new BufferTest(client.Session, 100000);
+                await bufferTest.Run().ConfigureAwait(false);
+            }
+            finally
+            {
+                //Closing connection
+                await client.CloseAsync();
+            }
         }
         
         static void ContextOnException(Exception ex)

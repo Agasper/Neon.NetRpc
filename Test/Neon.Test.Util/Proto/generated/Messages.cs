@@ -31,21 +31,19 @@ namespace Neon.Test.Proto {
             "ZVdpdGhJZBILCgNpbnQYASABKAUSDAoEbG9uZxgCIAEoAxIOCgZkb3VibGUY",
             "AyABKAESDQoFZmxvYXQYBCABKAISDgoGc3RyaW5nGAUgASgJEg4KBmZsb2F0",
             "cxgGIAMoAjoEiPsaASIiChFCdWZmZXJUZXN0TWVzc2FnZRINCgVieXRlcxgB",
-            "IAEoDCIrCghBdXRoVGVzdBINCgVsb2dpbhgBIAEoCRIQCghwYXNzd29yZBgC",
-            "IAEoCSIgCg5BdXRoVGVzdFJlc3VsdBIOCgZyZXN1bHQYASABKAkiWwoKQXV0",
-            "aEZhaWxlZBIsCgZyZWFzb24YASABKA4yHC5uZW9uLnRlc3QuQXV0aEZhaWxl",
-            "ZC5SZWFzb24iHwoGUmVhc29uEhUKEVdST05HX0NSRURFTlRJQUxTEAA6OAoK",
-            "bWVzc2FnZV9pZBIfLmdvb2dsZS5wcm90b2J1Zi5NZXNzYWdlT3B0aW9ucxix",
-            "rwMgASgNiAEBQhKqAg9OZW9uLlRlc3QuUHJvdG9iBnByb3RvMw=="));
+            "IAEoDCI1ChJBdXRoUmVxdWVzdE1lc3NhZ2USDQoFbG9naW4YASABKAkSEAoI",
+            "cGFzc3dvcmQYAiABKAkiJQoTQXV0aFJlc3BvbnNlTWVzc2FnZRIOCgZyZXN1",
+            "bHQYASABKAk6OAoKbWVzc2FnZV9pZBIfLmdvb2dsZS5wcm90b2J1Zi5NZXNz",
+            "YWdlT3B0aW9ucxixrwMgASgNiAEBQhKqAg9OZW9uLlRlc3QuUHJvdG9iBnBy",
+            "b3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Protobuf.Reflection.DescriptorReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, new pb::Extension[] { MessagesExtensions.MessageId }, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::Neon.Test.Proto.TestMessage), global::Neon.Test.Proto.TestMessage.Parser, new[]{ "Int", "Long", "Double", "Float", "String", "Floats" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Neon.Test.Proto.TestMessageWithId), global::Neon.Test.Proto.TestMessageWithId.Parser, new[]{ "Int", "Long", "Double", "Float", "String", "Floats" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Neon.Test.Proto.BufferTestMessage), global::Neon.Test.Proto.BufferTestMessage.Parser, new[]{ "Bytes" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Neon.Test.Proto.AuthTest), global::Neon.Test.Proto.AuthTest.Parser, new[]{ "Login", "Password" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Neon.Test.Proto.AuthTestResult), global::Neon.Test.Proto.AuthTestResult.Parser, new[]{ "Result" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Neon.Test.Proto.AuthFailed), global::Neon.Test.Proto.AuthFailed.Parser, new[]{ "Reason" }, null, new[]{ typeof(global::Neon.Test.Proto.AuthFailed.Types.Reason) }, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::Neon.Test.Proto.AuthRequestMessage), global::Neon.Test.Proto.AuthRequestMessage.Parser, new[]{ "Login", "Password" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Neon.Test.Proto.AuthResponseMessage), global::Neon.Test.Proto.AuthResponseMessage.Parser, new[]{ "Result" }, null, null, null, null)
           }));
     }
     #endregion
@@ -977,16 +975,16 @@ namespace Neon.Test.Proto {
 
   }
 
-  public sealed partial class AuthTest : pb::IMessage<AuthTest>
+  public sealed partial class AuthRequestMessage : pb::IMessage<AuthRequestMessage>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
   #endif
   {
-    private static readonly pb::MessageParser<AuthTest> _parser = new pb::MessageParser<AuthTest>(() => new AuthTest());
+    private static readonly pb::MessageParser<AuthRequestMessage> _parser = new pb::MessageParser<AuthRequestMessage>(() => new AuthRequestMessage());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<AuthTest> Parser { get { return _parser; } }
+    public static pb::MessageParser<AuthRequestMessage> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -1002,7 +1000,7 @@ namespace Neon.Test.Proto {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public AuthTest() {
+    public AuthRequestMessage() {
       OnConstruction();
     }
 
@@ -1010,7 +1008,7 @@ namespace Neon.Test.Proto {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public AuthTest(AuthTest other) : this() {
+    public AuthRequestMessage(AuthRequestMessage other) : this() {
       login_ = other.login_;
       password_ = other.password_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
@@ -1018,8 +1016,8 @@ namespace Neon.Test.Proto {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public AuthTest Clone() {
-      return new AuthTest(this);
+    public AuthRequestMessage Clone() {
+      return new AuthRequestMessage(this);
     }
 
     /// <summary>Field number for the "login" field.</summary>
@@ -1049,12 +1047,12 @@ namespace Neon.Test.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
-      return Equals(other as AuthTest);
+      return Equals(other as AuthRequestMessage);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(AuthTest other) {
+    public bool Equals(AuthRequestMessage other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
@@ -1140,7 +1138,7 @@ namespace Neon.Test.Proto {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(AuthTest other) {
+    public void MergeFrom(AuthRequestMessage other) {
       if (other == null) {
         return;
       }
@@ -1203,16 +1201,16 @@ namespace Neon.Test.Proto {
 
   }
 
-  public sealed partial class AuthTestResult : pb::IMessage<AuthTestResult>
+  public sealed partial class AuthResponseMessage : pb::IMessage<AuthResponseMessage>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
   #endif
   {
-    private static readonly pb::MessageParser<AuthTestResult> _parser = new pb::MessageParser<AuthTestResult>(() => new AuthTestResult());
+    private static readonly pb::MessageParser<AuthResponseMessage> _parser = new pb::MessageParser<AuthResponseMessage>(() => new AuthResponseMessage());
     private pb::UnknownFieldSet _unknownFields;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<AuthTestResult> Parser { get { return _parser; } }
+    public static pb::MessageParser<AuthResponseMessage> Parser { get { return _parser; } }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -1228,7 +1226,7 @@ namespace Neon.Test.Proto {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public AuthTestResult() {
+    public AuthResponseMessage() {
       OnConstruction();
     }
 
@@ -1236,15 +1234,15 @@ namespace Neon.Test.Proto {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public AuthTestResult(AuthTestResult other) : this() {
+    public AuthResponseMessage(AuthResponseMessage other) : this() {
       result_ = other.result_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public AuthTestResult Clone() {
-      return new AuthTestResult(this);
+    public AuthResponseMessage Clone() {
+      return new AuthResponseMessage(this);
     }
 
     /// <summary>Field number for the "result" field.</summary>
@@ -1262,12 +1260,12 @@ namespace Neon.Test.Proto {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
-      return Equals(other as AuthTestResult);
+      return Equals(other as AuthResponseMessage);
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(AuthTestResult other) {
+    public bool Equals(AuthResponseMessage other) {
       if (ReferenceEquals(other, null)) {
         return false;
       }
@@ -1340,7 +1338,7 @@ namespace Neon.Test.Proto {
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(AuthTestResult other) {
+    public void MergeFrom(AuthResponseMessage other) {
       if (other == null) {
         return;
       }
@@ -1389,207 +1387,6 @@ namespace Neon.Test.Proto {
       }
     }
     #endif
-
-  }
-
-  public sealed partial class AuthFailed : pb::IMessage<AuthFailed>
-  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      , pb::IBufferMessage
-  #endif
-  {
-    private static readonly pb::MessageParser<AuthFailed> _parser = new pb::MessageParser<AuthFailed>(() => new AuthFailed());
-    private pb::UnknownFieldSet _unknownFields;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pb::MessageParser<AuthFailed> Parser { get { return _parser; } }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static pbr::MessageDescriptor Descriptor {
-      get { return global::Neon.Test.Proto.MessagesReflection.Descriptor.MessageTypes[5]; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    pbr::MessageDescriptor pb::IMessage.Descriptor {
-      get { return Descriptor; }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public AuthFailed() {
-      OnConstruction();
-    }
-
-    partial void OnConstruction();
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public AuthFailed(AuthFailed other) : this() {
-      reason_ = other.reason_;
-      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public AuthFailed Clone() {
-      return new AuthFailed(this);
-    }
-
-    /// <summary>Field number for the "reason" field.</summary>
-    public const int ReasonFieldNumber = 1;
-    private global::Neon.Test.Proto.AuthFailed.Types.Reason reason_ = global::Neon.Test.Proto.AuthFailed.Types.Reason.WrongCredentials;
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public global::Neon.Test.Proto.AuthFailed.Types.Reason Reason {
-      get { return reason_; }
-      set {
-        reason_ = value;
-      }
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override bool Equals(object other) {
-      return Equals(other as AuthFailed);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public bool Equals(AuthFailed other) {
-      if (ReferenceEquals(other, null)) {
-        return false;
-      }
-      if (ReferenceEquals(other, this)) {
-        return true;
-      }
-      if (Reason != other.Reason) return false;
-      return Equals(_unknownFields, other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override int GetHashCode() {
-      int hash = 1;
-      if (Reason != global::Neon.Test.Proto.AuthFailed.Types.Reason.WrongCredentials) hash ^= Reason.GetHashCode();
-      if (_unknownFields != null) {
-        hash ^= _unknownFields.GetHashCode();
-      }
-      return hash;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public override string ToString() {
-      return pb::JsonFormatter.ToDiagnosticString(this);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void WriteTo(pb::CodedOutputStream output) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      output.WriteRawMessage(this);
-    #else
-      if (Reason != global::Neon.Test.Proto.AuthFailed.Types.Reason.WrongCredentials) {
-        output.WriteRawTag(8);
-        output.WriteEnum((int) Reason);
-      }
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(output);
-      }
-    #endif
-    }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (Reason != global::Neon.Test.Proto.AuthFailed.Types.Reason.WrongCredentials) {
-        output.WriteRawTag(8);
-        output.WriteEnum((int) Reason);
-      }
-      if (_unknownFields != null) {
-        _unknownFields.WriteTo(ref output);
-      }
-    }
-    #endif
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public int CalculateSize() {
-      int size = 0;
-      if (Reason != global::Neon.Test.Proto.AuthFailed.Types.Reason.WrongCredentials) {
-        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Reason);
-      }
-      if (_unknownFields != null) {
-        size += _unknownFields.CalculateSize();
-      }
-      return size;
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(AuthFailed other) {
-      if (other == null) {
-        return;
-      }
-      if (other.Reason != global::Neon.Test.Proto.AuthFailed.Types.Reason.WrongCredentials) {
-        Reason = other.Reason;
-      }
-      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
-    }
-
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public void MergeFrom(pb::CodedInputStream input) {
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-      input.ReadRawMessage(this);
-    #else
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
-            break;
-          case 8: {
-            Reason = (global::Neon.Test.Proto.AuthFailed.Types.Reason) input.ReadEnum();
-            break;
-          }
-        }
-      }
-    #endif
-    }
-
-    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
-      uint tag;
-      while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
-          default:
-            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
-            break;
-          case 8: {
-            Reason = (global::Neon.Test.Proto.AuthFailed.Types.Reason) input.ReadEnum();
-            break;
-          }
-        }
-      }
-    }
-    #endif
-
-    #region Nested types
-    /// <summary>Container for nested types declared in the AuthFailed message type.</summary>
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
-    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
-    public static partial class Types {
-      public enum Reason {
-        [pbr::OriginalName("WRONG_CREDENTIALS")] WrongCredentials = 0,
-      }
-
-    }
-    #endregion
 
   }
 

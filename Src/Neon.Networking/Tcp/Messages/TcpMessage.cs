@@ -24,7 +24,7 @@ namespace Neon.Networking.Tcp.Messages
 
         public override string ToString()
         {
-            return $"{nameof(TcpMessage)}[size={Header.MessageSize}, type={Header.MessageType}, flags={Header.Flags}]";
+            return $"{nameof(TcpMessage)}[message={RawMessage}]";
         }
     }
 }

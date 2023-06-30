@@ -3,7 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>disable</Nullable>
+        <Nullable>enable</Nullable>
         <AssemblyName>Neon.Test.Util</AssemblyName>
         <RootNamespace>Neon.Test.Util</RootNamespace>
         <IsPublishable>false</IsPublishable>
@@ -18,13 +18,14 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Proto\generated" />
+        <Protobuf Include="$(ProjectDir)Proto\*.proto" ProtoRoot="$(ProjectDir)Proto" OutputDir="$(ProjectDir)Proto\generated" CompileOutputs="false" />
     </ItemGroup>
 
     <ItemGroup>
-      <Reference Include="Google.Protobuf, Version=3.21.1.0, Culture=neutral, PublicKeyToken=a7d26565bac4d604">
-        <HintPath>..\..\Src\Neon.Rpc\Libs\Google.Protobuf-Unity\Google.Protobuf.dll</HintPath>
-      </Reference>
+      <PackageReference Include="Grpc.Tools" Version="2.56.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
     </ItemGroup>
 
 </Project>

@@ -53,7 +53,7 @@ namespace Neon.Networking.Messages
         {
             if (_stream == null || _disposed)
                 return $"{GetType().Name}[size=0]";
-            return $"{GetType().Name}[size={_stream.Length},compressed={Compressed},encrypted={Encrypted}]";
+            return $"{GetType().Name}[size={_stream.Length},compressed={Compressed},encrypted={Encrypted},guid={Guid}]";
         }
 
         /// <summary>

@@ -33,19 +33,11 @@ message BufferTestMessage {
     bytes bytes = 1;
 }
 
-message AuthTest {
+message AuthRequestMessage {
     string login = 1;
     string password = 2;
 }
 
-message AuthTestResult {
+message AuthResponseMessage {
     string result = 1;
-}
-
-message AuthFailed {
-    enum Reason {
-        WRONG_CREDENTIALS = 0;
-    }
-    
-    Reason reason = 1;
 }

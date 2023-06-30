@@ -171,7 +171,7 @@ namespace Neon.Networking.Messages
         {
             if (_stream == null || _disposed)
                 return $"{GetType().Name}[size=0]";
-            return $"{GetType().Name}[size={_stream.Length}]";
+            return $"{GetType().Name}[guid={Guid},size={_stream.Length}]";
         }
 
         protected void CheckDisposed()
