@@ -1,35 +1,29 @@
 ﻿using System;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Neon.Networking.Udp.Messages;
 using Neon.Util;
 
 namespace Neon.Networking.Udp
 {
-	public partial class UdpConnection
-	{
+    public partial class UdpConnection
+    {
         public const int INITIAL_MTU = 508;
 
-        enum MtuExpansionStatus
-        {
-            NotStarted = 0,
-            Started = 1,
-            Finished = 2
-        }
+        readonly bool _mtuExpand;
+        readonly int _mtuExpandFrequency;
+        readonly int _mtuExpandMaxFailAttempts;
+        DateTime _lastMtuExpandSent;
 
-        bool mtuExpand;
-        int mtuExpandMaxFailAttempts;
-        int mtuExpandFrequency;
-
-        int mtuFailedAttempts = -1;
-        int smallestFailedMtu = -1;
-        MtuExpansionStatus mtuStatus;
-        DateTime lastMtuExpandSent;
+        int _mtuFailedAttempts = -1;
+        MtuExpansionStatus _mtuStatus;
+        int _smallestFailedMtu = -1;
 
         void ExpandMTU()
         {
-            if (mtuExpand && mtuStatus == MtuExpansionStatus.NotStarted)
-                mtuStatus = MtuExpansionStatus.Started;
+            if (_mtuExpand && _mtuStatus == MtuExpansionStatus.NotStarted)
+                _mtuStatus = MtuExpansionStatus.Started;
         }
 
 
@@ -43,17 +37,17 @@ namespace Neon.Networking.Udp
 
                 int size = datagram.ReadVarInt32();
                 bool fix = datagram.ReadByte() == 1;
-                if (size > this.Mtu)
+                if (size > Mtu)
                 {
-                    logger.Debug($"#{Id} MTU Successfully expanded to {size}");
-                    this.Mtu = size;
+                    _logger.Debug($"#{Id} MTU Successfully expanded to {size}");
+                    Mtu = size;
                     if (!fix)
                         SendNextMtuExpand();
                 }
 
                 if (fix)
                 {
-                    logger.Debug($"#{Id} the other side asks us to fix MTU on {size}");
+                    _logger.Debug($"#{Id} the other side asks us to fix MTU on {size}");
                     FixMtu();
                 }
             }
@@ -65,11 +59,11 @@ namespace Neon.Networking.Udp
 
         void FixMtu()
         {
-            if (mtuStatus != MtuExpansionStatus.Started)
+            if (_mtuStatus != MtuExpansionStatus.Started)
                 return;
 
-            logger.Debug($"#{Id} fixing MTU {this.Mtu}");
-            mtuStatus = MtuExpansionStatus.Finished;
+            _logger.Debug($"#{Id} fixing MTU {Mtu}");
+            _mtuStatus = MtuExpansionStatus.Finished;
         }
 
         void OnMtuExpand(Datagram datagram)
@@ -81,20 +75,21 @@ namespace Neon.Networking.Udp
 
                 int size = datagram.GetTotalSize();
                 byte fix = 0;
-                if (size > peer.Configuration.LimitMtu)
+                if (size > Parent.Configuration.LimitMtu)
                 {
-                    size = peer.Configuration.LimitMtu;
+                    size = Parent.Configuration.LimitMtu;
                     fix = 1;
                 }
 
-                logger.Debug($"#{Id} MTU Successfully expanded to {size} by request from other side");
-                var mtuDatagram = peer.CreateDatagram(MessageType.ExpandMTUSuccess, serviceUnreliableChannel.Descriptor, 5);
+                _logger.Debug($"#{Id} MTU Successfully expanded to {size} by request from other side");
+                Datagram mtuDatagram = Parent.CreateDatagram(MessageType.ExpandMTUSuccess,
+                    _serviceUnreliableChannel.Descriptor, 5);
                 mtuDatagram.WriteVarInt(size);
                 mtuDatagram.Write(fix);
 
-                if (size > this.Mtu)
-                    this.Mtu = size;
-                serviceUnreliableChannel.SendDatagramAsync(mtuDatagram);
+                if (size > Mtu)
+                    Mtu = size;
+                _serviceUnreliableChannel.SendDatagramAsync(mtuDatagram, this.CancellationToken);
             }
             finally
             {
@@ -104,15 +99,15 @@ namespace Neon.Networking.Udp
 
         void SendNextMtuExpand()
         {
-            int nextMtu = 0;
+            var nextMtu = 0;
 
-            if (smallestFailedMtu < 0)
-                nextMtu = Math.Min(ushort.MaxValue, (int)(this.Mtu * 1.25));
+            if (_smallestFailedMtu < 0)
+                nextMtu = Math.Min(ushort.MaxValue, (int) (Mtu * 1.25));
             else
-                nextMtu = (int)(((float)smallestFailedMtu + (float)Mtu) / 2.0f);
+                nextMtu = (int) ((_smallestFailedMtu + (float) Mtu) / 2.0f);
 
-            if (nextMtu > peer.Configuration.LimitMtu)
-                nextMtu = peer.Configuration.LimitMtu;
+            if (nextMtu > Parent.Configuration.LimitMtu)
+                nextMtu = Parent.Configuration.LimitMtu;
 
             if (nextMtu == Mtu)
             {
@@ -120,26 +115,28 @@ namespace Neon.Networking.Udp
                 return;
             }
 
-            lastMtuExpandSent = DateTime.UtcNow;
+            _lastMtuExpandSent = DateTime.UtcNow;
             int size = nextMtu - Datagram.GetHeaderSize(false);
-            var mtuDatagram = peer.CreateDatagram(MessageType.ExpandMTURequest, serviceUnreliableChannel.Descriptor, size);
+            Datagram mtuDatagram =
+                Parent.CreateDatagram(MessageType.ExpandMTURequest, _serviceUnreliableChannel.Descriptor, size);
             mtuDatagram.Length = size;
             if (mtuDatagram.GetTotalSize() != nextMtu)
-                throw new Exception("Datagram total size doesn't match header+body size. Perhaps header size calculation failed");
+                throw new Exception(
+                    "Datagram total size doesn't match header+body size. Perhaps header size calculation failed");
 
-            logger.Debug($"#{Id} expanding MTU to {nextMtu}...");
-            serviceUnreliableChannel.SendDatagramAsync(mtuDatagram).ContinueWith(t =>
+            _logger.Debug($"#{Id} expanding MTU to {nextMtu}...");
+            _serviceUnreliableChannel.SendDatagramAsync(mtuDatagram, this.CancellationToken).ContinueWith(t =>
             {
                 Exception ex = t.Exception.GetInnermostException();
-                SocketException sex = ex as SocketException;
-                logger.Debug($"#{Id} MTU {nextMtu} expand failed ({ex.Message})");
+                var sex = ex as SocketException;
+                _logger.Debug($"#{Id} MTU {nextMtu} expand failed ({ex.Message})");
                 if (sex != null && sex.SocketErrorCode == SocketError.MessageSize)
                 {
-                    if (smallestFailedMtu < 1 || nextMtu < smallestFailedMtu)
+                    if (_smallestFailedMtu < 1 || nextMtu < _smallestFailedMtu)
                     {
-                        smallestFailedMtu = nextMtu;
-                        mtuFailedAttempts++;
-                        if (mtuFailedAttempts >= mtuExpandMaxFailAttempts)
+                        _smallestFailedMtu = nextMtu;
+                        _mtuFailedAttempts++;
+                        if (_mtuFailedAttempts >= _mtuExpandMaxFailAttempts)
                         {
                             FixMtu();
                             return;
@@ -157,21 +154,27 @@ namespace Neon.Networking.Udp
 
         void MtuCheck()
         {
-            if (mtuStatus != MtuExpansionStatus.Started)
+            if (_mtuStatus != MtuExpansionStatus.Started)
                 return;
 
-            if ((DateTime.UtcNow - lastMtuExpandSent).TotalMilliseconds > mtuExpandFrequency)
+            if ((DateTime.UtcNow - _lastMtuExpandSent).TotalMilliseconds > _mtuExpandFrequency)
             {
-                mtuFailedAttempts++;
-                if (mtuFailedAttempts >= mtuExpandMaxFailAttempts)
+                _mtuFailedAttempts++;
+                if (_mtuFailedAttempts >= _mtuExpandMaxFailAttempts)
                 {
                     FixMtu();
                     return;
                 }
 
                 SendNextMtuExpand();
-                return;
             }
+        }
+
+        enum MtuExpansionStatus
+        {
+            NotStarted = 0,
+            Started = 1,
+            Finished = 2
         }
     }
 }

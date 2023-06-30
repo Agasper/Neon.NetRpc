@@ -7,7 +7,8 @@ namespace Neon.Networking.Tcp.Messages
     {
         None = 0,
         Compressed = 1,
-        Encrypted = 2,
+
+        Encrypted = 2
         //4
         //8
         //16

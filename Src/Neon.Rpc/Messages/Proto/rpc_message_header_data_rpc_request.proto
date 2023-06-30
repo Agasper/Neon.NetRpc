@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package neon.rpc;
+
+option csharp_namespace = "Neon.Rpc.Messages.Proto";
+
+message RpcMessageHeaderDataRpcRequestProto {
+    string path = 1;
+    bool expect_response = 2;
+}

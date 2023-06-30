@@ -5,35 +5,62 @@ namespace Neon.Networking.Udp
     public class UdpConfigurationClient : UdpConfigurationPeer
     {
         /// <summary>
-        /// Should we try to expand MTU after a connection established (default: true)
+        ///     Should we try to expand MTU after a connection established (default: true)
         /// </summary>
-        public bool AutoMtuExpand { get => autoMtuExpand; set { CheckLocked(); autoMtuExpand = value; } }
-        /// <summary>
-        /// Max attempts to expand MTU in case of fail (default: 5)
-        /// </summary>
-        public int MtuExpandMaxFailAttempts { get => mtuExpandMaxFailAttempts; set { CheckLocked(); mtuExpandMaxFailAttempts = value; } }
-        /// <summary>
-        /// Interval for retrying MTU expand messages in case of MTU fail (default: 2000)
-        /// </summary>
-        public int MtuExpandFrequency { get => mtuExpandFrequency; set { CheckLocked(); mtuExpandFrequency = value; } }
+        public bool AutoMtuExpand
+        {
+            get => _autoMtuExpand;
+            set
+            {
+                CheckLocked();
+                _autoMtuExpand = value;
+            }
+        }
 
-        int mtuExpandMaxFailAttempts;
-        int mtuExpandFrequency;
-        bool autoMtuExpand;
+        /// <summary>
+        ///     Max attempts to expand MTU in case of fail (default: 5)
+        /// </summary>
+        public int MtuExpandMaxFailAttempts
+        {
+            get => _mtuExpandMaxFailAttempts;
+            set
+            {
+                CheckLocked();
+                _mtuExpandMaxFailAttempts = value;
+            }
+        }
+
+        /// <summary>
+        ///     Interval for retrying MTU expand messages in case of MTU fail (default: 2000)
+        /// </summary>
+        public int MtuExpandFrequency
+        {
+            get => _mtuExpandFrequency;
+            set
+            {
+                CheckLocked();
+                _mtuExpandFrequency = value;
+            }
+        }
+
+        bool _autoMtuExpand;
+        int _mtuExpandFrequency;
+
+        int _mtuExpandMaxFailAttempts;
+
+        public UdpConfigurationClient()
+        {
+            _mtuExpandMaxFailAttempts = 5;
+            _mtuExpandFrequency = 2000;
+            _autoMtuExpand = true;
+        }
 
         internal override void Validate()
         {
             base.Validate();
-            if (this.MtuExpandFrequency < 1)
+            if (MtuExpandFrequency < 1)
                 throw new ArgumentException(
-                    $"{nameof(this.MtuExpandFrequency)} must be greater than 0");
-        }
-
-        public UdpConfigurationClient()
-        {
-            mtuExpandMaxFailAttempts = 5;
-            mtuExpandFrequency = 2000;
-            autoMtuExpand = true;
+                    $"{nameof(MtuExpandFrequency)} must be greater than 0");
         }
     }
 }

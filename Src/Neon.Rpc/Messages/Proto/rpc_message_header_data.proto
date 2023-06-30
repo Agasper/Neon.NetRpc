@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package neon.rpc;
+
+option csharp_namespace = "Neon.Rpc.Messages.Proto";
+
+import "rpc_message_header_data_rpc_request.proto";
+import "rpc_message_header_data_rpc_response.proto";
+
+message RpcMessageHeaderDataProto {
+    oneof message_type {
+        RpcMessageHeaderDataRpcRequestProto rpc_request = 1;
+        RpcMessageHeaderDataRpcResponseProto rpc_response = 2;
+    }
+}

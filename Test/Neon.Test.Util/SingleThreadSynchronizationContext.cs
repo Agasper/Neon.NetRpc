@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Diagnostics;
 using Neon.Logging;
 
 namespace Neon.Test.Util;
@@ -18,7 +17,7 @@ public class SingleThreadSynchronizationContext : SynchronizationContext
             this.callback = callback;
             this.state = state;
             this.ev = ev;
-            this.exception = null;
+            exception = null;
         }
     }
 

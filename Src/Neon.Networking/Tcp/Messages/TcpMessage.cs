@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using Neon.Networking.Messages;
 
 namespace Neon.Networking.Tcp.Messages
@@ -6,17 +7,19 @@ namespace Neon.Networking.Tcp.Messages
     class TcpMessage : IDisposable
     {
         public TcpMessageHeader Header { get; }
-        public RawMessage RawMessage { get; }
+        public IRawMessage RawMessage { get; }
+        public CancellationToken CancellationToken { get; }
 
-        public TcpMessage(TcpMessageHeader header, RawMessage rawMessage)
+        public TcpMessage(TcpMessageHeader header, IRawMessage rawMessage, CancellationToken cancellationToken)
         {
-            this.Header = header;
-            this.RawMessage = rawMessage;
+            Header = header;
+            RawMessage = rawMessage;
+            CancellationToken = cancellationToken;
         }
 
         public void Dispose()
         {
-            this.RawMessage?.Dispose();
+            RawMessage?.Dispose();
         }
 
         public override string ToString()

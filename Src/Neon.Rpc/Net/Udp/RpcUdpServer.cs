@@ -1,17 +1,17 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
-using Neon.Rpc.Net.Events;
 using Neon.Logging;
 using Neon.Networking.Udp;
-using Neon.Networking.Udp.Events;
+using Neon.Rpc.Net.Events;
 using Neon.Util;
+using ConnectionClosedEventArgs = Neon.Networking.Udp.Events.ConnectionClosedEventArgs;
+using ConnectionOpenedEventArgs = Neon.Networking.Udp.Events.ConnectionOpenedEventArgs;
 
 namespace Neon.Rpc.Net.Udp
 {
-    public class RpcUdpServer : IRpcPeer
+    public class RpcUdpServer
     {
         internal class InnerUdpServer : UdpServer
         {
@@ -26,34 +26,15 @@ namespace Neon.Rpc.Net.Udp
 
             protected override UdpConnection CreateConnection()
             {
-                return new RpcUdpConnection(this, parent, configuration);
+                return new RpcUdpConnection(this, configuration);
             }
 
-            protected override void OnConnectionClosed(ConnectionClosedEventArgs args)
-            {
-                base.OnConnectionClosed(args);
-                parent.OnConnectionClosed(args);
-            }
-
-            protected override void OnConnectionOpened(ConnectionOpenedEventArgs args)
-            {
-                base.OnConnectionOpened(args);
-                parent.OnConnectionOpened(args);
-            }
         }
 
         /// <summary>
         /// User-defined tag
         /// </summary>
         public string Tag { get; set; }
-        /// <summary>
-        /// Raised when a new session is opened
-        /// </summary>
-        public event DOnSessionOpened OnSessionOpenedEvent;
-        /// <summary>
-        /// Raised if previously opened session closed
-        /// </summary>
-        public event DOnSessionClosed OnSessionClosedEvent;
         /// <summary>
         /// Server configuration
         /// </summary>
@@ -67,13 +48,12 @@ namespace Neon.Rpc.Net.Udp
         {
             if (configuration == null)
                 throw new ArgumentNullException(nameof(configuration));
-            if (configuration.Serializer == null)
-                throw new ArgumentNullException(nameof(configuration.Serializer));
+            if (configuration.SessionFactory == null)
+                throw new ArgumentNullException(nameof(configuration.SessionFactory));
             configuration.Lock();
             this.configuration = configuration;
-            this.innerUdpServer = new InnerUdpServer(this, configuration);
-            this.logger = configuration.LogManager.GetLogger(typeof(RpcUdpServer));
-            this.logger.Meta["kind"] = this.GetType().Name;
+            innerUdpServer = new InnerUdpServer(this, configuration);
+            logger = configuration.LogManager.GetLogger(typeof(RpcUdpServer));
         }
 
         /// <summary>
@@ -84,13 +64,13 @@ namespace Neon.Rpc.Net.Udp
         /// <summary>
         /// Thread-safe sessions enumerator
         /// </summary>
-        public IEnumerable<RpcSession> Sessions
+        public IEnumerable<RpcSessionBase> Sessions
         {
             get
             {
-                foreach (var connection in innerUdpServer.Connections.Values)
+                foreach (var pair in innerUdpServer.Connections)
                 {
-                    var session = (connection as RpcUdpConnection)?.Session;
+                    var session = (pair.Value as RpcUdpConnection)?.UserSession;
                     if (session != null)
                         yield return session;
                 }
@@ -150,55 +130,5 @@ namespace Neon.Rpc.Net.Udp
         {
             innerUdpServer.Listen(endPoint);
         }
-
-        internal void OnConnectionOpened(ConnectionOpenedEventArgs args)
-        {
-            RpcUdpConnection connection = (RpcUdpConnection)args.Connection;
-            Start(connection).ContinueWith(t =>
-            {
-                logger.Debug($"{connection} start failed with: {t.Exception.GetInnermostException()}");
-                connection.Close();
-            }, TaskContinuationOptions.OnlyOnFaulted);
-        }
-        
-                
-        async Task Start(RpcUdpConnection connection)
-        {
-            await connection.Start(default).ConfigureAwait(false);
-            connection.StartServerSession();
-        }
-
-        internal void OnConnectionClosed(ConnectionClosedEventArgs args)
-        {
-
-        }
-
-        void IRpcPeer.OnSessionOpened(SessionOpenedEventArgs args)
-        {
-            configuration.SynchronizeSafe(logger, $"{nameof(RpcUdpServer)}.{nameof(OnSessionOpened)}",
-                (state) => OnSessionOpened(state as SessionOpenedEventArgs), args);
-            configuration.SynchronizeSafe(logger, $"{nameof(RpcUdpServer)}.{nameof(OnSessionOpenedEvent)}",
-                (state) => OnSessionOpenedEvent?.Invoke(state as SessionOpenedEventArgs), args);
-        }
-
-        void IRpcPeer.OnSessionClosed(SessionClosedEventArgs args)
-        {
-            configuration.SynchronizeSafe(logger, $"{nameof(RpcUdpServer)}.{nameof(OnSessionClosed)}",
-                (state) => OnSessionClosed(state as SessionClosedEventArgs), args);
-            configuration.SynchronizeSafe(logger, $"{nameof(RpcUdpServer)}.{nameof(OnSessionClosedEvent)}",
-                (state) => OnSessionClosedEvent?.Invoke(state as SessionClosedEventArgs), args);
-        }
-
-        protected virtual void OnSessionOpened(SessionOpenedEventArgs args)
-        {
-
-        }
-
-
-        protected virtual void OnSessionClosed(SessionClosedEventArgs args)
-        {
-            
-        }
-        
     }
 }

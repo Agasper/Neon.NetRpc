@@ -1,7 +1,6 @@
 ﻿using Neon.Logging;
 using Neon.Networking;
 using Neon.Networking.Udp;
-using Neon.Rpc.Authorization;
 using Neon.Util.Pooling;
 
 namespace Neon.Rpc.Net.Udp
@@ -62,16 +61,32 @@ namespace Neon.Rpc.Net.Udp
         }
 
         /// <summary>
+        /// Log manager (default: LogManager.Default)
+        /// </summary>
+        public override ILogManager LogManager
+        {
+            get => base._logManager;
+            set
+            {
+                CheckLocked();
+                CheckNull(value);
+                udpConfiguration.LogManager = value;
+                base._logManager = value;
+            }
+        }
+
+        /// <summary>
         /// A manager which provide us streams and arrays for a temporary use
         /// </summary>
-        public IMemoryManager MemoryManager
+        public override IMemoryManager MemoryManager
         {
-            get => udpConfiguration.MemoryManager;
+            get => base._memoryManager;
             set
             {
                 CheckLocked();
                 CheckNull(value);
                 udpConfiguration.MemoryManager = value;
+                base._memoryManager = value;
             }
         }
 
@@ -195,7 +210,7 @@ namespace Neon.Rpc.Net.Udp
         internal UdpConfigurationClient UdpConfiguration => udpConfiguration;
         UdpConfigurationClient udpConfiguration;
 
-        public RpcUdpConfigurationClient() : base()
+        public RpcUdpConfigurationClient()
         {
             udpConfiguration = new UdpConfigurationClient();
             udpConfiguration.ContextSynchronizationMode = ContextSynchronizationMode.Send;

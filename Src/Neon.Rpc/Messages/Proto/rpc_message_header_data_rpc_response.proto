@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package neon.rpc;
+
+option csharp_namespace = "Neon.Rpc.Messages.Proto";
+
+message RpcMessageHeaderDataRpcResponseProto {
+    int32 status_code = 1;
+    
+}

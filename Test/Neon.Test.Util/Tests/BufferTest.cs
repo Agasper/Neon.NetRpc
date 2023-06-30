@@ -1,6 +1,4 @@
-using System;
 using System.Diagnostics;
-using System.Threading.Tasks;
 using Google.Protobuf;
 using Neon.Rpc;
 using Neon.Test.Proto;
@@ -9,12 +7,12 @@ namespace Neon.Test.Util;
 
 public class BufferTest
 {
-    readonly RpcSession session;
+    readonly RpcSessionBase _userSession;
     readonly int bufferSize;
     
-    public BufferTest(RpcSession session, int bufferSize)
+    public BufferTest(RpcSessionBase userSession, int bufferSize)
     {
-        this.session = session ?? throw new ArgumentNullException(nameof(session));
+        this._userSession = userSession ?? throw new ArgumentNullException(nameof(userSession));
         this.bufferSize = bufferSize;
     }
 
@@ -35,7 +33,7 @@ public class BufferTest
         BufferTestMessage msg = new BufferTestMessage();
         msg.Bytes = ByteString.CopyFrom(GetRandomBytes(bufferSize*2 + 20));
 
-        var retMsg = await session.ExecuteAsync<BufferTestMessage, BufferTestMessage>("BufferMessageTest", msg).ConfigureAwait(false);
+        var retMsg = await _userSession.ExecuteAsync<BufferTestMessage, BufferTestMessage>("BufferMessageTest", msg).ConfigureAwait(false);
         Trace.Assert(retMsg.Equals(msg));
     }
 }

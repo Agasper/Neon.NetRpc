@@ -7,32 +7,31 @@ namespace Neon.Networking.Tcp.Messages
     {
         public TcpMessage Message { get; }
         public DateTime ReleaseTimestamp { get; }
-
-        TaskCompletionSource<TcpDelayedMessage> taskCompletionSource;
+        TaskCompletionSource<TcpDelayedMessage> _taskCompletionSource;
 
         public TcpDelayedMessage(TcpMessage message, DateTime releaseTimestamp)
         {
-            this.Message = message;
-            this.ReleaseTimestamp = releaseTimestamp;
+            Message = message;
+            ReleaseTimestamp = releaseTimestamp;
         }
 
         public Task GetTask()
         {
-            if (taskCompletionSource == null)
-                taskCompletionSource = new TaskCompletionSource<TcpDelayedMessage>();
-            return taskCompletionSource.Task;
+            if (_taskCompletionSource == null)
+                _taskCompletionSource = new TaskCompletionSource<TcpDelayedMessage>();
+            return _taskCompletionSource.Task;
         }
 
         public void Complete(Task task)
         {
-            if (taskCompletionSource == null)
+            if (_taskCompletionSource == null)
                 return;
             if (task.IsCanceled)
-                taskCompletionSource.TrySetCanceled();
+                _taskCompletionSource.TrySetCanceled();
             if (task.IsFaulted)
-                taskCompletionSource.TrySetException(task.Exception ?? new Exception("Unknown exception"));
+                _taskCompletionSource.TrySetException(task.Exception ?? new Exception("Unknown exception"));
             if (task.IsCompleted && !task.IsFaulted)
-                taskCompletionSource.TrySetResult(this);
+                _taskCompletionSource.TrySetResult(this);
         }
     }
 }

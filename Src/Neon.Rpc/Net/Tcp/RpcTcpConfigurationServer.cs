@@ -2,7 +2,6 @@
 using Neon.Logging;
 using Neon.Networking;
 using Neon.Networking.Tcp;
-using Neon.Rpc.Authorization;
 using Neon.Util.Pooling;
 
 namespace Neon.Rpc.Net.Tcp
@@ -49,30 +48,32 @@ namespace Neon.Rpc.Net.Tcp
         }
 
         /// <summary>
-        /// Log manager for network logs
-        /// </summary>
-        public ILogManager LogManagerNetwork
-        {
-            get => tcpConfiguration.LogManager;
-            set
-            {
-                CheckLocked();
-                CheckNull(value);
-                tcpConfiguration.LogManager = value;
-            }
-        }
-
-        /// <summary>
         /// A manager which provide us streams and arrays for a temporary use
         /// </summary>
-        public IMemoryManager MemoryManager
+        public override IMemoryManager MemoryManager
         {
-            get => tcpConfiguration.MemoryManager;
+            get => base._memoryManager;
             set
             {
                 CheckLocked();
                 CheckNull(value);
                 tcpConfiguration.MemoryManager = value;
+                base._memoryManager = value;
+            }
+        }
+        
+        /// <summary>
+        /// Log manager (default: LogManager.Default)
+        /// </summary>
+        public override ILogManager LogManager
+        {
+            get => base._logManager;
+            set
+            {
+                CheckLocked();
+                CheckNull(value);
+                tcpConfiguration.LogManager = value;
+                base._logManager = value;
             }
         }
 
@@ -182,26 +183,14 @@ namespace Neon.Rpc.Net.Tcp
 
         internal TcpConfigurationServer TcpConfiguration => tcpConfiguration;
         
-        /// <summary>
-        /// Sets the authentication for processing authentication. If set server will require client authentication
-        /// </summary>
-        public IAuthSessionFactory AuthSessionFactory
-        {
-            get => authSessionFactory;
-            set
-            {
-                CheckLocked();
-                authSessionFactory = value;
-            }
-        }
-
         TcpConfigurationServer tcpConfiguration;
-        protected IAuthSessionFactory authSessionFactory;
 
-        public RpcTcpConfigurationServer() : base()
+        public RpcTcpConfigurationServer()
         {
             tcpConfiguration = new TcpConfigurationServer();
             tcpConfiguration.ContextSynchronizationMode = ContextSynchronizationMode.Send;
+            tcpConfiguration.MemoryManager = base._memoryManager;
+            tcpConfiguration.LogManager = base._logManager;
         }
     }
 }

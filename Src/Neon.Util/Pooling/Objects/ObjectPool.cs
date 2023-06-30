@@ -59,7 +59,7 @@ namespace Neon.Util.Pooling.Objects
         /// <returns>An instance of requested object</returns>
         public object Pop(Type type, Func<object> generator)
         {
-            ConcurrentBag<object> bag = cache.GetOrAdd(type, (t) => new ConcurrentBag<object>()); ;
+            ConcurrentBag<object> bag = cache.GetOrAdd(type, t => new ConcurrentBag<object>()); ;
 
             if (bag.TryTake(out object result))
             {
@@ -67,10 +67,8 @@ namespace Neon.Util.Pooling.Objects
                     poolObject.OnTookFromPool();
                 return result;
             }
-            else
-            {
-                return generator();
-            }
+
+            return generator();
         }
 
         /// <summary>
@@ -80,7 +78,7 @@ namespace Neon.Util.Pooling.Objects
         /// <returns>An instance of requested object</returns>
         public T Pop<T>(Func<T> generator)
         {
-            ConcurrentBag<object> bag = cache.GetOrAdd(typeof(T), (t) => new ConcurrentBag<object>());
+            ConcurrentBag<object> bag = cache.GetOrAdd(typeof(T), t => new ConcurrentBag<object>());
 
             if (bag.TryTake(out object result))
             {
@@ -88,10 +86,8 @@ namespace Neon.Util.Pooling.Objects
                     poolObject.OnTookFromPool();
                 return (T)result;
             }
-            else
-            {
-                return generator();
-            }
+
+            return generator();
         }
         
         /// <summary>
@@ -100,7 +96,7 @@ namespace Neon.Util.Pooling.Objects
         /// <returns>An instance of requested object</returns>
         public T Pop<T>() where T : new()
         {
-            return Pop<T>(() => new T());
+            return Pop(() => new T());
         }
 
         /// <summary>
@@ -110,7 +106,7 @@ namespace Neon.Util.Pooling.Objects
         /// <returns>An instance of object holder</returns>
         public ObjectHolder<T> PopWithHolder<T>(Func<T> generator)
         {
-            ConcurrentBag<object> bag = cache.GetOrAdd(typeof(T), (t) => new ConcurrentBag<object>());
+            ConcurrentBag<object> bag = cache.GetOrAdd(typeof(T), t => new ConcurrentBag<object>());
 
             if (bag.TryTake(out object result))
             {
@@ -118,10 +114,8 @@ namespace Neon.Util.Pooling.Objects
                     poolObject.OnTookFromPool();
                 return new ObjectHolder<T>(this, (T)result);
             }
-            else
-            {
-                return new ObjectHolder<T>(this, generator());
-            }
+
+            return new ObjectHolder<T>(this, generator());
         }
 
         /// <summary>
@@ -143,7 +137,7 @@ namespace Neon.Util.Pooling.Objects
         public void Return(object value)
         {
             Type type = value.GetType();
-            ConcurrentBag<object> bag = cache.GetOrAdd(type, (t) => new ConcurrentBag<object>());
+            ConcurrentBag<object> bag = cache.GetOrAdd(type, t => new ConcurrentBag<object>());
             if (maxObjectsByType > 0 && bag.Count >= maxObjectsByType)
                 return;
             if (value is IPoolObject poolObject)

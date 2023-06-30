@@ -7,6 +7,6 @@
         INFO = 200,
         WARNING = 400,
         ERROR = 500,
-        CRITICAL = 600,
+        CRITICAL = 600
     }
 }

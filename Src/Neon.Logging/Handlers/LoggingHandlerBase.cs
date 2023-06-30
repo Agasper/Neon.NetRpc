@@ -13,28 +13,29 @@ namespace Neon.Logging.Handlers
 
         public LoggingHandlerBase(ILoggingFormatter formatter)
         {
-            this.Formatter = formatter;
+            Formatter = formatter;
         }
 
         /// <summary>
-        /// Method to handle formatted string output
-        /// </summary>
-        /// <param name="message">Formatted log string</param>
-        protected abstract void Write(string message);
-
-        /// <summary>
-        /// Handles the logging event
+        ///     Handles the logging event
         /// </summary>
         /// <param name="severity">Log string severity</param>
         /// <param name="message">Logging object</param>
         /// <param name="exception">Exception object</param>
         /// <param name="meta">Final meta information</param>
         /// <param name="logger">Parent logger</param>
-        public virtual void Write(LogSeverity severity, object message, Exception exception, LoggingMeta meta, ILogger logger)
+        public virtual void Write(LogSeverity severity, object message, Exception exception, LoggingMeta meta,
+            ILogger logger)
         {
             if (Formatter == null)
-                throw new NullReferenceException($"Handler {this.GetType().Name} has no formatter");
-            this.Write(Formatter.Format(severity, message, exception, meta, logger));
+                throw new NullReferenceException($"Handler {GetType().Name} has no formatter");
+            Write(Formatter.Format(severity, message, exception, meta, logger));
         }
+
+        /// <summary>
+        ///     Method to handle formatted string output
+        /// </summary>
+        /// <param name="message">Formatted log string</param>
+        protected abstract void Write(string message);
     }
 }

@@ -1,42 +1,46 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
-using Neon.Networking.Tcp.Events;
-using Neon.Networking.Tcp.Messages;
 using Neon.Logging;
 using Neon.Networking.Messages;
+using Neon.Networking.Tcp.Events;
+using Neon.Networking.Tcp.Messages;
+using Neon.Util.Pooling;
 
 namespace Neon.Networking.Tcp
 {
     public class TcpConnection : IDisposable
     {
         /// <summary>
-        /// Does this connection belongs to the client
+        ///     Does this connection belongs to the client
         /// </summary>
         public bool IsClientConnection { get; private set; }
+
         /// <summary>
-        /// Was this connection disposed 
+        ///     Was this connection disposed
         /// </summary>
-        public bool Disposed => disposed;
+        public bool Disposed => _disposed;
+
         /// <summary>
-        /// A user defined tag
+        ///     A user defined tag
         /// </summary>
         public virtual object Tag { get; set; }
+
         /// <summary>
-        /// Unique connection id
+        ///     Unique connection id
         /// </summary>
         public long Id { get; private set; }
+
         /// <summary>
-        /// In case of many simultaneously sends, they're queued. This is current queue size
+        ///     In case of many simultaneously sends, they're queued. This is current queue size
         /// </summary>
-        public int SendQueueSize => sendQueueSize;
+        public int SendQueueSize => _sendQueueSize;
+
         /// <summary>
-        /// Connection remote endpoint
+        ///     Connection remote endpoint
         /// </summary>
         public EndPoint RemoteEndpoint
         {
@@ -44,7 +48,7 @@ namespace Neon.Networking.Tcp
             {
                 try
                 {
-                    return socket.RemoteEndPoint;
+                    return _socket.RemoteEndPoint;
                 }
                 catch
                 {
@@ -52,222 +56,222 @@ namespace Neon.Networking.Tcp
                 }
             }
         }
+
         /// <summary>
-        /// Is we still connected
+        ///     Is we still connected
         /// </summary>
         public bool Connected
         {
             get
             {
-                if (closed)
+                if (_closed)
                     return false;
-                var socket_ = this.socket;
-                if (socket_ == null)
+                Socket socket = _socket;
+                if (socket == null)
                     return false;
-                return socket_.Connected;
+                return socket.Connected;
             }
         }
+
         /// <summary>
-        /// Connection creation time
+        ///     Connection creation time
         /// </summary>
         public DateTime Started { get; private set; }
+
         /// <summary>
-        /// Token will be cancelled as soon connection is terminated
+        ///     Token will be cancelled as soon connection is terminated
         /// </summary>
-        public CancellationToken CancellationToken => connectionCancellationToken.Token;
+        public CancellationToken CancellationToken => _connectionCancellationToken.Token;
+
         /// <summary>
-        /// Parent peer
+        ///     Parent peer
         /// </summary>
-        public TcpPeer Parent { get; private set; }
+        public TcpPeer Parent { get; }
+
         /// <summary>
-        /// Connection statistics
+        ///     Connection statistics
         /// </summary>
-        public TcpConnectionStatistics Statistics { get; private set; }
+        public TcpConnectionStatistics Statistics { get; }
 
         protected DateTime? LastKeepAliveRequestReceived { get; private set; }
+        readonly TcpMessageHeaderFactory _awaitingMessageHeaderFactory;
+        readonly CancellationTokenSource _connectionCancellationToken;
+        readonly ConcurrentQueue<TcpDelayedMessage> _latencySimulationRecvQueue;
+        readonly ConcurrentQueue<TcpDelayedMessage> _latencySimulationSendQueue;
 
-        Socket socket;
-        readonly TcpMessageHeaderFactory awaitingMessageHeaderFactory;
-        TcpMessageHeader awaitingMessageHeader;
-        RawMessage awaitingNextMessage;
-        bool awaitingNextMessageHeaderValid;
-        int awaitingNextMessageWrote;
-        int sendQueueSize;
-        DateTime lastKeepAliveSent;
-        bool keepAliveResponseGot;
-        readonly SemaphoreSlim sendSemaphore;
+        protected readonly ILogger _logger;
 
-        volatile bool closed;
-        volatile bool disposed;
-        volatile Task sendTask;
-        readonly object sendMutex = new object();
+        readonly IRentedArray _recvBuffer;
+        readonly IRentedArray _sendBuffer;
+        readonly object _sendMutex = new object();
+        readonly SemaphoreSlim _sendSemaphore;
+        TcpMessageHeader _awaitingMessageHeader;
+        RawMessage _awaitingNextMessage;
+        bool _awaitingNextMessageHeaderValid;
+        int _awaitingNextMessageWrote;
 
-        protected readonly ILogger logger;
-        
-        readonly byte[] recvBuffer;
-        readonly byte[] sendBuffer;
-        readonly ConcurrentQueue<TcpDelayedMessage> latencySimulationRecvQueue;
-        readonly ConcurrentQueue<TcpDelayedMessage> latencySimulationSendQueue;
-        readonly CancellationTokenSource connectionCancellationToken;
+        volatile bool _closed;
+        volatile bool _disposed;
+        bool _keepAliveResponseGot;
+        DateTime _lastKeepAliveSent;
+        int _sendQueueSize;
+        volatile Task _sendTask;
+
+        Socket _socket;
 
         public TcpConnection(TcpPeer parent)
         {
             if (parent == null)
                 throw new ArgumentNullException(nameof(parent));
-            this.latencySimulationRecvQueue = new ConcurrentQueue<TcpDelayedMessage>();
-            this.latencySimulationSendQueue = new ConcurrentQueue<TcpDelayedMessage>();
-            this.connectionCancellationToken = new CancellationTokenSource();
-            this.Statistics = new TcpConnectionStatistics();
-            this.sendSemaphore = new SemaphoreSlim(1, 1);
-            this.recvBuffer = parent.Configuration.MemoryManager.RentArray(parent.Configuration.ReceiveBufferSize);
-            this.sendBuffer = parent.Configuration.MemoryManager.RentArray(parent.Configuration.SendBufferSize);
-            this.awaitingMessageHeaderFactory = new TcpMessageHeaderFactory();
-            this.Parent = parent;
-            this.logger = parent.Configuration.LogManager.GetLogger(typeof(TcpConnection));
-            this.logger.Meta["kind"] = this.GetType().Name;
-            this.logger.Meta["connection_endpoint"] = new RefLogLabel<TcpConnection>(this, v => v.RemoteEndpoint);
-            this.logger.Meta["connected"] = new RefLogLabel<TcpConnection>(this, s => s.Connected);
-            this.logger.Meta["closed"] = new RefLogLabel<TcpConnection>(this, s => s.closed);
-            this.logger.Meta["latency"] = new RefLogLabel<TcpConnection>(this, s =>
+            _latencySimulationRecvQueue = new ConcurrentQueue<TcpDelayedMessage>();
+            _latencySimulationSendQueue = new ConcurrentQueue<TcpDelayedMessage>();
+            _connectionCancellationToken = new CancellationTokenSource();
+            Statistics = new TcpConnectionStatistics();
+            _sendSemaphore = new SemaphoreSlim(1, 1);
+            _recvBuffer = parent.Configuration.MemoryManager.RentArray(parent.Configuration.ReceiveBufferSize);
+            _sendBuffer = parent.Configuration.MemoryManager.RentArray(parent.Configuration.SendBufferSize);
+            _awaitingMessageHeaderFactory = new TcpMessageHeaderFactory();
+            Parent = parent;
+            _logger = parent.Configuration.LogManager.GetLogger(typeof(TcpConnection));
+            _logger.Meta["connection_endpoint"] = new RefLogLabel<TcpConnection>(this, v => v.RemoteEndpoint);
+            _logger.Meta["connected"] = new RefLogLabel<TcpConnection>(this, s => s.Connected);
+            _logger.Meta["closed"] = new RefLogLabel<TcpConnection>(this, s => s._closed);
+            _logger.Meta["latency"] = new RefLogLabel<TcpConnection>(this, s =>
             {
-                var lat = s.Statistics.Latency;
+                int? lat = s.Statistics.Latency;
                 if (lat.HasValue)
                     return lat.Value;
-                else
-                    return "";
+                return "";
             });
 
             // return $"{nameof(TcpConnection)}[id={Id}, connected={Connected}, endpoint={RemoteEndpoint}]";
         }
 
-        internal void CheckParent(TcpPeer parent)
-        {
-            if (!ReferenceEquals(this.Parent, parent))
-                throw new InvalidOperationException($"This connection belongs to the another parent");
-        }
-
-        void CheckDisposed()
-        {
-            if (Disposed)
-                throw new ObjectDisposedException(nameof(TcpConnection));   
-        }
-
-        internal void Init(long connectionId, Socket socket, bool isClientConnection)
-        {
-            CheckDisposed();
-
-            this.IsClientConnection = isClientConnection;
-            this.logger.Meta["connection_id"] = connectionId;
-            this.keepAliveResponseGot = true;
-            this.Id = connectionId;
-            this.socket = socket;
-            this.sendTask = Task.CompletedTask;
-            this.closed = false;
-            this.Started = DateTime.UtcNow;
-            this.lastKeepAliveSent = DateTime.UtcNow;
-            logger.Info($"#{Id} initialized");
-            
-            InitVirtual();
-            Parent.OnConnectionOpenedInternal(this);
-        }
-
-        protected virtual void InitVirtual()
-        {
-            
-        }
-
         /// <summary>
-        /// Returns the memory used by this connection
-        /// </summary>
-        /// <param name="disposing">Whether we're disposing (true), or being called by the finalizer (false)</param>
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposed)
-                return;
-            disposed = true;
-
-            CloseInternal(null);
-
-            if (this.awaitingNextMessage != null)
-            {
-                this.awaitingNextMessage.Dispose();
-                this.awaitingNextMessage = null;
-            }
-            
-            this.connectionCancellationToken?.Dispose();
-
-            sendSemaphore?.Dispose();
-            
-            this.Parent.Configuration.MemoryManager.ReturnArray(this.recvBuffer);
-            this.Parent.Configuration.MemoryManager.ReturnArray(this.sendBuffer);
-
-            logger.Debug($"#{Id} disposed!");
-        }
-
-        /// <summary>
-        /// Returns the memory used by this connection
+        ///     Returns the memory used by this connection
         /// </summary>
         public void Dispose()
         {
             Dispose(true);
         }
 
+        internal void CheckParent(TcpPeer parent)
+        {
+            if (!ReferenceEquals(Parent, parent))
+                throw new InvalidOperationException("This connection belongs to the another parent");
+        }
+
+        void CheckDisposed()
+        {
+            if (Disposed)
+                throw new ObjectDisposedException(nameof(TcpConnection));
+        }
+
+        internal void Init(long connectionId, Socket socket, bool isClientConnection)
+        {
+            CheckDisposed();
+
+            IsClientConnection = isClientConnection;
+            _logger.Meta["connection_id"] = connectionId;
+            _keepAliveResponseGot = true;
+            Id = connectionId;
+            _socket = socket;
+            _sendTask = Task.CompletedTask;
+            _closed = false;
+            Started = DateTime.UtcNow;
+            _lastKeepAliveSent = DateTime.UtcNow;
+            _logger.Info($"#{Id} initialized");
+
+            InitVirtual();
+            Parent.OnConnectionOpenedInternal(this);
+        }
+
+        protected virtual void InitVirtual()
+        {
+        }
+
+        /// <summary>
+        ///     Returns the memory used by this connection
+        /// </summary>
+        /// <param name="disposing">Whether we're disposing (true), or being called by the finalizer (false)</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+            _disposed = true;
+
+            CloseInternal(null);
+
+            if (_awaitingNextMessage != null)
+            {
+                _awaitingNextMessage.Dispose();
+                _awaitingNextMessage = null;
+            }
+
+            _connectionCancellationToken?.Dispose();
+
+            _sendSemaphore?.Dispose();
+
+            _recvBuffer.Dispose();
+            _sendBuffer.Dispose();
+
+            _logger.Debug($"#{Id} disposed!");
+        }
+
         void DestroySocket(int? timeout)
         {
-            logger.Debug($"#{Id} socket destroying...");
+            _logger.Debug($"#{Id} socket destroying...");
             if (timeout.HasValue)
-                socket.Close(timeout.Value);
+                _socket.Close(timeout.Value);
             else
-                socket.Close();
-            socket.Dispose();
+                _socket.Close();
+            _socket.Dispose();
         }
 
         internal void StartReceive()
         {
-            socket.BeginReceive(recvBuffer, 0, recvBuffer.Length, SocketFlags.None, ReceiveCallback, null);
+            _socket.BeginReceive(_recvBuffer.Array, 0, _recvBuffer.Array.Length, SocketFlags.None, ReceiveCallback, null);
         }
 
         protected internal virtual void OnConnectionClosed(ConnectionClosedEventArgs args)
         {
-
         }
-        
+
         protected internal virtual void OnConnectionOpened(ConnectionOpenedEventArgs args)
         {
-
         }
 
         /// <summary>
-        /// Closes the connection
+        ///     Closes the connection
         /// </summary>
         public virtual void Close()
         {
             CloseInternal(null);
         }
-        
+
         void CloseInternal(Exception ex)
         {
-            if (closed)
+            if (_closed)
                 return;
-            closed = true;
-            
+            _closed = true;
+
             try
             {
-                logger.Trace($"#{Id} closing");
+                _logger.Trace($"#{Id} closing");
 
                 try
                 {
-                    connectionCancellationToken.Cancel(false);
+                    _connectionCancellationToken.Cancel(false);
                 }
                 catch (Exception cex)
                 {
-                    logger.Error($"Unhandled exception on cancelling token: {cex}");
+                    _logger.Error($"Unhandled exception on cancelling token: {cex}");
                 }
 
                 //https://docs.microsoft.com/en-gb/windows/win32/winsock/graceful-shutdown-linger-options-and-socket-closure-2
                 try
                 {
-                    socket.Shutdown(SocketShutdown.Both);
+                    _socket.Shutdown(SocketShutdown.Both);
                 }
                 catch (SocketException)
                 {
@@ -280,20 +284,22 @@ namespace Neon.Networking.Tcp
                 if (ex != null)
                 {
                     if (ex is SocketException sex)
-                        logger.Info($"#{Id} closed with socket exception {sex.ErrorCode}: {sex.Message}");
+                        _logger.Info($"#{Id} closed with socket exception {sex.ErrorCode}: {sex.Message}");
                     else
-                        logger.Info($"#{Id} closed with exception: {ex}");
+                        _logger.Info($"#{Id} closed with exception: {ex}");
                 }
                 else
-                    logger.Info($"#{Id} closed!");
+                {
+                    _logger.Info($"#{Id} closed!");
+                }
 
                 Parent.OnConnectionClosedInternal(this, ex);
-                
-                this.Dispose();
+
+                Dispose();
             }
             catch (Exception ex_)
             {
-                logger.Critical("Exception on connection close: " + ex_);
+                _logger.Critical("Exception on connection close: " + ex_);
             }
         }
 
@@ -304,7 +310,7 @@ namespace Neon.Networking.Tcp
                 // if (socket == null || !socket.Connected)
                 //     return;
 
-                int bytesRead = socket.EndReceive(result);
+                int bytesRead = _socket.EndReceive(result);
 
                 if (bytesRead == 0)
                 {
@@ -313,96 +319,100 @@ namespace Neon.Networking.Tcp
                 }
 
                 Statistics.BytesIn(bytesRead);
-                logger.Trace($"#{Id} recv data {bytesRead} bytes");
+                _logger.Trace($"#{Id} recv data {bytesRead} bytes");
 
-                int recvBufferPos = 0;
-                int counter = 0;
+                var recvBufferPos = 0;
+                var counter = 0;
 
                 while (recvBufferPos <= bytesRead)
                 {
                     int bytesLeft = bytesRead - recvBufferPos;
-                    if (!awaitingNextMessageHeaderValid)
+                    if (!_awaitingNextMessageHeaderValid)
                     {
                         if (bytesLeft > 0)
                         {
-                            awaitingNextMessageHeaderValid = awaitingMessageHeaderFactory.Write(
-                                new ArraySegment<byte>(recvBuffer, recvBufferPos, bytesLeft), out int headerGotRead,
-                                out awaitingMessageHeader);
+                            _awaitingNextMessageHeaderValid = _awaitingMessageHeaderFactory.Write(
+                                new ArraySegment<byte>(_recvBuffer.Array, recvBufferPos, bytesLeft), out int headerGotRead,
+                                out _awaitingMessageHeader);
                             recvBufferPos += headerGotRead;
-                            logger.Trace($"#{Id} ReceiveCallback(): Read header {awaitingMessageHeader}");
+                            _logger.Trace($"#{Id} ReceiveCallback(): Read header {_awaitingMessageHeader}");
                         }
                         else
                         {
-                            logger.Trace($"#{Id} ReceiveCallback(): No bytes left for the header, exit");
+                            _logger.Trace($"#{Id} ReceiveCallback(): No bytes left for the header, exit");
                             break;
                         }
 
-                        if (awaitingNextMessageHeaderValid)
+                        if (_awaitingNextMessageHeaderValid)
                         {
                             // if (awaitingMessageHeader.MessageSize > 0)
                             {
-                                Guid newGuid = Guid.NewGuid();
-                                awaitingNextMessage = new RawMessage(Parent.Configuration.MemoryManager,
-                                    Parent.Configuration.MemoryManager.GetStream(awaitingMessageHeader.MessageSize,
-                                        newGuid),
-                                    awaitingMessageHeader.Flags.HasFlag(TcpMessageFlagsEnum.Compressed),
-                                    awaitingMessageHeader.Flags.HasFlag(TcpMessageFlagsEnum.Encrypted),
-                                    newGuid);
+                                var newGuid = Guid.NewGuid();
+                                _awaitingNextMessage = new RawMessage(Parent.Configuration.MemoryManager,
+                                    _awaitingMessageHeader.MessageSize,
+                                    _awaitingMessageHeader.Flags.HasFlag(TcpMessageFlagsEnum.Compressed),
+                                    _awaitingMessageHeader.Flags.HasFlag(TcpMessageFlagsEnum.Encrypted),
+                                    newGuid, false);
                             }
                             // else
                             //     awaitingNextMessage = null;
-                            awaitingNextMessageWrote = 0;
-                            logger.Trace($"#{Id} ReceiveCallback(): Creating awaiting message...");
+                            _awaitingNextMessageWrote = 0;
+                            _logger.Trace($"#{Id} ReceiveCallback(): Creating awaiting message...");
                         }
                     }
                     else
                     {
-                        if (awaitingNextMessageWrote < awaitingMessageHeader.MessageSize && bytesLeft > 0)
+                        if (_awaitingNextMessageWrote < _awaitingMessageHeader.MessageSize && bytesLeft > 0)
                         {
                             int toRead = bytesLeft;
-                            if (toRead > awaitingMessageHeader.MessageSize - awaitingNextMessageWrote)
-                                toRead = awaitingMessageHeader.MessageSize - awaitingNextMessageWrote;
+                            if (toRead > _awaitingMessageHeader.MessageSize - _awaitingNextMessageWrote)
+                                toRead = _awaitingMessageHeader.MessageSize - _awaitingNextMessageWrote;
                             if (toRead > 0)
                             {
-                                awaitingNextMessage.Write(recvBuffer, recvBufferPos, toRead);
-                                awaitingNextMessageWrote += toRead;
+                                _awaitingNextMessage.Write(_recvBuffer.Array, recvBufferPos, toRead);
+                                _awaitingNextMessageWrote += toRead;
                                 recvBufferPos += toRead;
                             }
-                            logger.Trace($"#{Id} ReceiveCallback(): Read {toRead} bytes in the message");
+
+                            _logger.Trace($"#{Id} ReceiveCallback(): Read {toRead} bytes in the message");
                         }
-                        else if (awaitingNextMessageWrote == awaitingMessageHeader.MessageSize)
+                        else if (_awaitingNextMessageWrote == _awaitingMessageHeader.MessageSize)
                         {
-                            logger.Trace($"#{Id} ReceiveCallback(): Message done {awaitingNextMessageWrote}=={awaitingMessageHeader.MessageSize} !");
+                            _logger.Trace(
+                                $"#{Id} ReceiveCallback(): Message done {_awaitingNextMessageWrote}=={_awaitingMessageHeader.MessageSize} !");
                             Statistics.PacketIn();
-                            var message = awaitingNextMessage;
+                            RawMessage message = _awaitingNextMessage;
                             if (message != null)
+                            {
                                 message.Position = 0;
-                            awaitingNextMessage = null;
-                            OnMessageReceivedInternalWithSimulation(new TcpMessage(awaitingMessageHeader, message));
-                            awaitingNextMessageWrote = 0;
-                            awaitingMessageHeaderFactory.Reset();
-                            awaitingNextMessageHeaderValid = false;
+                                message.MakeReadOnly();
+                            }
+                            _awaitingNextMessage = null;
+                            OnMessageReceivedInternalWithSimulation(new TcpMessage(_awaitingMessageHeader, message, CancellationToken.None));
+                            _awaitingNextMessageWrote = 0;
+                            _awaitingMessageHeaderFactory.Reset();
+                            _awaitingNextMessageHeaderValid = false;
                         }
                         else if (bytesLeft == 0)
                         {
-                            logger.Trace($"#{Id} ReceiveCallback(): No bytes left for message, exit");
+                            _logger.Trace($"#{Id} ReceiveCallback(): No bytes left for message, exit");
                             break;
                         }
                     }
 
                     //Infinite loop protection
-                    if (counter++ > recvBuffer.Length / 2 + 100)
+                    if (counter++ > _recvBuffer.Array.Length / 2 + 100)
                     {
-                        logger.Critical($"#{Id} infinite loop in {this}");
+                        _logger.Critical($"#{Id} infinite loop in {this}");
                         throw new InvalidOperationException("Infinite loop");
                     }
                 }
 
                 StartReceive();
-
             }
             catch (ObjectDisposedException)
-            { }
+            {
+            }
             catch (Exception ex)
             {
                 CloseInternal(ex);
@@ -414,7 +424,7 @@ namespace Neon.Networking.Tcp
             if (Parent.Configuration.ConnectionSimulation != null)
             {
                 int delay = Parent.Configuration.ConnectionSimulation.GetHalfDelay();
-                latencySimulationRecvQueue.Enqueue(new TcpDelayedMessage(message,
+                _latencySimulationRecvQueue.Enqueue(new TcpDelayedMessage(message,
                     DateTime.UtcNow.AddMilliseconds(delay)));
                 return;
             }
@@ -428,149 +438,145 @@ namespace Neon.Networking.Tcp
             //         message.Header.MessageType == TcpMessageTypeEnum.KeepAliveResponse)
             //     logger.Trace($"#{Id} recv message {message}");
             // else
-                logger.Debug($"#{Id} received message {message}");
+            _logger.Debug($"#{Id} received message {message}");
 
             if (message.Header.MessageType == TcpMessageTypeEnum.KeepAliveRequest)
             {
                 LastKeepAliveRequestReceived = DateTime.UtcNow;
-                SendMessageAsync(new TcpMessage(new TcpMessageHeader(0, TcpMessageTypeEnum.KeepAliveResponse, TcpMessageFlagsEnum.None),
-                    null));
+                SendMessageAsync(new TcpMessage(
+                    new TcpMessageHeader(0, TcpMessageTypeEnum.KeepAliveResponse, TcpMessageFlagsEnum.None),
+                    null, CancellationToken.None));
                 message.Dispose();
                 return;
             }
 
             if (message.Header.MessageType == TcpMessageTypeEnum.KeepAliveResponse)
             {
-                Statistics.UpdateInstantLatency((int)(DateTime.UtcNow - this.lastKeepAliveSent).TotalMilliseconds);
-                keepAliveResponseGot = true;
+                Statistics.UpdateInstantLatency((int) (DateTime.UtcNow - _lastKeepAliveSent).TotalMilliseconds);
+                _keepAliveResponseGot = true;
                 message.Dispose();
                 return;
             }
 
             var args = new MessageEventArgs(this, message.RawMessage);
-            Parent.Configuration.SynchronizeSafe(logger, $"{nameof(TcpConnection)}.{nameof(OnMessageReceived)}",
-                (state) => OnMessageReceived(state as MessageEventArgs), args
+            Parent.Configuration.SynchronizeSafe(_logger, $"{nameof(TcpConnection)}.{nameof(OnMessageReceived)}",
+                state => OnMessageReceived(state as MessageEventArgs), args
             );
         }
 
-        protected internal virtual void PollEventsInternal()
+        protected internal virtual void PollEvents()
         {
-            // TimeSpan timeSinceLastKeepAlive = DateTime.UtcNow - this.lastKeepAliveSent;
-            // if (timeSinceLastKeepAlive.TotalMilliseconds > Parent.Configuration.KeepAliveTimeout / 2f)
-            // {
-            //     Console.WriteLine(closed);
-            //     Console.WriteLine(Connected);
-            //     Console.WriteLine(keepAliveResponseGot);
-            //     Console.WriteLine("WARNING !!!");
-            // }
-
-            if (!closed && Connected && Parent.Configuration.KeepAliveEnabled)
+            if (!_closed && Connected && Parent.Configuration.KeepAliveEnabled)
             {
-                TimeSpan timeSinceLastKeepAlive = DateTime.UtcNow - this.lastKeepAliveSent;
-                if (keepAliveResponseGot)
+                TimeSpan timeSinceLastKeepAlive = DateTime.UtcNow - _lastKeepAliveSent;
+                if (_keepAliveResponseGot)
                 {
                     if (timeSinceLastKeepAlive.TotalMilliseconds > Parent.Configuration.KeepAliveInterval)
-                    {
                         try
                         {
-                            keepAliveResponseGot = false;
-                            this.lastKeepAliveSent = DateTime.UtcNow;
+                            _keepAliveResponseGot = false;
+                            _lastKeepAliveSent = DateTime.UtcNow;
                             SendMessageAsync(new TcpMessage(
                                 new TcpMessageHeader(0, TcpMessageTypeEnum.KeepAliveRequest, TcpMessageFlagsEnum.None),
-                                null));
+                                null, CancellationToken.None));
                         }
                         catch (Exception ex)
                         {
-                            logger.Warn($"#{Id} failed to send keep alive request: {ex}");
+                            _logger.Warn($"#{Id} failed to send keep alive request: {ex}");
                         }
-                    }
                 }
                 else
                 {
-                    int latency = (int)timeSinceLastKeepAlive.TotalMilliseconds;
+                    var latency = (int) timeSinceLastKeepAlive.TotalMilliseconds;
                     if (latency > Statistics.InstantLatency)
                         Statistics.UpdateInstantLatency(latency);
-                    
-                    if (Parent.Configuration.KeepAliveTimeout > Timeout.Infinite && latency > Parent.Configuration.KeepAliveTimeout)
+
+                    if (Parent.Configuration.KeepAliveTimeout > Timeout.Infinite &&
+                        latency > Parent.Configuration.KeepAliveTimeout)
                     {
-                        logger.Debug($"#{Id} KeepAliveTimeout exceeded");
+                        _logger.Debug($"#{Id} KeepAliveTimeout exceeded");
                         CloseInternal(new TimeoutException("KeepAliveTimeout exceeded"));
                     }
                 }
             }
 
             Statistics.PollEvents();
-            
-            while (latencySimulationSendQueue.Count > 0 && Connected)
-            {
-                if (latencySimulationSendQueue.TryPeek(out TcpDelayedMessage msg))
+
+            while (_latencySimulationSendQueue.Count > 0 && Connected)
+                if (_latencySimulationSendQueue.TryPeek(out TcpDelayedMessage msg))
                 {
                     if (DateTime.UtcNow >= msg.ReleaseTimestamp)
                     {
-                        if (latencySimulationSendQueue.TryDequeue(out TcpDelayedMessage _msg))
+                        if (_latencySimulationSendQueue.TryDequeue(out TcpDelayedMessage _msg))
                             _ = SendMessageSkipSimulationAsync(_msg.Message)
                                 .ContinueWith(_msg.Complete, TaskContinuationOptions.ExecuteSynchronously);
                     }
                     else
+                    {
                         break;
+                    }
                 }
                 else
+                {
                     break;
-            }
+                }
 
-            while (latencySimulationRecvQueue.Count > 0 && Connected)
-            {
-                if (latencySimulationRecvQueue.TryPeek(out TcpDelayedMessage msg))
+            while (_latencySimulationRecvQueue.Count > 0 && Connected)
+                if (_latencySimulationRecvQueue.TryPeek(out TcpDelayedMessage msg))
                 {
                     if (DateTime.UtcNow >= msg.ReleaseTimestamp)
                     {
-                        latencySimulationRecvQueue.TryDequeue(out TcpDelayedMessage _msg);
+                        _latencySimulationRecvQueue.TryDequeue(out TcpDelayedMessage _msg);
                         OnMessageReceivedInternal(msg.Message);
                     }
                     else
+                    {
                         break;
+                    }
                 }
                 else
+                {
                     break;
-            }
+                }
         }
 
         protected virtual void OnMessageReceived(MessageEventArgs args)
         {
-
         }
 
         void CheckConnected()
         {
             if (!Connected)
-                throw new InvalidOperationException($"is not established");
+                throw new InvalidOperationException("is not established");
         }
 
         /// <summary>
-        /// Sends the message
+        ///     Sends the message
         /// </summary>
         /// <param name="message">Message to send</param>
+        /// <param name="cancellationToken">Cancellation token</param>
         /// <exception cref="ArgumentNullException">If message is null</exception>
-        public virtual Task SendMessageAsync(RawMessage message)
+        public virtual Task SendMessageAsync(IRawMessage message, CancellationToken cancellationToken)
         {
             if (message == null) throw new ArgumentNullException(nameof(message));
             if (message.Length == 0)
                 return Task.CompletedTask;
-            var tcpMessage = new TcpMessage(TcpMessageHeader.FromMessage(message, TcpMessageTypeEnum.UserData), message);
+            var tcpMessage =
+                new TcpMessage(TcpMessageHeader.FromMessage(message, TcpMessageTypeEnum.UserData), message, cancellationToken);
             return SendMessageAsync(tcpMessage);
         }
 
         Task SendMessageAsync(TcpMessage message)
         {
             CheckConnected();
-            
+
             if (Parent.Configuration.ConnectionSimulation != null)
             {
                 int delay = Parent.Configuration.ConnectionSimulation.GetHalfDelay();
                 var delayedMessage =
                     new TcpDelayedMessage(message,
                         DateTime.UtcNow.AddMilliseconds(delay));
-                latencySimulationSendQueue.Enqueue(delayedMessage);
+                _latencySimulationSendQueue.Enqueue(delayedMessage);
                 return delayedMessage.GetTask();
             }
 
@@ -579,18 +585,18 @@ namespace Neon.Networking.Tcp
 
         async Task SendMessageSkipSimulationAsync(TcpMessage message)
         {
+            message.CancellationToken.ThrowIfCancellationRequested();
             Task newSendTask = null;
-            lock (sendMutex)
+            lock (_sendMutex)
             {
-                Interlocked.Increment(ref sendQueueSize);
-                sendTask = sendTask.ContinueWith(
-                        (task, msg) =>
-                        {
-                            return SendMessageImmediatelyInternalAsync(msg as TcpMessage);
-                        }, message, TaskContinuationOptions.ExecuteSynchronously)
+                Interlocked.Increment(ref _sendQueueSize);
+                _sendTask = _sendTask.ContinueWith(
+                        (task, msg) => { return SendMessageImmediatelyInternalAsync(msg as TcpMessage); }, 
+                        message, message.CancellationToken,
+                        TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default)
                     .Unwrap();
 
-                newSendTask = sendTask;
+                newSendTask = _sendTask;
             }
 
             await newSendTask.ConfigureAwait(false);
@@ -598,9 +604,11 @@ namespace Neon.Networking.Tcp
 
         async Task SendMessageImmediatelyInternalAsync(TcpMessage message)
         {
-            await sendSemaphore.WaitAsync().ConfigureAwait(false);
+            message.CancellationToken.ThrowIfCancellationRequested();
+            await _sendSemaphore.WaitAsync(message.CancellationToken).ConfigureAwait(false);
             try
             {
+                message.CancellationToken.ThrowIfCancellationRequested();
                 if (!Connected)
                     return;
 
@@ -608,21 +616,22 @@ namespace Neon.Networking.Tcp
                 //     message.Header.MessageType == TcpMessageTypeEnum.KeepAliveResponse)
                 //     logger.Trace($"#{Id} sending {message}");
                 // else
-                logger.Debug($"#{Id} sending {message}");
+                _logger.Debug($"#{Id} sending {message}");
 
-                var headerBytes = TcpMessageHeaderFactory.Build(message.Header);
-                Buffer.BlockCopy(headerBytes.Array, headerBytes.Offset, sendBuffer, 0, headerBytes.Count);
+                ArraySegment<byte> headerBytes = TcpMessageHeaderFactory.Build(message.Header);
+                Buffer.BlockCopy(headerBytes.Array, headerBytes.Offset, _sendBuffer.Array, 0, headerBytes.Count);
                 int bufferPosition = headerBytes.Count;
-                int totalBytesSent = 0;
-                bool messageEof = false;
+                var totalBytesSent = 0;
+                var messageEof = false;
 
                 if (message.RawMessage != null)
                     message.RawMessage.Position = 0;
 
                 do
                 {
-                    int bufferFreeSpace = sendBuffer.Length - bufferPosition;
-                    int messageLeftBytes = 0;
+                    message.CancellationToken.ThrowIfCancellationRequested();
+                    int bufferFreeSpace = _sendBuffer.Array.Length - bufferPosition;
+                    var messageLeftBytes = 0;
                     if (message.RawMessage != null)
                         messageLeftBytes = message.RawMessage.Length - message.RawMessage.Position;
                     int toCopy = bufferFreeSpace;
@@ -633,30 +642,35 @@ namespace Neon.Networking.Tcp
                     }
 
                     if (toCopy > 0 && message.RawMessage != null)
-                        toCopy = message.RawMessage.Read(sendBuffer, bufferPosition, toCopy);
+                        toCopy = message.RawMessage.Read(_sendBuffer.Array, bufferPosition, toCopy);
 
                     bufferPosition += toCopy;
 
-                    int bufferSendPosition = 0;
+                    var bufferSendPosition = 0;
 
                     while (bufferSendPosition < bufferPosition)
                     {
+                        message.CancellationToken.ThrowIfCancellationRequested();
                         int sent = await Task.Factory
                             .FromAsync(
-                                socket.BeginSend(sendBuffer, bufferSendPosition, bufferPosition - bufferSendPosition,
-                                    SocketFlags.None, null, null), socket.EndSend)
+                                _socket.BeginSend(_sendBuffer.Array, bufferSendPosition,
+                                    bufferPosition - bufferSendPosition,
+                                    SocketFlags.None, null, null), _socket.EndSend)
                             .ConfigureAwait(false);
-                        logger.Trace($"#{Id} sent {sent} bytes");
+                        _logger.Debug($"#{Id} sent {sent} bytes");
                         bufferSendPosition += sent;
                         totalBytesSent += sent;
                     }
 
                     bufferPosition = 0;
-
                 } while (!messageEof);
 
                 Statistics.PacketOut();
                 Statistics.BytesOut(totalBytesSent);
+            }
+            catch (OperationCanceledException)
+            {
+                
             }
             catch (ObjectDisposedException)
             {
@@ -667,8 +681,8 @@ namespace Neon.Networking.Tcp
             }
             finally
             {
-                Interlocked.Decrement(ref sendQueueSize);
-                sendSemaphore.Release();
+                Interlocked.Decrement(ref _sendQueueSize);
+                _sendSemaphore.Release();
             }
         }
 

@@ -34,7 +34,7 @@ namespace Neon.Util
                         (t, state) => { MarshalTaskResults(t, state as TaskCompletionSource<object>); }, tcs,
                         TaskContinuationOptions.ExecuteSynchronously);
 
-                    using (childCts.Token.Register((state) =>
+                    using (childCts.Token.Register(state =>
                            {
                                Exception exception = null;
                                if (((CancellationToken) state).IsCancellationRequested)
@@ -78,7 +78,7 @@ namespace Neon.Util
                         (t, state) => { MarshalTaskResults(t, state as TaskCompletionSource<TResult>); }, tcs,
                         TaskContinuationOptions.ExecuteSynchronously);
 
-                    using (childCts.Token.Register((state) =>
+                    using (childCts.Token.Register(state =>
                            {
                                Exception exception = null;
                                if (((CancellationToken) state).IsCancellationRequested)
@@ -115,7 +115,7 @@ namespace Neon.Util
                             castedSource.Result); // source is a Task<TResult>
                     break;
                 default:
-                    throw new InvalidOperationException("Task has invalid status for marshaling: " + source.Status.ToString());
+                    throw new InvalidOperationException("Task has invalid status for marshaling: " + source.Status);
             }
         }
     }

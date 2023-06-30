@@ -100,8 +100,8 @@ namespace Neon.Util.Pooling.Objects
                     poolObject.OnTookFromPool();
                 return result;
             }
-            else
-                return CreateNew();
+
+            return CreateNew();
         }
 
         /// <summary>

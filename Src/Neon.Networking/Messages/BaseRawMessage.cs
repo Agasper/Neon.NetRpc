@@ -2,23 +2,79 @@ using System;
 using System.Buffers;
 using System.IO;
 using System.Text;
+using Google.Protobuf;
 using Microsoft.IO;
 using Neon.Networking.IO;
+using Neon.Util.Io;
 using Neon.Util.Pooling;
 
 namespace Neon.Networking.Messages
 {
-    public abstract class BaseRawMessage : IByteReader, IByteWriter, IRawMessage
+    public abstract class BaseRawMessage : IByteReader, IByteWriter, IDisposable
     {
         public static readonly Encoding DEFAULT_ENCODING = Encoding.UTF8;
-        
+        protected readonly Encoding _encoding;
+        protected readonly IMemoryManager _memoryManager;
+        protected readonly BinaryReader _reader;
+
+        protected readonly RecyclableMemoryStream _stream;
+        protected readonly BinaryWriter _writer;
+
+        protected bool _disposed;
+
+#if DEBUG
+        string _disposeStack;
+#endif
+        protected bool _readOnly;
+
+        public BaseRawMessage(IMemoryManager memoryManager)
+            : this(memoryManager, 0, DEFAULT_ENCODING, Guid.Empty)
+        {
+        }
+
+        public BaseRawMessage(IMemoryManager memoryManager, int length)
+            : this(memoryManager, length, DEFAULT_ENCODING, Guid.Empty)
+        {
+        }
+
+        public BaseRawMessage(IMemoryManager memoryManager, int length, Encoding encoding)
+            : this(memoryManager, length, encoding, Guid.Empty)
+        {
+        }
+
+        public BaseRawMessage(IMemoryManager memoryManager, int length, Encoding encoding, Guid guid,
+            bool readOnly = false)
+        {
+            Guid = guid;
+            _memoryManager = memoryManager ?? throw new ArgumentNullException(nameof(memoryManager));
+            _encoding = encoding ?? throw new ArgumentNullException(nameof(encoding));
+            if (length < 0)
+                throw new ArgumentOutOfRangeException(nameof(length));
+            _stream = memoryManager.GetStream(length, guid);
+            _reader = new BinaryReader(_stream, encoding, true);
+            _writer = new BinaryWriter(_stream, encoding, true);
+            _readOnly = readOnly;
+        }
+
+        public BaseRawMessage(IMemoryManager memoryManager, ArraySegment<byte> arraySegment, Encoding encoding,
+            Guid guid, bool readOnly = false)
+        {
+            Guid = guid;
+            _memoryManager = memoryManager ?? throw new ArgumentNullException(nameof(memoryManager));
+            _encoding = encoding ?? throw new ArgumentNullException(nameof(encoding));
+            _stream = memoryManager.GetStream(arraySegment, guid);
+            _reader = new BinaryReader(_stream, encoding, true);
+            _writer = new BinaryWriter(_stream, encoding, true);
+            _readOnly = readOnly;
+        }
+
         /// <summary>
-        /// Unique message identifier
+        ///     Unique message identifier
         /// </summary>
         public Guid Guid { get; protected set; }
-        
+
         /// <summary>
-        /// Get/set the current position in the message
+        ///     Get/set the current position in the message
         /// </summary>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
         public int Position
@@ -26,20 +82,17 @@ namespace Neon.Networking.Messages
             get
             {
                 CheckDisposed();
-                if (stream == null)
-                    return 0;
-                return (int)stream.Position;
+                return (int) _stream.Position;
             }
             set
             {
                 CheckDisposed();
-                CheckStreamIsNotNull();
-                stream.Position = value;
+                _stream.Position = value;
             }
         }
 
         /// <summary>
-        /// Get/set the length of the message
+        ///     Get/set the length of the message
         /// </summary>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
         public int Length
@@ -47,57 +100,20 @@ namespace Neon.Networking.Messages
             get
             {
                 CheckDisposed();
-                if (stream == null)
+                if (_stream == null)
                     return 0;
-                return (int) stream.Length;
+                return (int) _stream.Length;
             }
             set
             {
                 CheckDisposed();
-                CheckStreamIsNotNull();
-                stream.SetLength(value);
-            }
-        }
-
-#if DEBUG
-        string disposeStack;
-#endif
-        
-        protected RecyclableMemoryStream stream;
-        protected BinaryReader reader;
-        protected BinaryWriter writer;
-        protected Encoding encoding;
-        protected IMemoryManager memoryManager;
-
-        protected bool disposed;
-        
-        public BaseRawMessage(IMemoryManager memoryManager, RecyclableMemoryStream stream)
-            : this(memoryManager, stream, DEFAULT_ENCODING, Guid.Empty)
-        {
-            
-        }
-
-        public BaseRawMessage(IMemoryManager memoryManager, RecyclableMemoryStream stream, Encoding encoding)
-        : this(memoryManager, stream, encoding, Guid.Empty)
-        {
-            
-        }
-        
-        public BaseRawMessage(IMemoryManager memoryManager, RecyclableMemoryStream stream, Encoding encoding, Guid guid)
-        {
-            this.Guid = guid;
-            this.stream = stream;
-            this.memoryManager = memoryManager ?? throw new ArgumentNullException(nameof(memoryManager));
-            this.encoding = encoding ?? throw new ArgumentNullException(nameof(encoding));
-            if (stream != null)
-            {
-                this.reader = new BinaryReader(stream, encoding, true);
-                this.writer = new BinaryWriter(stream, encoding, true);
+                CheckWrite();
+                _stream.SetLength(value);
             }
         }
 
         /// <summary>
-        /// Returns a sequence containing the contents of the stream.
+        ///     Returns a sequence containing the contents of the stream.
         /// </summary>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
         /// <remarks>IMPORTANT: Calling Dispose() after calling GetReadOnlySequence() invalidates the sequence.</remarks>
@@ -105,72 +121,134 @@ namespace Neon.Networking.Messages
         public ReadOnlySequence<byte> GetReadOnlySequence()
         {
             CheckDisposed();
-            if (stream == null)
-                return new ReadOnlySequence<byte>();
-            return stream.GetReadOnlySequence();
-        }
-
-        /// <summary>
-        /// Returns a message as Stream
-        /// </summary>
-        /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
-        /// <remarks>IMPORTANT: Calling Dispose() after calling AsStream() invalidates the stream.</remarks>
-        /// <returns>Stream</returns>
-        public Stream AsStream()
-        {
-            CheckDisposed();
-            if (stream == null)
-                return Stream.Null;
-            return stream;
-        }
-        
-
-        public override string ToString()
-        {
-            if (stream == null || disposed)
-                return $"{this.GetType().Name}[size=0]";
-            else
-                return $"{this.GetType().Name}[size={stream.Length}]";
-        }
-
-        protected void CheckStreamIsNotNull()
-        {
-            if (stream == null)
-                throw new InvalidOperationException("Operation not permitted. Inner stream is null");
-        }
-
-        protected void CheckDisposed()
-        {
-#if DEBUG
-            if (disposed)
-                throw new ObjectDisposedException(nameof(BaseRawMessage), "Was disposed at: " + disposeStack);
-#endif
-            if (disposed)
-                throw new ObjectDisposedException(nameof(BaseRawMessage));
+            return _stream.GetReadOnlySequence();
         }
 
         /// <summary>Releases all resources used by the message.</summary>
         public virtual void Dispose()
         {
-            if (disposed)
+            if (_disposed)
                 return;
-            disposed = true;
-            stream?.Dispose();
-            writer?.Dispose();
-            reader?.Dispose();
-            
+            _disposed = true;
+            _stream?.Dispose();
+            _writer?.Dispose();
+            _reader?.Dispose();
+
 #if DEBUG
-            disposeStack = Environment.StackTrace;
-            if (string.IsNullOrEmpty(disposeStack))
+            _disposeStack = Environment.StackTrace;
+            if (string.IsNullOrEmpty(_disposeStack))
                 throw new InvalidOperationException("Stack is null");
 #endif
         }
-        
-                
+
+        internal void MakeReadOnly()
+        {
+            _readOnly = true;
+        }
+
+        public void Advance(int count)
+        {
+            _stream.Advance(count);
+        }
+
+        public Memory<byte> GetMemory(int sizeHint)
+        {
+            return _stream.GetMemory(sizeHint);
+        }
+
+        public Span<byte> GetSpan(int sizeHint)
+        {
+            return _stream.GetSpan(sizeHint);
+        }
+
+        void CheckWrite()
+        {
+            if (_readOnly)
+                throw new InvalidOperationException("Message is read-only");
+        }
+
+        public override string ToString()
+        {
+            if (_stream == null || _disposed)
+                return $"{GetType().Name}[size=0]";
+            return $"{GetType().Name}[size={_stream.Length}]";
+        }
+
+        protected void CheckDisposed()
+        {
+#if DEBUG
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(BaseRawMessage), "Was disposed at: " + _disposeStack);
+#else
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(BaseRawMessage));
+#endif
+        }
+
+
         #region Read
-        
+
         /// <summary>
-        /// Read single value from the message and advances the position by 4 bytes
+        ///     Read a delimited protobuf message from the raw message and advances the position by the number of bytes read
+        /// </summary>
+        /// <typeparam name="T">Message type</typeparam>
+        /// <returns>Protobuf message</returns>
+        public T ReadObjectDelimited<T>() where T : IMessage<T>, new()
+        {
+            CheckDisposed();
+            var message = new T();
+            message.MergeDelimitedFrom(_stream);
+            return message;
+        }
+
+        /// <summary>
+        ///     Read a non-delimited protobuf message from the raw message and advances the position by the number of bytes read,
+        ///     but not more than length
+        /// </summary>
+        /// <param name="length">Length of the message</param>
+        /// <typeparam name="T">Message type</typeparam>
+        /// <returns>Protobuf message</returns>
+        public T ReadObject<T>(int length) where T : IMessage<T>, new()
+        {
+            CheckDisposed();
+            var message = new T();
+            using (var limitedReadOnlyStream =
+                   new LimitedReadOnlyStream(_stream, Position, length))
+            {
+                using (IRentedArray array = _memoryManager.RentArray(_memoryManager.DefaultBufferSize))
+                {
+                    using (var cis = new CodedInputStream(limitedReadOnlyStream, array.Array, true))
+                    {
+                        message.MergeFrom(cis);
+                    }
+                }
+            }
+
+            return message;
+        }
+
+        /// <summary>
+        ///     Read a non-delimited protobuf message from the raw message and advances the position by the number of bytes read
+        /// </summary>
+        /// <typeparam name="T">Message type</typeparam>
+        /// <returns>Protobuf message</returns>
+        public T ReadObject<T>() where T : IMessage<T>, new()
+        {
+            CheckDisposed();
+            var message = new T();
+            using (IRentedArray array = _memoryManager.RentArray(_memoryManager.DefaultBufferSize))
+            {
+                using (var cis = new CodedInputStream(_stream, array.Array, true))
+                {
+                    message.MergeFrom(cis);
+                }
+            }
+
+            return message;
+        }
+
+        /// <summary>
+        ///     Read single value from the message and advances the position by 4 bytes
         /// </summary>
         /// <exception cref="T:System.IO.EndOfStreamException">The end of the message is reached.</exception>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -179,12 +257,11 @@ namespace Neon.Networking.Messages
         public float ReadSingle()
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            return reader.ReadSingle();
+            return _reader.ReadSingle();
         }
 
         /// <summary>
-        /// Read double value from the message and advances the position by 8 bytes
+        ///     Read double value from the message and advances the position by 8 bytes
         /// </summary>
         /// <exception cref="T:System.IO.EndOfStreamException">The end of the message is reached.</exception>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -193,12 +270,11 @@ namespace Neon.Networking.Messages
         public double ReadDouble()
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            return reader.ReadDouble();
+            return _reader.ReadDouble();
         }
 
         /// <summary>
-        /// Read boolean value from the message and advances the position by 1 byte
+        ///     Read boolean value from the message and advances the position by 1 byte
         /// </summary>
         /// <exception cref="T:System.IO.EndOfStreamException">The end of the message is reached.</exception>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -207,12 +283,11 @@ namespace Neon.Networking.Messages
         public bool ReadBoolean()
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            return reader.ReadBoolean();
+            return _reader.ReadBoolean();
         }
 
         /// <summary>
-        /// Read byte value from the message and advances the position by 1 byte
+        ///     Read byte value from the message and advances the position by 1 byte
         /// </summary>
         /// <exception cref="T:System.IO.EndOfStreamException">The end of the message is reached.</exception>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -221,12 +296,11 @@ namespace Neon.Networking.Messages
         public byte ReadByte()
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            return reader.ReadByte();
+            return _reader.ReadByte();
         }
 
         /// <summary>
-        /// Read short value from the message and advances the position by 2 bytes
+        ///     Read short value from the message and advances the position by 2 bytes
         /// </summary>
         /// <exception cref="T:System.IO.EndOfStreamException">The end of the message is reached.</exception>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -235,12 +309,11 @@ namespace Neon.Networking.Messages
         public short ReadInt16()
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            return reader.ReadInt16();
+            return _reader.ReadInt16();
         }
 
         /// <summary>
-        /// Read int value from the message and advances the position by 4 bytes
+        ///     Read int value from the message and advances the position by 4 bytes
         /// </summary>
         /// <exception cref="T:System.IO.EndOfStreamException">The end of the message is reached.</exception>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -249,12 +322,11 @@ namespace Neon.Networking.Messages
         public int ReadInt32()
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            return reader.ReadInt32();
+            return _reader.ReadInt32();
         }
 
         /// <summary>
-        /// Read long value from the message and advances the position by 8 bytes
+        ///     Read long value from the message and advances the position by 8 bytes
         /// </summary>
         /// <exception cref="T:System.IO.EndOfStreamException">The end of the message is reached.</exception>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -263,12 +335,11 @@ namespace Neon.Networking.Messages
         public long ReadInt64()
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            return reader.ReadInt64();
+            return _reader.ReadInt64();
         }
 
         /// <summary>
-        /// Read sbyte value from the message and advances the position by 1 byte
+        ///     Read sbyte value from the message and advances the position by 1 byte
         /// </summary>
         /// <exception cref="T:System.IO.EndOfStreamException">The end of the message is reached.</exception>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -277,12 +348,12 @@ namespace Neon.Networking.Messages
         public sbyte ReadSByte()
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            return reader.ReadSByte();
+            return _reader.ReadSByte();
         }
 
         /// <summary>
-        /// Reads a string from the current message. The string is prefixed with the length, encoded as an integer seven bits at a time
+        ///     Reads a string from the current message. The string is prefixed with the length, encoded as an integer seven bits
+        ///     at a time
         /// </summary>
         /// <exception cref="T:System.IO.EndOfStreamException">The end of the message is reached.</exception>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -291,12 +362,11 @@ namespace Neon.Networking.Messages
         public string ReadString()
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            return reader.ReadString();
+            return _reader.ReadString();
         }
 
         /// <summary>
-        /// Read ushort value from the message and advances the position by 2 bytes
+        ///     Read ushort value from the message and advances the position by 2 bytes
         /// </summary>
         /// <exception cref="T:System.IO.EndOfStreamException">The end of the message is reached.</exception>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -305,12 +375,11 @@ namespace Neon.Networking.Messages
         public ushort ReadUInt16()
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            return reader.ReadUInt16();
+            return _reader.ReadUInt16();
         }
-        
+
         /// <summary>
-        /// Read uint value from the message and advances the position by 4 bytes
+        ///     Read uint value from the message and advances the position by 4 bytes
         /// </summary>
         /// <exception cref="T:System.IO.EndOfStreamException">The end of the message is reached.</exception>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -319,12 +388,11 @@ namespace Neon.Networking.Messages
         public uint ReadUInt32()
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            return reader.ReadUInt32();
+            return _reader.ReadUInt32();
         }
 
         /// <summary>
-        /// Read ulong value from the message and advances the position by 8 bytes
+        ///     Read ulong value from the message and advances the position by 8 bytes
         /// </summary>
         /// <exception cref="T:System.IO.EndOfStreamException">The end of the message is reached.</exception>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -333,27 +401,31 @@ namespace Neon.Networking.Messages
         public ulong ReadUInt64()
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            return reader.ReadUInt64();
+            return _reader.ReadUInt64();
         }
 
         /// <summary>
-        /// Read a byte array from the message
+        ///     Read a byte array from the message
         /// </summary>
-        /// <param name="count">The number of bytes to read. This value must be 0 or a non-negative number or an exception will occur.</param>
+        /// <param name="count">
+        ///     The number of bytes to read. This value must be 0 or a non-negative number or an exception will
+        ///     occur.
+        /// </param>
         /// <exception cref="T:System.InvalidOperationException">The message is empty</exception>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
         /// <exception cref="T:System.ArgumentOutOfRangeException"><paramref name="count" /> is negative.</exception>
-        /// <returns>A byte array containing data read from the message. This might be less than the number of bytes requested if the end of the message is reached.</returns>
+        /// <returns>
+        ///     A byte array containing data read from the message. This might be less than the number of bytes requested if
+        ///     the end of the message is reached.
+        /// </returns>
         public byte[] ReadBytes(int count)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            return reader.ReadBytes(count);
+            return _reader.ReadBytes(count);
         }
 
         /// <summary>
-        /// Reads from the current position into the provided buffer.
+        ///     Reads from the current position into the provided buffer.
         /// </summary>
         /// <param name="array">Destination buffer.</param>
         /// <param name="index">Offset into buffer at which to start placing the read bytes.</param>
@@ -366,58 +438,52 @@ namespace Neon.Networking.Messages
         public int Read(byte[] array, int index, int count)
         {
             CheckDisposed();
-            if (stream == null)
+            if (_stream == null)
                 return 0;
-            return stream.Read(array, index, count);
+            return _stream.Read(array, index, count);
         }
-        
+
         /// <summary>
-        /// Copies the contents of this message into destination message. 
+        ///     Copies the contents of this message into destination message.
         /// </summary>
         /// <param name="message">The message to copy items into.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
         public void CopyTo(BaseRawMessage message)
         {
-            this.CopyTo(message.stream);
+            CopyTo(message._stream);
         }
-        
+
         /// <summary>
-        /// Copies the contents of this message into destination message. 
+        ///     Copies the contents of this message into destination message.
         /// </summary>
         /// <param name="message">The message to copy items into.</param>
         /// <param name="bytesToCopy">Amount of bytes to copy</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
         public void CopyTo(BaseRawMessage message, int bytesToCopy)
         {
-            
-            this.CopyTo(message.stream, bytesToCopy);
+            CopyTo(message._stream, bytesToCopy);
         }
 
         /// <summary>
-        /// Copies the contents of this message into the stream. 
+        ///     Copies the contents of this message into the stream.
         /// </summary>
         /// <param name="destination">The stream to copy items into.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
         public void CopyTo(Stream destination)
         {
             CheckDisposed();
-            if (stream == null)
+            if (_stream == null)
                 return;
-            byte[] buffer = memoryManager.RentArray(memoryManager.DefaultBufferSize);
-            try
+            using (IRentedArray array = _memoryManager.RentArray(_memoryManager.DefaultBufferSize))
             {
                 int read;
-                while ((read = Read(buffer, 0, buffer.Length)) != 0)
-                    destination.Write(buffer, 0, read);
-            }
-            finally
-            {
-                memoryManager.ReturnArray(buffer);
+                while ((read = Read(array.Array, 0, array.Array.Length)) != 0)
+                    destination.Write(array.Array, 0, read);
             }
         }
-        
+
         /// <summary>
-        /// Copies the contents of this message into the stream. 
+        ///     Copies the contents of this message into the stream.
         /// </summary>
         /// <param name="destination">The stream to copy items into.</param>
         /// <param name="bytesToCopy">The amount of bytes to copy.</param>
@@ -425,34 +491,29 @@ namespace Neon.Networking.Messages
         public void CopyTo(Stream destination, int bytesToCopy)
         {
             CheckDisposed();
-            if (stream == null)
+            if (_stream == null)
                 return;
             if (bytesToCopy < 0)
                 throw new ArgumentOutOfRangeException(nameof(bytesToCopy));
             if (bytesToCopy == 0)
                 return;
-            byte[] buffer = memoryManager.RentArray(Math.Min(memoryManager.DefaultBufferSize, bytesToCopy));
-            try
+            using (IRentedArray array = _memoryManager.RentArray(Math.Min(_memoryManager.DefaultBufferSize, bytesToCopy)))
             {
-                int totalRead = 0;
+                var totalRead = 0;
                 int read;
                 while (totalRead < bytesToCopy &&
-                       (read = Read(buffer, 0, Math.Min(buffer.Length, bytesToCopy - totalRead))) != 0)
+                       (read = Read(array.Array, 0, Math.Min(array.Array.Length, bytesToCopy - totalRead))) != 0)
                 {
                     if (totalRead + read > bytesToCopy)
                         read = bytesToCopy - totalRead;
-                    destination.Write(buffer, 0, read);
+                    destination.Write(array.Array, 0, read);
                     totalRead += read;
                 }
-            }
-            finally
-            {
-                memoryManager.ReturnArray(buffer);
             }
         }
 
         /// <summary>
-        /// Read decimal value from the message and advances the position by 16 bytes
+        ///     Read decimal value from the message and advances the position by 16 bytes
         /// </summary>
         /// <exception cref="T:System.IO.EndOfStreamException">The end of the message is reached.</exception>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -461,12 +522,11 @@ namespace Neon.Networking.Messages
         public decimal ReadDecimal()
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            return reader.ReadDecimal();
+            return _reader.ReadDecimal();
         }
 
         /// <summary>
-        /// Read variable int value from the message and advances the position by 1-5 bytes
+        ///     Read variable int value from the message and advances the position by 1-5 bytes
         /// </summary>
         /// <exception cref="T:System.IO.EndOfStreamException">The end of the message is reached.</exception>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -475,12 +535,11 @@ namespace Neon.Networking.Messages
         public int ReadVarInt32()
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
             return VarintBitConverter.ToInt32(this);
         }
 
         /// <summary>
-        /// Read variable long value from the message and advances the position by 1-9 bytes
+        ///     Read variable long value from the message and advances the position by 1-9 bytes
         /// </summary>
         /// <exception cref="T:System.IO.EndOfStreamException">The end of the message is reached.</exception>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -489,12 +548,11 @@ namespace Neon.Networking.Messages
         public long ReadVarInt64()
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
             return VarintBitConverter.ToInt64(this);
         }
 
         /// <summary>
-        /// Read variable uint value from the message and advances the position by 1-5 bytes
+        ///     Read variable uint value from the message and advances the position by 1-5 bytes
         /// </summary>
         /// <exception cref="T:System.IO.EndOfStreamException">The end of the message is reached.</exception>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -503,12 +561,11 @@ namespace Neon.Networking.Messages
         public uint ReadVarUInt32()
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
             return VarintBitConverter.ToUInt32(this);
         }
 
         /// <summary>
-        /// Read variable ulong value from the message and advances the position by 1-9 bytes
+        ///     Read variable ulong value from the message and advances the position by 1-9 bytes
         /// </summary>
         /// <exception cref="T:System.IO.EndOfStreamException">The end of the message is reached.</exception>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -517,16 +574,15 @@ namespace Neon.Networking.Messages
         public ulong ReadVarUInt64()
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
             return VarintBitConverter.ToUInt64(this);
         }
-        
+
         #endregion
-        
+
         #region Write
-        
+
         /// <summary>
-        /// Writes a float value to the current message and advances the position by 4 bytes
+        ///     Writes a float value to the current message and advances the position by 4 bytes
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -534,12 +590,12 @@ namespace Neon.Networking.Messages
         public void Write(float value)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            this.writer.Write(value);
+            CheckWrite();
+            _writer.Write(value);
         }
 
         /// <summary>
-        /// Writes a double value to the current message and advances the position by 8 bytes
+        ///     Writes a double value to the current message and advances the position by 8 bytes
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -547,12 +603,14 @@ namespace Neon.Networking.Messages
         public void Write(double value)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            this.writer.Write(value);
+            CheckWrite();
+            _writer.Write(value);
         }
 
         /// <summary>
-        /// Writes a length-prefixed string to this message in the current encoding of the message, and advances the current position of the message in accordance with the encoding used and the specific characters being written to the stream.
+        ///     Writes a length-prefixed string to this message in the current encoding of the message, and advances the current
+        ///     position of the message in accordance with the encoding used and the specific characters being written to the
+        ///     stream.
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -561,14 +619,14 @@ namespace Neon.Networking.Messages
         public int Write(string value)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            int pos = (int)this.writer.BaseStream.Position;
-            this.writer.Write(value);
-            return (int)this.writer.BaseStream.Position - pos;
+            CheckWrite();
+            var pos = (int) _writer.BaseStream.Position;
+            _writer.Write(value);
+            return (int) _writer.BaseStream.Position - pos;
         }
 
         /// <summary>
-        /// Writes a boolean value to the current message and advances the position by 1 bytes
+        ///     Writes a boolean value to the current message and advances the position by 1 bytes
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -576,12 +634,12 @@ namespace Neon.Networking.Messages
         public void Write(bool value)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            this.writer.Write(value);
+            CheckWrite();
+            _writer.Write(value);
         }
 
         /// <summary>
-        /// Writes a bytea value to the current message and advances the position by 1 bytes
+        ///     Writes a bytea value to the current message and advances the position by 1 bytes
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -589,12 +647,12 @@ namespace Neon.Networking.Messages
         public void Write(byte value)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            this.writer.Write(value);
+            CheckWrite();
+            _writer.Write(value);
         }
 
         /// <summary>
-        /// Writes a sbyte value to the current message and advances the position by 1 bytes
+        ///     Writes a sbyte value to the current message and advances the position by 1 bytes
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -602,12 +660,12 @@ namespace Neon.Networking.Messages
         public void Write(sbyte value)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            this.writer.Write(value);
+            CheckWrite();
+            _writer.Write(value);
         }
 
         /// <summary>
-        /// Writes a short value to the current message and advances the position by 2 bytes
+        ///     Writes a short value to the current message and advances the position by 2 bytes
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -615,12 +673,12 @@ namespace Neon.Networking.Messages
         public void Write(short value)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            this.writer.Write(value);
+            CheckWrite();
+            _writer.Write(value);
         }
 
         /// <summary>
-        /// Writes a ushort value to the current message and advances the position by 2 bytes
+        ///     Writes a ushort value to the current message and advances the position by 2 bytes
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -628,12 +686,12 @@ namespace Neon.Networking.Messages
         public void Write(ushort value)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            this.writer.Write(value);
+            CheckWrite();
+            _writer.Write(value);
         }
 
         /// <summary>
-        /// Writes an int value to the current message and advances the position by 4 bytes
+        ///     Writes an int value to the current message and advances the position by 4 bytes
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -641,12 +699,12 @@ namespace Neon.Networking.Messages
         public void Write(int value)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            this.writer.Write(value);
+            CheckWrite();
+            _writer.Write(value);
         }
 
         /// <summary>
-        /// Writes a uint value to the current message and advances the position by 4 bytes
+        ///     Writes a uint value to the current message and advances the position by 4 bytes
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -654,12 +712,12 @@ namespace Neon.Networking.Messages
         public void Write(uint value)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            this.writer.Write(value);
+            CheckWrite();
+            _writer.Write(value);
         }
 
         /// <summary>
-        /// Writes a long value to the current message and advances the position by 8 bytes
+        ///     Writes a long value to the current message and advances the position by 8 bytes
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -667,12 +725,12 @@ namespace Neon.Networking.Messages
         public void Write(long value)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            this.writer.Write(value);
+            CheckWrite();
+            _writer.Write(value);
         }
 
         /// <summary>
-        /// Writes a ulong value to the current message and advances the position by 8 bytes
+        ///     Writes a ulong value to the current message and advances the position by 8 bytes
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -680,12 +738,12 @@ namespace Neon.Networking.Messages
         public void Write(ulong value)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            this.writer.Write(value);
+            CheckWrite();
+            _writer.Write(value);
         }
 
         /// <summary>
-        /// Writes a byte array to the underlying message and advances the position by the length of the array
+        ///     Writes a byte array to the underlying message and advances the position by the length of the array
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -694,12 +752,12 @@ namespace Neon.Networking.Messages
         public void Write(byte[] value)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            this.writer.Write(value);
+            CheckWrite();
+            _writer.Write(value);
         }
 
         /// <summary>
-        /// Writes a buffer to the underlying message
+        ///     Writes a buffer to the underlying message
         /// </summary>
         /// <param name="value">Source buffer.</param>
         /// <param name="index">Start position.</param>
@@ -712,12 +770,12 @@ namespace Neon.Networking.Messages
         public void Write(byte[] value, int index, int count)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            this.stream.Write(value, index, count);
+            CheckWrite();
+            _stream.Write(value, index, count);
         }
 
         /// <summary>
-        /// Writes a decimal value to the current message and advances the position by 16 bytes
+        ///     Writes a decimal value to the current message and advances the position by 16 bytes
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -725,12 +783,12 @@ namespace Neon.Networking.Messages
         public void Write(decimal value)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
-            this.writer.Write(value);
+            CheckWrite();
+            _writer.Write(value);
         }
-        
+
         /// <summary>
-        /// Writes variable int value to the message, and advances the position by the 1-5 bytes
+        ///     Writes variable int value to the message, and advances the position by the 1-5 bytes
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -738,12 +796,12 @@ namespace Neon.Networking.Messages
         public void WriteVarInt(int value)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
+            CheckWrite();
             VarintBitConverter.WriteVarintBytes(this, value);
         }
 
         /// <summary>
-        /// Writes variable uint value to the message, and advances the position by the 1-5 bytes
+        ///     Writes variable uint value to the message, and advances the position by the 1-5 bytes
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -751,12 +809,12 @@ namespace Neon.Networking.Messages
         public void WriteVarInt(uint value)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
+            CheckWrite();
             VarintBitConverter.WriteVarintBytes(this, value);
         }
 
         /// <summary>
-        /// Writes variable long value to the message, and advances the position by the 1-9 bytes
+        ///     Writes variable long value to the message, and advances the position by the 1-9 bytes
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -764,12 +822,12 @@ namespace Neon.Networking.Messages
         public void WriteVarInt(long value)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
+            CheckWrite();
             VarintBitConverter.WriteVarintBytes(this, value);
         }
 
         /// <summary>
-        /// Writes variable ulong value to the message, and advances the position by the 1-9 bytes
+        ///     Writes variable ulong value to the message, and advances the position by the 1-9 bytes
         /// </summary>
         /// <param name="value">The value to write.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
@@ -777,9 +835,47 @@ namespace Neon.Networking.Messages
         public void WriteVarInt(ulong value)
         {
             CheckDisposed();
-            CheckStreamIsNotNull();
+            CheckWrite();
             VarintBitConverter.WriteVarintBytes(this, value);
         }
+
+        /// <summary>
+        ///     Write a delimited protobuf message to the raw message and advances the position
+        /// </summary>
+        /// <param name="message">Protobuf message</param>
+        public void WriteObjectDelimited(IMessage message)
+        {
+            if (message == null) throw new ArgumentNullException(nameof(message));
+            CheckDisposed();
+            CheckWrite();
+            using (IRentedArray array = _memoryManager.RentArray(_memoryManager.DefaultBufferSize))
+            {
+                using (var cos = new CodedOutputStream(_stream, array.Array, true))
+                {
+                    cos.WriteLength(message.CalculateSize());
+                    message.WriteTo(cos);
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Write a protobuf message to the raw message and advances the position
+        /// </summary>
+        /// <param name="message">Protobuf message</param>
+        public void WriteObject(IMessage message)
+        {
+            if (message == null) throw new ArgumentNullException(nameof(message));
+            CheckDisposed();
+            CheckWrite();
+            using (IRentedArray array = _memoryManager.RentArray(_memoryManager.DefaultBufferSize))
+            {
+                using (var cos = new CodedOutputStream(_stream, array.Array, true))
+                {
+                    message.WriteTo(cos);
+                }
+            }
+        }
+
         #endregion
     }
 }

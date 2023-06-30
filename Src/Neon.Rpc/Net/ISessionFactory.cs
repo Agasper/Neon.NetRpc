@@ -1,18 +1,15 @@
-﻿namespace Neon.Rpc.Net
+﻿using System.Threading;
+using System.Threading.Tasks;
+using Google.Protobuf.WellKnownTypes;
+
+namespace Neon.Rpc.Net
 {
     /// <summary>
     /// RPC session factory
     /// </summary>
     public interface ISessionFactory
     {
-        RpcSession CreateSession(RpcSessionContext sessionContext);
-    }
-
-    /// <summary>
-    /// Authentication session factory
-    /// </summary>
-    public interface IAuthenticatedSessionFactory
-    {
-        void Authenticate(object data);
+        Task AuthenticateAsync(AuthenticationContext context, CancellationToken cancellationToken);
+        Task<RpcSessionBase> CreateSessionAsync(RpcSessionContext context, CancellationToken cancellationToken);
     }
 }

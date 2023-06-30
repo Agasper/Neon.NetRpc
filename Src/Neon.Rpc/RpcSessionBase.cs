@@ -1,171 +1,235 @@
 using System;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
+using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using Neon.Logging;
-using Neon.Networking.Udp;
-using Neon.Networking.Udp.Messages;
-using Neon.Rpc.Payload;
-using Neon.Rpc.Serialization;
-using MessageType = Neon.Rpc.Payload.MessageType;
+using Neon.Rpc.Messages;
 
 namespace Neon.Rpc
 {
-    public abstract class RpcSessionBase
+    public class RpcSessionBase : IRpcSession
     {
-        internal const int MESSAGE_TOKEN = 241;
-
-        /// <summary>
-        /// User-defined tag
-        /// </summary>
-        public object Tag { get; set; }
-        
         /// <summary>
         /// Underlying transport connection
         /// </summary>
-        public IRpcConnection Connection => connection;
+        public IRpcConnection Connection => _context.Connection;
         
-        private protected readonly IRpcConnectionInternal connection;
-        protected readonly ILogger logger;
-
-        public RpcSessionBase(RpcSessionContextBase sessionContext)
+        RpcSessionContext _context;
+        bool _closed;
+        readonly ILogger _logger;
+        
+        public RpcSessionBase(RpcSessionContext context)
         {
-            if (sessionContext.Connection == null)
-                throw new ArgumentNullException(nameof(sessionContext.Connection));
-            if (sessionContext.LogManager == null)
-                throw new ArgumentNullException(nameof(sessionContext.LogManager));
-            
-            this.connection = sessionContext.ConnectionInternal;
-            this.logger = sessionContext.LogManager.GetLogger(typeof(RpcSessionBase));
-            this.logger.Meta["kind"] = this.GetType().Name;
-            this.logger.Meta["connection_id"] = this.connection.Id;
-            this.logger.Meta["connection_endpoint"] = new RefLogLabel<IRpcConnection>(this.connection, s => s.RemoteEndpoint);
-            this.logger.Meta["tag"] = new RefLogLabel<RpcSessionBase>(this, s => s.Tag);
-            this.logger.Meta["latency"] = new RefLogLabel<RpcSessionBase>(this, s =>
-            {
-                var lat = s.connection.Statistics.Latency;
-                if (lat.HasValue)
-                    return lat.Value;
-                else
-                    return "";
-            });
-            
-            this.logger.Debug($"{LogsSign} {this} created!");
-        }
-
-        void CheckConnected()
-        {
-            if (!connection.Connected)
-                throw new InvalidOperationException($"{nameof(RpcSession)} is not established");
-        }
-
-        internal void OnMessage(IRpcMessage rpcMessage)
-        {
-            try
-            {
-                if (!connection.Connected)
-                {
-                    logger.Debug($"{LogsSign} got message when connection closed. Ignoring...");
-                    return;
-                }
-
-                byte token = rpcMessage.ReadByte();
-                if (token != MESSAGE_TOKEN)
-                    throw new ArgumentException(
-                        "Wrong message token, perhaps other side uses different list of middlewares (compression, encryption, auth, etc)");
-
-                MessageType messageType = (MessageType)rpcMessage.ReadByte();
-                switch (messageType)
-                {
-                    case MessageType.RpcRequest:
-                        RemotingRequest remotingRequest = new RemotingRequest();
-                        remotingRequest.MergeFrom(rpcMessage);
-                        LogMessageReceived(remotingRequest);
-                        RemotingRequest(remotingRequest);
-                        break;
-                    case MessageType.RpcResponse:
-                        RemotingResponse remotingResponse = new RemotingResponse();
-                        remotingResponse.MergeFrom(rpcMessage);
-                        LogMessageReceived(remotingResponse);
-                        RemotingResponse(remotingResponse);
-                        break;
-                    case MessageType.RpcResponseError:
-                        RemotingResponseError remotingResponseError = new RemotingResponseError();
-                        remotingResponseError.MergeFrom(rpcMessage);
-                        LogMessageReceived(remotingResponseError);
-                        RemotingResponseError(remotingResponseError);
-                        break;
-                    case MessageType.AuthenticateRequest:
-                        AuthenticationRequest authenticationRequest = new AuthenticationRequest();
-                        authenticationRequest.MergeFrom(rpcMessage);
-                        LogMessageReceived(authenticationRequest);
-                        AuthenticationRequest(authenticationRequest);
-                        break;
-                    case MessageType.AuthenticateResponse:
-                        AuthenticationResponse authenticationResponse = new AuthenticationResponse();
-                        authenticationResponse.MergeFrom(rpcMessage);
-                        LogMessageReceived(authenticationResponse);
-                        AuthenticationResponse(authenticationResponse);
-                        break;
-                    default:
-                        throw new ArgumentException($"Wrong message type: {messageType}, perhaps other side uses different list of middlewares (compression, encryption, auth, etc)");
-                }
-            }
-            catch (Exception outerException)
-            {
-                logger.Error($"{LogsSign} got an unhandled exception on {nameof(RpcSessionBase)}.{nameof(OnMessage)}(): {outerException}");
-                connection.Close();
-            }
+            _context = context;
+            _logger = context.LogManager.GetLogger(typeof(RpcSessionBase));
         }
         
-        void LogMessageReceived(INeonMessage message)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        IMessage CheckNull(IMessage arg)
         {
-            this.logger.Trace($"{LogsSign} received {message}");
+            if (arg == null)
+                throw new ArgumentNullException(nameof(arg));
+            return arg;
         }
         
-        private protected virtual void RemotingRequest(RemotingRequest remotingRequest)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        string CheckNull(string method)
         {
-            throw new NotSupportedException($"Got unexpected {nameof(RemotingRequest)}");
+            if (string.IsNullOrEmpty(method))
+                throw new ArgumentNullException(nameof(method));
+            return method;
+        }
+
+        internal void CheckClosedInternal()
+        {
+            if (_closed)
+                throw new RpcException("Remote session is closed", RpcResponseStatusCode.InvalidOperation);
         }
         
-        private protected virtual void RemotingResponse(RemotingResponse remotingResponse)
+        void CheckClosed()
         {
-            throw new NotSupportedException($"Got unexpected {nameof(RemotingResponse)}");
+            if (_closed)
+                throw new RpcException("Session is closed", RpcResponseStatusCode.InvalidOperation);
+        }
+
+        public async Task CloseGracefully(CancellationToken cancellationToken)
+        {
+            if (_closed)
+                return;
+            _closed = true;
+            await Task.Factory.StartNew(() => OnClose(CancellationToken.None),
+                CancellationToken.None, TaskCreationOptions.None,
+                _context.TaskScheduler ?? TaskScheduler.Default).Unwrap();
+            _context.Connection.Close();
+        }
+
+        protected internal virtual Task OnInit(CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        protected internal virtual Task OnClose(CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
+
+        protected internal virtual Task<IMessage> LocalExecutionInterceptor(Task<IMessage> task, string method, IMessage arg, CancellationToken cancellationToken)
+        {
+            return task;
         }
         
-        private protected virtual void RemotingResponseError(RemotingResponseError remotingResponseError)
+        protected virtual Task<R> RemoteExecutionInterceptor<R>(Task<R> task, string method, IMessage arg, ExecutionOptions options) where R : IMessage<R>, new()
         {
-            throw new NotSupportedException($"Got unexpected {nameof(RemotingResponseError)}");
-        }
-
-        private protected virtual void AuthenticationRequest(AuthenticationRequest authenticationRequest)
-        {
-            throw new NotSupportedException($"Got unexpected {nameof(AuthenticationRequest)}");
+            return task;
         }
         
-        private protected virtual void AuthenticationResponse(AuthenticationResponse authenticationResponse)
+        async Task<R> RemoteExecutionInterceptorInternal<R>(Task<R> task, string method, IMessage arg, ExecutionOptions options) where R : IMessage<R>, new() 
         {
-            throw new NotSupportedException($"Got unexpected {nameof(AuthenticationResponse)}");
+            CheckClosed();
+            return await RemoteExecutionInterceptor(task, method, arg, options);
         }
 
-        public override string ToString()
+        /// <summary>
+        /// Executes remoting method identified by string name with no result awaiting
+        /// </summary>
+        /// <param name="method">Method identity</param>
+        /// <returns>A task that represents remote method completion</returns>
+        public virtual async Task ExecuteAsync(string method) =>
+            await RemoteExecutionInterceptorInternal(
+                _context.Controller.ExecuteUserMethodInternalAsync<Empty>(CheckNull(method), null, ExecutionOptions.Default),
+                CheckNull(method), null, ExecutionOptions.Default).ConfigureAwait(false);
+
+        /// <summary>
+        /// Executes remoting method identified by string name with no result awaiting
+        /// </summary>
+        /// <param name="method">Method identity</param>
+        /// <param name="options">Execution options</param>
+        /// <returns>A task that represents remote method completion</returns>
+        public virtual async Task ExecuteAsync(string method, ExecutionOptions options) =>
+            await RemoteExecutionInterceptorInternal(
+                _context.Controller.ExecuteUserMethodInternalAsync<Empty>(CheckNull(method), null, options), CheckNull(method), null,
+                ExecutionOptions.Default).ConfigureAwait(false);
+
+
+        /// <summary>
+        /// Executes remoting method identified by string name with argument passed and no result awaiting
+        /// </summary>
+        /// <param name="method">Method identity</param>
+        /// <param name="arg">Method argument</param>
+        /// <returns>A task that represents remote method completion</returns>
+        public virtual async Task ExecuteAsync<A>(string method, A arg) where A : IMessage =>
+            await RemoteExecutionInterceptorInternal(
+                _context.Controller.ExecuteUserMethodInternalAsync<Empty>(CheckNull(method), CheckNull(arg),
+                    ExecutionOptions.Default), CheckNull(method), CheckNull(arg), ExecutionOptions.Default).ConfigureAwait(false);
+
+        /// <summary>
+        /// Executes remoting method identified by string name with argument passed and no result awaiting
+        /// </summary>
+        /// <param name="method">Method identity</param>
+        /// <param name="arg">Method argument</param>
+        /// <param name="options">Execution options</param>
+        /// <returns>A task that represents remote method completion</returns>
+        public virtual async Task ExecuteAsync<A>(string method, A arg, ExecutionOptions options) where A : IMessage =>
+            await RemoteExecutionInterceptorInternal(
+                _context.Controller.ExecuteUserMethodInternalAsync<Empty>(CheckNull(method), CheckNull(arg), options), CheckNull(method),
+                CheckNull(arg), ExecutionOptions.Default).ConfigureAwait(false);
+
+
+        /// <summary>
+        /// Executes remoting method identified by string name with result awaiting
+        /// </summary>
+        /// <param name="method">Method identity</param>
+        /// <returns>A task that represents remote method completion</returns>
+        public virtual async Task<R> ExecuteAsync<R>(string method) where R : IMessage<R>, new() =>
+            await RemoteExecutionInterceptorInternal(
+                _context.Controller.ExecuteUserMethodInternalAsync<R>(CheckNull(method), null, ExecutionOptions.Default), CheckNull(method),
+                null, ExecutionOptions.Default).ConfigureAwait(false);
+
+        /// <summary>
+        /// Executes remoting method identified by string name with result awaiting
+        /// </summary>
+        /// <param name="method">Method identity</param>
+        /// <param name="options">Execution options</param>
+        /// <returns>A task that represents remote method completion</returns>
+        public virtual async Task<R> ExecuteAsync<R>(string method, ExecutionOptions options)
+            where R : IMessage<R>, new() =>
+            await RemoteExecutionInterceptorInternal(
+                _context.Controller.ExecuteUserMethodInternalAsync<R>(CheckNull(method), null, options), CheckNull(method), null,
+                ExecutionOptions.Default).ConfigureAwait(false);
+
+        /// <summary>
+        /// Executes remoting method identified by string name with argument passed and result awaiting
+        /// </summary>
+        /// <param name="method">Method identity</param>
+        /// <param name="arg">Method argument</param>
+        /// <returns>A task that represents remote method completion</returns>
+        public virtual async Task<R> ExecuteAsync<R, A>(string method, A arg)
+            where R : IMessage<R>, new() where A : IMessage => await RemoteExecutionInterceptorInternal(
+            _context.Controller.ExecuteUserMethodInternalAsync<R>(CheckNull(method), CheckNull(arg), ExecutionOptions.Default),
+            CheckNull(method), CheckNull(arg), ExecutionOptions.Default).ConfigureAwait(false);
+
+        /// <summary>
+        /// Executes remoting method identified by string name with argument passed and result awaiting
+        /// </summary>
+        /// <param name="method">Method identity</param>
+        /// <param name="arg">Method argument</param>
+        /// <param name="options">Execution options</param>
+        /// <returns>A task that represents remote method completion</returns>
+        public virtual async Task<R> ExecuteAsync<R, A>(string method, A arg, ExecutionOptions options)
+            where R : IMessage<R>, new() where A : IMessage =>
+            await RemoteExecutionInterceptorInternal(
+                _context.Controller.ExecuteUserMethodInternalAsync<R>(CheckNull(method), CheckNull(arg), options), CheckNull(method), CheckNull(arg),
+                ExecutionOptions.Default).ConfigureAwait(false);
+
+
+        /// <summary>
+        /// Executes remoting method identified by string name with no completion waiting
+        /// </summary>
+        /// <param name="method">Method identity</param>
+        /// <returns>A task that represents operation of RPC request sending</returns>
+        public virtual async Task Send(string method)
         {
-            return $"{this.GetType().Name}[connection_id={connection.Id},endpoint={connection.RemoteEndpoint}]";
+            CheckClosed();
+            await _context.Controller.SendUserMethodInternalAsync(CheckNull(method), null, SendingOptions.Default).ConfigureAwait(false);
         }
 
-        private protected string LogsSign => $"#{connection.Id} ({this.GetType().Name})";
-
-        private protected Task SendNeonMessage(INeonMessage message)
+        /// <summary>
+        /// Executes remoting method identified by string name with no completion waiting
+        /// </summary>
+        /// <param name="method">Method identity</param>
+        /// <param name="options">Sending options</param>
+        /// <returns>A task that represents operation of RPC request sending</returns>
+        public virtual async Task Send(string method, SendingOptions options)
         {
-            return SendNeonMessage(message, DeliveryType.ReliableOrdered, UdpConnection.DEFAULT_CHANNEL);
+            CheckClosed();
+            await _context.Controller.SendUserMethodInternalAsync(CheckNull(method), null, options).ConfigureAwait(false);
         }
 
-        private protected async Task SendNeonMessage(INeonMessage message, DeliveryType deliveryType, int channel)
+        /// <summary>
+        /// Executes remoting method identified by string name with argument, but no completion waiting
+        /// </summary>
+        /// <param name="method">Method identity</param>
+        /// <param name="arg">Method argument</param>
+        /// <returns>A task that represents operation of RPC request sending</returns>
+        public virtual async Task Send<T>(string method, T arg) where T : IMessage
         {
-            logger.Trace($"{LogsSign} sending {message}");
-            using (var rpcMessage = connection.CreateRpcMessage())
-            {
-                message.WriteTo(rpcMessage);
-                await connection.SendMessage(rpcMessage, deliveryType, channel).ConfigureAwait(false);
-            }
+            CheckClosed();
+            await _context.Controller.SendUserMethodInternalAsync(CheckNull(method), CheckNull(arg), SendingOptions.Default).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes remoting method identified by string name with argument, but no completion waiting
+        /// </summary>
+        /// <param name="method">Method identity</param>
+        /// <param name="arg">Method argument</param>
+        /// <param name="options">Sending options</param>
+        /// <returns>A task that represents operation of RPC request sending</returns>
+        public virtual async Task Send<T>(string method, T arg, SendingOptions options) where T : IMessage
+        {
+            CheckClosed();
+            await _context.Controller.SendUserMethodInternalAsync(CheckNull(method), CheckNull(arg), options).ConfigureAwait(false);
         }
     }
 }

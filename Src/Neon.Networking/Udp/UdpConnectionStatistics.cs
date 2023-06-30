@@ -9,73 +9,68 @@ namespace Neon.Networking.Udp
         internal const int UNSTABLE_CONNECTION_TIMEOUT = 500;
 
         public bool UnstableConnection { get; private set; }
-        public int? Latency => latency;
-        public int? AvgLatency => avgLatency;
-        public long PacketsOutTotal => packetsOutTotal;
-        public long PacketsInTotal => packetsInTotal;
-        public long BytesOutTotal => bytesOutTotal;
-        public long BytesInTotal => bytesInTotal;
+        long _bytesInSec;
+        long _bytesInSec_;
+        long _bytesInTotal;
+        long _bytesOutSec;
+        long _bytesOutSec_;
+        long _bytesOutTotal;
 
-        public long PacketsOutSec => packetsOutSec;
-        public long PacketsInSec => packetsInSec;
-        public long BytesOutSec => bytesOutSec;
-        public long BytesInSec => bytesInSec;
+        DateTime _lastUpdate;
+        long _packetsInSec;
+        long _packetsInSec_;
+        long _packetsInTotal;
 
-        long packetsOutTotal;
-        long packetsInTotal;
-        long bytesOutTotal;
-        long bytesInTotal;
+        long _packetsOutSec;
 
-        long packetsOutSec;
-        long packetsInSec;
-        long bytesOutSec;
-        long bytesInSec;
+        long _packetsOutSec_;
 
-        long packetsOutSec_;
-        long packetsInSec_;
-        long bytesOutSec_;
-        long bytesInSec_;
+        long _packetsOutTotal;
+        public int? Latency { get; private set; }
 
-        DateTime lastUpdate;
-        int? latency;
-        int? avgLatency;
+        public int? AvgLatency { get; private set; }
 
-        public UdpConnectionStatistics()
-        {
-            
-        }
+        public long PacketsOutTotal => _packetsOutTotal;
+        public long PacketsInTotal => _packetsInTotal;
+        public long BytesOutTotal => _bytesOutTotal;
+        public long BytesInTotal => _bytesInTotal;
+
+        public long PacketsOutSec => _packetsOutSec;
+        public long PacketsInSec => _packetsInSec;
+        public long BytesOutSec => _bytesOutSec;
+        public long BytesInSec => _bytesInSec;
 
         internal void Reset()
         {
             UnstableConnection = false;
-            Interlocked.Exchange(ref packetsInTotal, 0);
-            Interlocked.Exchange(ref packetsOutTotal, 0);
-            Interlocked.Exchange(ref bytesInTotal, 0);
-            Interlocked.Exchange(ref bytesOutTotal, 0);
-            Interlocked.Exchange(ref packetsOutSec, 0);
-            Interlocked.Exchange(ref packetsInSec, 0);
-            Interlocked.Exchange(ref bytesOutSec, 0);
-            Interlocked.Exchange(ref bytesInSec, 0);
-            Interlocked.Exchange(ref packetsOutSec_, 0);
-            Interlocked.Exchange(ref packetsInSec_, 0);
-            Interlocked.Exchange(ref bytesOutSec_, 0);
-            Interlocked.Exchange(ref bytesInSec_, 0);
+            Interlocked.Exchange(ref _packetsInTotal, 0);
+            Interlocked.Exchange(ref _packetsOutTotal, 0);
+            Interlocked.Exchange(ref _bytesInTotal, 0);
+            Interlocked.Exchange(ref _bytesOutTotal, 0);
+            Interlocked.Exchange(ref _packetsOutSec, 0);
+            Interlocked.Exchange(ref _packetsInSec, 0);
+            Interlocked.Exchange(ref _bytesOutSec, 0);
+            Interlocked.Exchange(ref _bytesInSec, 0);
+            Interlocked.Exchange(ref _packetsOutSec_, 0);
+            Interlocked.Exchange(ref _packetsInSec_, 0);
+            Interlocked.Exchange(ref _bytesOutSec_, 0);
+            Interlocked.Exchange(ref _bytesInSec_, 0);
         }
 
         internal void PollEvents()
         {
-            if ((DateTime.UtcNow - lastUpdate).TotalSeconds < 1)
+            if ((DateTime.UtcNow - _lastUpdate).TotalSeconds < 1)
                 return;
 
-            lastUpdate = DateTime.UtcNow;
-            Interlocked.Exchange(ref packetsOutSec, packetsOutSec_);
-            Interlocked.Exchange(ref packetsInSec, packetsInSec_);
-            Interlocked.Exchange(ref bytesOutSec, bytesOutSec_);
-            Interlocked.Exchange(ref bytesInSec, bytesInSec_);
-            Interlocked.Exchange(ref packetsOutSec_, 0);
-            Interlocked.Exchange(ref packetsInSec_, 0);
-            Interlocked.Exchange(ref bytesOutSec_, 0);
-            Interlocked.Exchange(ref bytesInSec_, 0);
+            _lastUpdate = DateTime.UtcNow;
+            Interlocked.Exchange(ref _packetsOutSec, _packetsOutSec_);
+            Interlocked.Exchange(ref _packetsInSec, _packetsInSec_);
+            Interlocked.Exchange(ref _bytesOutSec, _bytesOutSec_);
+            Interlocked.Exchange(ref _bytesInSec, _bytesInSec_);
+            Interlocked.Exchange(ref _packetsOutSec_, 0);
+            Interlocked.Exchange(ref _packetsInSec_, 0);
+            Interlocked.Exchange(ref _bytesOutSec_, 0);
+            Interlocked.Exchange(ref _bytesInSec_, 0);
         }
 
         //internal void UpdateLatency(float latency, bool loss)
@@ -86,12 +81,12 @@ namespace Neon.Networking.Udp
 
         internal void UpdateLatency(int newLatency, int newAvgLatency)
         {
-            this.latency = newLatency;
-            this.avgLatency = newAvgLatency;
+            Latency = newLatency;
+            AvgLatency = newAvgLatency;
 
-            if (newLatency < UdpConnectionStatistics.UNSTABLE_CONNECTION_TIMEOUT)
+            if (newLatency < UNSTABLE_CONNECTION_TIMEOUT)
                 UnstableConnection = false;
-            if (newLatency > UdpConnectionStatistics.UNSTABLE_CONNECTION_TIMEOUT)
+            if (newLatency > UNSTABLE_CONNECTION_TIMEOUT)
                 SetUnstable();
         }
 
@@ -102,37 +97,38 @@ namespace Neon.Networking.Udp
 
         internal void PacketOut()
         {
-            Interlocked.Increment(ref packetsOutTotal);
-            Interlocked.Increment(ref packetsOutSec_);
+            Interlocked.Increment(ref _packetsOutTotal);
+            Interlocked.Increment(ref _packetsOutSec_);
         }
 
         internal void PacketIn()
         {
-            Interlocked.Increment(ref packetsInTotal);
-            Interlocked.Increment(ref packetsInSec_);
+            Interlocked.Increment(ref _packetsInTotal);
+            Interlocked.Increment(ref _packetsInSec_);
         }
 
         internal void BytesOut(int bytes)
         {
-            Interlocked.Add(ref bytesOutTotal, bytes);
-            Interlocked.Add(ref bytesOutSec_, bytes);
+            Interlocked.Add(ref _bytesOutTotal, bytes);
+            Interlocked.Add(ref _bytesOutSec_, bytes);
         }
 
         internal void BytesIn(int bytes)
         {
-            Interlocked.Add(ref bytesInTotal, bytes);
-            Interlocked.Add(ref bytesInSec_, bytes);
+            Interlocked.Add(ref _bytesInTotal, bytes);
+            Interlocked.Add(ref _bytesInSec_, bytes);
         }
 
         public override string ToString()
         {
-            return this.ToString(true, true);
+            return ToString(true, true);
         }
 
         public string ToString(bool includeTotal, bool includeCurrent)
         {
-            StringBuilder sb = new StringBuilder();
-            sb.AppendFormat("Latency: {0}{1}\n", Latency.HasValue?Latency.Value.ToString():"unknown", UnstableConnection ? " [LOSS]" : "");
+            var sb = new StringBuilder();
+            sb.AppendFormat("Latency: {0}{1}\n", Latency.HasValue ? Latency.Value.ToString() : "unknown",
+                UnstableConnection ? " [LOSS]" : "");
 
             if (includeCurrent)
             {
@@ -155,13 +151,13 @@ namespace Neon.Networking.Udp
 
         static string BytesToString(long byteCount)
         {
-            string[] suf = { " b", " kB", " MB", " GB", " TB", " PB", " EB" };
+            string[] suf = {" b", " kB", " MB", " GB", " TB", " PB", " EB"};
             if (byteCount == 0)
                 return "0" + suf[0];
             long bytes = Math.Abs(byteCount);
-            int place = Convert.ToInt32(Math.Floor(Math.Log(bytes, 1024)));
+            var place = Convert.ToInt32(Math.Floor(Math.Log(bytes, 1024)));
             double num = Math.Round(bytes / Math.Pow(1024, place), 1);
-            return (Math.Sign(byteCount) * num).ToString() + suf[place];
+            return Math.Sign(byteCount) * num + suf[place];
         }
     }
 }

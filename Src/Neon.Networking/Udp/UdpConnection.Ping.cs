@@ -5,11 +5,11 @@ using Neon.Networking.Udp.Messages;
 
 namespace Neon.Networking.Udp
 {
-	public partial class UdpConnection
-	{
-        int lastPingSequence = 0;
-        DateTime? pingSent;
-        DateTime nextPingSend;
+    public partial class UdpConnection
+    {
+        int _lastPingSequence;
+        DateTime _nextPingSend;
+        DateTime? _pingSent;
 
         void OnPing(Datagram datagram)
         {
@@ -28,15 +28,15 @@ namespace Neon.Networking.Udp
 
         void TrySendPing()
         {
-            if (DateTime.UtcNow < nextPingSend)
+            if (DateTime.UtcNow < _nextPingSend)
                 return;
-            ushort sendPingSequence = (ushort)(lastPingSequence % ChannelBase.MAX_SEQUENCE);
-            if (!pingSent.HasValue)
-                pingSent = DateTime.UtcNow;
-            var pingDatagram = peer.CreateDatagramEmpty(MessageType.Ping, serviceUnreliableChannel.Descriptor);
+            var sendPingSequence = (ushort) (_lastPingSequence % ChannelBase.MAX_SEQUENCE);
+            if (!_pingSent.HasValue)
+                _pingSent = DateTime.UtcNow;
+            Datagram pingDatagram = Parent.CreateDatagramEmpty(MessageType.Ping, _serviceUnreliableChannel.Descriptor);
             pingDatagram.Sequence = sendPingSequence;
-            serviceUnreliableChannel.SendDatagramAsync(pingDatagram);
-            nextPingSend = DateTime.UtcNow.AddMilliseconds(Parent.Configuration.KeepAliveInterval);
+            _serviceUnreliableChannel.SendDatagramAsync(pingDatagram, CancellationToken);
+            _nextPingSend = DateTime.UtcNow.AddMilliseconds(Parent.Configuration.KeepAliveInterval);
         }
 
         void OnPong(Datagram datagram)
@@ -46,18 +46,19 @@ namespace Neon.Networking.Udp
                 if (!CheckStatusForDatagram(datagram, UdpConnectionStatus.Connected))
                     return;
 
-                int relate = ChannelBase.RelativeSequenceNumber(datagram.Sequence, lastPingSequence);
+                int relate = ChannelBase.RelativeSequenceNumber(datagram.Sequence, _lastPingSequence);
                 if (relate != 0)
                 {
-                    logger.Trace($"#{Id} got wrong pong, relate: {relate}");
+                    _logger.Trace($"#{Id} got wrong pong, relate: {relate}");
                     datagram.Dispose();
                     return;
                 }
-                if (pingSent.HasValue)
-                    UpdateLatency((int) (DateTime.UtcNow - pingSent.Value).TotalMilliseconds);
 
-                pingSent = null;
-                Interlocked.Increment(ref lastPingSequence);
+                if (_pingSent.HasValue)
+                    UpdateLatency((int) (DateTime.UtcNow - _pingSent.Value).TotalMilliseconds);
+
+                _pingSent = null;
+                Interlocked.Increment(ref _lastPingSequence);
             }
             finally
             {
@@ -67,23 +68,21 @@ namespace Neon.Networking.Udp
 
         void UpdateLatency(int latency)
         {
-            this.latency = latency;
-            if (avgLatency.HasValue)
-                avgLatency = (int)((avgLatency * 0.7f) + (latency * 0.3f));
+            _latency = latency;
+            if (_avgLatency.HasValue)
+                _avgLatency = (int) (_avgLatency * 0.7f + latency * 0.3f);
             else
-                avgLatency = latency;
+                _avgLatency = latency;
 
-            this.Statistics.UpdateLatency(latency, avgLatency.Value);
-            logger.Trace($"#{Id} updated latency {latency}, avg {avgLatency}");
+            Statistics.UpdateLatency(latency, _avgLatency.Value);
+            _logger.Trace($"#{Id} updated latency {latency}, avg {_avgLatency}");
         }
 
         void SendPong(Datagram ping)
         {
-            var pongDatagram = peer.CreateDatagramEmpty(MessageType.Pong, serviceUnreliableChannel.Descriptor);
+            Datagram pongDatagram = Parent.CreateDatagramEmpty(MessageType.Pong, _serviceUnreliableChannel.Descriptor);
             pongDatagram.Sequence = ping.Sequence;
-            serviceUnreliableChannel.SendDatagramAsync(pongDatagram);
+            _serviceUnreliableChannel.SendDatagramAsync(pongDatagram, CancellationToken);
         }
-
-
-	}
+    }
 }

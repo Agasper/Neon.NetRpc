@@ -7,7 +7,7 @@ namespace Neon.Networking
     public static class ContextSynchronizationHelper
     {
         /// <summary>
-        /// Executes a method in the designated context and log any exception occured
+        ///     Executes a method in the designated context and log any exception occured
         /// </summary>
         /// <param name="context">Designated synchronization context</param>
         /// <param name="mode">Synchronization mode</param>
@@ -15,7 +15,8 @@ namespace Neon.Networking
         /// <param name="nameForLogs">A name for logs of place of exception</param>
         /// <param name="callback">The method</param>
         /// <param name="state">Method state</param>
-        public static void SynchronizeSafe(SynchronizationContext context, ContextSynchronizationMode mode, ILogger logger, string nameForLogs, SendOrPostCallback callback, object state)
+        public static void SynchronizeSafe(SynchronizationContext context, ContextSynchronizationMode mode,
+            ILogger logger, string nameForLogs, SendOrPostCallback callback, object state)
         {
             try
             {
@@ -31,7 +32,7 @@ namespace Neon.Networking
         }
 
         /// <summary>
-        /// Executes a method in the designated context
+        ///     Executes a method in the designated context
         /// </summary>
         /// <param name="context">Designated synchronization context</param>
         /// <param name="mode">Synchronization mode</param>

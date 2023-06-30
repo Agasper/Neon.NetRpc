@@ -1,7 +1,4 @@
-﻿using System;
-using System.Text;
-
-namespace Neon.Networking.IO
+﻿namespace Neon.Networking.IO
 {
 #if NETSTANDARD2_1 || NETCOREAPP3_1
     //https://github.com/microsoft/referencesource/blob/master/mscorlib/system/io/binaryreader.cs

@@ -5,17 +5,17 @@ namespace Neon.Networking.Tcp.Events
 {
     public class MessageEventArgs : IDisposable
     {
-        public TcpConnection Connection { get;  }
-        public RawMessage Message { get; }
+        public TcpConnection Connection { get; }
+        public IRawMessage Message { get; }
 
-        internal MessageEventArgs(TcpConnection connection, RawMessage message)
+        internal MessageEventArgs(TcpConnection connection, IRawMessage message)
         {
             if (connection == null)
                 throw new ArgumentNullException(nameof(connection));
             if (message == null)
                 throw new ArgumentNullException(nameof(message));
-            this.Connection = connection;
-            this.Message = message;
+            Connection = connection;
+            Message = message;
         }
 
         public void Dispose()

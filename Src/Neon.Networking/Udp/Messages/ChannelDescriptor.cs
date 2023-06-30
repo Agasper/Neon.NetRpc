@@ -1,31 +1,30 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace Neon.Networking.Udp.Messages
 {
     struct ChannelDescriptor : IEquatable<ChannelDescriptor>
     {
         public const int DEFAULT_CHANNEL = 0;
-        
+
         public int Channel
         {
-            get => channel;
+            get => _channel;
             set
             {
                 CheckChannelValue(value);
-                channel = value;
+                _channel = value;
             }
         }
-        public DeliveryType DeliveryType => deliveryType;
 
-        int channel;
-        DeliveryType deliveryType;
+        public DeliveryType DeliveryType { get; }
+
+        int _channel;
 
         public ChannelDescriptor(int channel, DeliveryType deliveryType)
         {
             CheckChannelValue(channel);
-            this.channel = channel;
-            this.deliveryType = deliveryType;
+            _channel = channel;
+            DeliveryType = deliveryType;
         }
 
         public static void CheckChannelValue(int channel)
@@ -39,7 +38,7 @@ namespace Neon.Networking.Udp.Messages
 
         public bool Equals(ChannelDescriptor other)
         {
-            return channel == other.channel && deliveryType == other.deliveryType;
+            return _channel == other._channel && DeliveryType == other.DeliveryType;
         }
 
         public override bool Equals(object obj)
@@ -51,7 +50,7 @@ namespace Neon.Networking.Udp.Messages
         {
             unchecked
             {
-                return (channel * 397) ^ (int) deliveryType;
+                return (_channel * 397) ^ (int) DeliveryType;
             }
         }
 
@@ -59,7 +58,7 @@ namespace Neon.Networking.Udp.Messages
         {
             return a.Equals(b);
         }
-        
+
         public static bool operator !=(ChannelDescriptor a, ChannelDescriptor b)
         {
             return !(a == b);

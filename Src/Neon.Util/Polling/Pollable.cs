@@ -55,11 +55,11 @@ namespace Neon.Util.Polling
         {
             while (pollingIsRun)
             {
-                this.PollEventsInternal();
+                PollEventsInternal();
                 Thread.Sleep(pollingThreadSleep);
             }
 
-            this.PollEventsInternal();
+            PollEventsInternal();
         }
 
         private protected void PollEvents()

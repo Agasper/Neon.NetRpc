@@ -5,7 +5,7 @@ namespace Neon.Logging.Formatters
     public interface ILoggingFormatter
     {
         /// <summary>
-        /// Converts any incoming object with meta to the log string
+        ///     Converts any incoming object with meta to the log string
         /// </summary>
         /// <param name="severity">Final row severity</param>
         /// <param name="message">Object to format</param>

@@ -5,6 +5,6 @@ namespace Neon.Networking
         PreferIpv4,
         PreferIpv6,
         OnlyIpv4,
-        OnlyIpv6,
+        OnlyIpv6
     }
 }

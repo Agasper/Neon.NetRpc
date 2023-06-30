@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package neon.rpc;
+
+option csharp_namespace = "Neon.Rpc.Messages.Proto";
+
+import "rpc_message_header_data.proto";
+
+message RpcMessageHeaderProto {
+    int32 message_id = 1;
+    bool has_payload = 2;
+    RpcMessageHeaderDataProto data = 3;
+}

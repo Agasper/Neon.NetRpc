@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package neon.rpc;
+
+option csharp_namespace = "Neon.Rpc.Messages.Proto";
+
+message RpcHandshakeRequestProto {
+    int32 protocol_version = 1;
+    EncryptionRequestProto encryption_request = 2;
+}
+
+message RpcHandshakeResponseProto {
+    EncryptionResponseProto encryption_response = 1;
+}
+
+message EncryptionRequestProto {
+    string encryption_algorithm = 1;
+    string key_exchange_algorithm = 2;
+    bytes client_key_data = 3;
+}
+
+message EncryptionResponseProto {
+    bytes server_key_data = 1;
+}

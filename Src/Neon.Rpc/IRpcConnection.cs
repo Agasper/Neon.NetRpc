@@ -4,17 +4,14 @@ using System.Threading.Tasks;
 using Neon.Networking;
 using Neon.Networking.Messages;
 using Neon.Networking.Udp.Messages;
-using Neon.Rpc.Serialization;
 
 namespace Neon.Rpc
 {
     interface IRpcConnectionInternal : IRpcConnection
     {
-        RpcMessage CreateRpcMessage();
-        RpcMessage CreateRpcMessage(int length);
-        
-        Task SendMessage(RpcMessage message, DeliveryType deliveryType, int channel);
-        void Close();
+        RawMessage CreateMessage();
+        RawMessage CreateMessage(int length);
+        Task SendMessage(IRawMessage message, DeliveryType deliveryType, int channel, CancellationToken cancellationToken);
     }
     
     /// <summary>
@@ -23,13 +20,17 @@ namespace Neon.Rpc
     public interface IRpcConnection
     {
         /// <summary>
+        /// User session
+        /// </summary>
+        RpcSessionBase UserSession { get; }
+        /// <summary>
+        /// Cancellation token
+        /// </summary>
+        CancellationToken CancellationToken { get; }
+        /// <summary>
         /// Unique connection identifier
         /// </summary>
         long Id { get; }
-        /// <summary>
-        /// User-defined tag
-        /// </summary>
-        object Tag { get; }
         /// <summary>
         /// Connection statistics
         /// </summary>
@@ -46,5 +47,10 @@ namespace Neon.Rpc
         /// Connection endpoint
         /// </summary>
         EndPoint RemoteEndpoint { get; }
+
+        /// <summary>
+        /// Closes the underlying transport connection
+        /// </summary>
+        void Close();
     }
 }

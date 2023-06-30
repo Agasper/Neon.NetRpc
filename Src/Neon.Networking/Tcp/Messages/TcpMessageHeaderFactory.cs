@@ -1,20 +1,14 @@
 ﻿using System;
-using Neon.Networking.Messages;
 
 namespace Neon.Networking.Tcp.Messages
 {
     class TcpMessageHeaderFactory
     {
-        int sizeBitsPosition;
-        bool flagsRead;
-        bool sizeRead;
+        bool _flagsRead;
+        int _sizeBitsPosition;
+        bool _sizeRead;
 
         TcpMessageHeader header;
-
-        public TcpMessageHeaderFactory()
-        {
-            
-        }
 
         public bool Write(ArraySegment<byte> newData, out int bytesRead, out TcpMessageHeader header)
         {
@@ -22,14 +16,13 @@ namespace Neon.Networking.Tcp.Messages
             header = default;
             if (newData.Count == 0)
                 return false;
-            if (flagsRead && sizeRead)
+            if (_flagsRead && _sizeRead)
             {
                 header = this.header;
                 return true;
             }
 
-            for (int i = 0; i < newData.Count; i++)
-            {
+            for (var i = 0; i < newData.Count; i++)
                 try
                 {
                     if (WriteByte(newData.Array[newData.Offset + i]))
@@ -42,7 +35,6 @@ namespace Neon.Networking.Tcp.Messages
                 {
                     bytesRead = i + 1;
                 }
-            }
 
             return false;
         }
@@ -50,28 +42,28 @@ namespace Neon.Networking.Tcp.Messages
 
         bool WriteByte(byte value)
         {
-            if (!flagsRead)
+            if (!_flagsRead)
             {
-                header.Flags = (TcpMessageFlagsEnum)((value >> 2) & 0b0000_0011);
+                header.Flags = (TcpMessageFlagsEnum) ((value >> 2) & 0b0000_0011);
                 header.MessageType = (TcpMessageTypeEnum) (value & 0b0000_0011);
-                flagsRead = true;
+                _flagsRead = true;
                 return false;
             }
 
             uint byteValue = value;
 
             uint tmp = byteValue & 0x7f;
-            header.MessageSize |= (int)(tmp << sizeBitsPosition);
+            header.MessageSize |= (int) (tmp << _sizeBitsPosition);
 
             if ((byteValue & 0x80) != 0x80)
             {
-                sizeRead = true;
+                _sizeRead = true;
                 return true;
             }
 
-            sizeBitsPosition += 7;
+            _sizeBitsPosition += 7;
 
-            if (sizeBitsPosition > 32) //int bits
+            if (_sizeBitsPosition > 32) //int bits
                 throw new InvalidOperationException("Message header size exceeded 32 bits value");
 
             return false;
@@ -79,36 +71,31 @@ namespace Neon.Networking.Tcp.Messages
 
         public void Reset()
         {
-            sizeBitsPosition = 0;
+            _sizeBitsPosition = 0;
             header = default;
-            flagsRead = false;
-            sizeRead = false;
+            _flagsRead = false;
+            _sizeRead = false;
         }
 
         public static ArraySegment<byte> Build(TcpMessageHeader header)
         {
-            byte[] rawHeader = new byte[5];
-            int headerPos = 1;
-            uint value = (uint)header.MessageSize;
+            var rawHeader = new byte[5];
+            var headerPos = 1;
+            var value = (uint) header.MessageSize;
             do
             {
-                var byteVal = value & 0x7f;
+                uint byteVal = value & 0x7f;
                 value >>= 7;
 
-                if (value != 0)
-                {
-                    byteVal |= 0x80;
-                }
+                if (value != 0) byteVal |= 0x80;
 
-                rawHeader[headerPos] = (byte)byteVal;
+                rawHeader[headerPos] = (byte) byteVal;
                 headerPos++;
-
             } while (value != 0);
 
-            rawHeader[0] = (byte)(((int)header.Flags << 2) | (int)header.MessageType);
+            rawHeader[0] = (byte) (((int) header.Flags << 2) | (int) header.MessageType);
 
             return new ArraySegment<byte>(rawHeader, 0, headerPos);
         }
-
     }
 }

@@ -1,26 +1,25 @@
 using System.Diagnostics;
-using System.Threading.Tasks;
 using Neon.Rpc;
-using Neon.Rpc.Net.Tcp;
 using Neon.Test.Proto;
 
 namespace Neon.Test.Util;
 
 public class BasicTest
 {
-    readonly RpcSession session;
+    readonly RpcSessionBase _userSession;
     
-    public BasicTest(RpcSession session)
+    public BasicTest(RpcSessionBase userSession)
     {
-        this.session = session ?? throw new ArgumentNullException(nameof(session));
+        this._userSession = userSession ?? throw new ArgumentNullException(nameof(userSession));
     }
 
     public async Task Run()
     {
         var testMessage = GenerateMessage();
         var testMessageId = GenerateMessageId();
-        Trace.Assert(testMessage.Equals(await session.ExecuteAsync<TestMessage,TestMessage>("TestReturn", testMessage).ConfigureAwait(false)));
-        Trace.Assert(testMessageId.Equals(await session.ExecuteAsync<TestMessageWithId,TestMessageWithId>(1, testMessageId).ConfigureAwait(false)));
+        Trace.Assert(testMessage.Equals(await _userSession.ExecuteAsync<TestMessage,TestMessage>("TestReturn", testMessage).ConfigureAwait(false)));
+        Trace.Assert(testMessageId.Equals(await _userSession.ExecuteAsync<TestMessageWithId,TestMessageWithId>("NamedMethod", testMessageId).ConfigureAwait(false)));
+        await _userSession.ExecuteAsync("TestGenericTask").ConfigureAwait(false);
     }
     
     TestMessage GenerateMessage()

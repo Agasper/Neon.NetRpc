@@ -5,15 +5,23 @@ namespace Neon.Networking.Tcp
     public class TcpConfigurationClient : TcpConfigurationPeer
     {
         /// <summary>
-        /// Timeout for ConnectAsync method (default: -1/Infinite)
+        ///     Timeout for ConnectAsync method (default: -1/Infinite)
         /// </summary>
-        public int ConnectTimeout { get => connectTimeout; set { CheckLocked(); connectTimeout = value; } }
-        
-        protected int connectTimeout;
-        
+        public int ConnectTimeout
+        {
+            get => _connectTimeout;
+            set
+            {
+                CheckLocked();
+                _connectTimeout = value;
+            }
+        }
+
+        protected int _connectTimeout;
+
         public TcpConfigurationClient()
         {
-            connectTimeout = Timeout.Infinite;
+            _connectTimeout = Timeout.Infinite;
         }
     }
 }

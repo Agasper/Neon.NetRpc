@@ -27,7 +27,7 @@
         public Poller(int pollingThreadSleep, DPollEvents @delegate)
             : base(pollingThreadSleep)
         {
-            this.Delegate = @delegate;
+            Delegate = @delegate;
         }
         
         public new void StartPolling()

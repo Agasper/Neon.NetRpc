@@ -7,27 +7,27 @@ namespace Neon.Networking.Udp
 {
     struct SendDatagramAsyncResult
     {
-        public UdpConnection Connection { get;  }
-        public Datagram Datagram { get;  }
-        public Task<SocketError> Task => tcs.Task;
+        public UdpConnection Connection { get; }
+        public Datagram Datagram { get; }
+        public Task<SocketError> Task => _tcs.Task;
 
-        TaskCompletionSource<SocketError> tcs;
+        readonly TaskCompletionSource<SocketError> _tcs;
 
         public SendDatagramAsyncResult(UdpConnection connection, Datagram datagram)
         {
-            this.Datagram = datagram;
-            this.Connection = connection;
-            this.tcs = new TaskCompletionSource<SocketError>();
+            Datagram = datagram;
+            Connection = connection;
+            _tcs = new TaskCompletionSource<SocketError>();
         }
 
         public void SetComplete(SocketError socketError)
         {
-            tcs?.TrySetResult(socketError);
+            _tcs?.TrySetResult(socketError);
         }
 
         public void SetException(Exception exception)
         {
-            tcs?.TrySetException(exception);
+            _tcs?.TrySetException(exception);
         }
     }
 }

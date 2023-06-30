@@ -1,4 +1,5 @@
 ﻿using System;
+
 namespace Neon.Networking.Tcp.Events
 {
     public class ConnectionClosedEventArgs
@@ -10,8 +11,8 @@ namespace Neon.Networking.Tcp.Events
         {
             if (connection == null)
                 throw new ArgumentNullException(nameof(connection));
-            this.ClosingException = ex;
-            this.Connection = connection;
+            ClosingException = ex;
+            Connection = connection;
         }
     }
 }

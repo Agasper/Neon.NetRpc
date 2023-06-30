@@ -2,16 +2,20 @@ using System;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Neon.Rpc.Net.Events;
 using Neon.Logging;
 using Neon.Networking;
 using Neon.Networking.Udp;
-using Neon.Networking.Udp.Events;
+using Neon.Rpc.Net.Events;
 using Neon.Rpc.Net.Tcp;
+using Neon.Rpc.Net.Tcp.Events;
+using Neon.Rpc.Net.Udp.Events;
+using ConnectionClosedEventArgs = Neon.Networking.Udp.Events.ConnectionClosedEventArgs;
+using ConnectionOpenedEventArgs = Neon.Networking.Udp.Events.ConnectionOpenedEventArgs;
+using Dns = Neon.Networking.Dns;
 
 namespace Neon.Rpc.Net.Udp
 {
-    public class RpcUdpClient : IRpcPeer
+    public class RpcUdpClient
     {
         internal class InnerUdpClient : UdpClient
         {
@@ -47,63 +51,76 @@ namespace Neon.Rpc.Net.Udp
         /// <summary>
         /// Client configuration
         /// </summary>
-        public RpcUdpConfigurationClient Configuration => configuration;
+        public RpcUdpConfigurationClient Configuration => _configuration;
         /// <summary>
-        /// Client session (can be null)
+        /// User session
         /// </summary>
-        public RpcSession Session { get; private set; }
+        public RpcSessionBase Session => (_innerUdpClient?.Connection as RpcUdpConnection)?.UserSession;
         /// <summary>
         /// Client status
         /// </summary>
         public RpcClientStatus Status { get; private set; }
         /// <summary>
-        /// Raised when session is ready and status is SessionReady
-        /// </summary>
-        public event DOnSessionOpened OnSessionOpenedEvent;
-        /// <summary>
-        /// Raised if previously open session closed
-        /// </summary>
-        public event DOnSessionClosed OnSessionClosedEvent;
-        /// <summary>
         /// Raised when client status changed
         /// </summary>
-        public event DOnClientStatusChanged OnStatusChangedEvent;
+        public event DOnRpcUdpClientStatusChanged OnStatusChangedEvent;
         
-        readonly InnerUdpClient innerUdpClient;
-        readonly RpcUdpConfigurationClient configuration;
-        protected readonly ILogger logger;
+        readonly InnerUdpClient _innerUdpClient;
+        readonly object _statusMutex = new object();
+        readonly RpcUdpConfigurationClient _configuration;
+        protected readonly ILogger _logger;
 
         public RpcUdpClient(RpcUdpConfigurationClient configuration)
         {
             if (configuration == null)
                 throw new ArgumentNullException(nameof(configuration));
-            if (configuration.Serializer == null)
-                throw new ArgumentNullException(nameof(configuration.Serializer));
+            if (configuration.SessionFactory == null)
+                throw new ArgumentNullException(nameof(configuration.SessionFactory));
             configuration.Lock();
-            this.configuration = configuration;
-            this.innerUdpClient = new InnerUdpClient(this, configuration);
-            this.logger = configuration.LogManager.GetLogger(typeof(RpcUdpClient));
-            this.logger.Meta["kind"] = this.GetType().Name;
+            this._configuration = configuration;
+            _innerUdpClient = new InnerUdpClient(this, configuration);
+            _logger = configuration.LogManager.GetLogger(typeof(RpcUdpClient));
         }
         
         protected void CheckStarted()
         {
-            if (!innerUdpClient.IsStarted)
+            if (!_innerUdpClient.IsStarted)
                 throw new InvalidOperationException("Please call Start() first");
         }
         
-        void ChangeStatus(RpcClientStatus newStatus)
+        bool ChangeStatus(RpcClientStatus newStatus)
         {
-            if (Status == newStatus)
-                return;
-            logger.Info($"Changed status from {Status} to {newStatus}");
-            RpcClientStatusChangedEventArgs args = new RpcClientStatusChangedEventArgs(this, Status, newStatus);
-            Status = newStatus;
-            
-            configuration.SynchronizeSafe(logger, $"{nameof(RpcTcpClient)}.{nameof(OnStatusChanged)}",
-                (state) => OnStatusChanged(state as RpcClientStatusChangedEventArgs), args);
-            configuration.SynchronizeSafe(logger, $"{nameof(RpcTcpClient)}.{nameof(OnStatusChangedEvent)}",
-                (state) => OnStatusChangedEvent?.Invoke(state as RpcClientStatusChangedEventArgs), args);
+            return ChangeStatus(newStatus, s => true, out _);
+        }
+
+        bool ChangeStatus(RpcClientStatus newStatus, out RpcClientStatus oldStatus)
+        {
+            return ChangeStatus(newStatus, s => true, out oldStatus);
+        }
+
+        bool ChangeStatus(RpcClientStatus newStatus, Func<RpcClientStatus, bool> statusCheck,
+            out RpcClientStatus oldStatus)
+        {
+            lock (_statusMutex)
+            {
+                oldStatus = Status;
+                if (oldStatus == newStatus)
+                    return false;
+                if (!statusCheck(oldStatus))
+                    return false;
+                Status = newStatus;
+            }
+
+            _logger.Info($"Status changed from {oldStatus} to {newStatus}");
+
+            RpcUdpClientStatusChangedEventArgs args = new RpcUdpClientStatusChangedEventArgs(this, Status, newStatus);
+
+            _configuration.SynchronizeSafe(_logger, $"{nameof(RpcUdpClient)}.{nameof(OnStatusChanged)}",
+                state => OnStatusChanged(state as RpcUdpClientStatusChangedEventArgs), args);
+            _configuration.SynchronizeSafe(_logger, $"{nameof(RpcUdpClient)}.{nameof(OnStatusChangedEvent)}",
+                state => OnStatusChangedEvent?.Invoke(state as RpcUdpClientStatusChangedEventArgs), args);
+
+            return true;
         }
         
         /// <summary>
@@ -111,7 +128,7 @@ namespace Neon.Rpc.Net.Udp
         /// </summary>
         public void Start()
         {
-            innerUdpClient.Start();
+            _innerUdpClient.Start();
         }
         
         /// <summary>
@@ -119,49 +136,7 @@ namespace Neon.Rpc.Net.Udp
         /// </summary>
         public void Shutdown()
         {
-            innerUdpClient.Shutdown();
-        }
-        
-        /// <summary>
-        /// Starting a new client session without authentication if the connection is established
-        /// </summary>
-        public Task StartSessionNoAuth()
-        {
-            return StartSessionNoAuth(default);
-        }
-
-        /// <summary>
-        /// Starting a new client session without authentication if the connection is established
-        /// </summary>
-        /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete</param>
-        public Task StartSessionNoAuth(CancellationToken cancellationToken)
-        {
-            RpcUdpConnection connection = innerUdpClient.Connection as RpcUdpConnection;
-            if (connection == null)
-                throw new InvalidOperationException($"{nameof(RpcTcpClient)} is not connected");
-            return connection.StartClientSession(false, null, cancellationToken);
-        }
-
-        /// <summary>
-        /// Starting a new client session with authentication if the connection is established
-        /// </summary>
-        /// <param name="authObject">Authentication object passing to the server</param>
-        public Task StartSessionWithAuth(object authObject)
-        {
-            return StartSessionWithAuth(authObject, default);
-        }
-        
-        /// <summary>
-        /// Starting a new client session with authentication if the connection is established
-        /// </summary>
-        /// <param name="authObject">Authentication object passing to the server</param>
-        /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete</param>
-        public Task StartSessionWithAuth(object authObject, CancellationToken cancellationToken)
-        {
-            RpcUdpConnection connection = innerUdpClient.Connection as RpcUdpConnection;
-            if (connection == null)
-                throw new InvalidOperationException($"{nameof(RpcTcpClient)} is not connected");
-            return connection.StartClientSession(true, authObject, cancellationToken);
+            _innerUdpClient.Shutdown();
         }
 
         /// <summary>
@@ -170,75 +145,60 @@ namespace Neon.Rpc.Net.Udp
         /// <param name="host">IP address or domain of the server</param>
         /// <param name="port">Server port</param>
         /// <param name="ipAddressSelectionRules">If destination host resolves to a few ap addresses, which we should take</param>
-        public Task OpenConnectionAsync(string host, int port, IPAddressSelectionRules ipAddressSelectionRules = default)
-        {
-            return OpenConnectionAsync(host, port, ipAddressSelectionRules,default);
-        }
-        
-        /// <summary>
-        /// Starts a new connection to the server
-        /// </summary>
-        /// <param name="host">IP address or domain of the server</param>
-        /// <param name="port">Server port</param>
-        /// <param name="ipAddressSelectionRules">If destination host resolves to a few ap addresses, which we should take</param>
+        /// <param name="authenticationInfo">Authentication parameters</param>
         /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete</param>
-        public async Task OpenConnectionAsync(string host, int port, IPAddressSelectionRules ipAddressSelectionRules, CancellationToken cancellationToken)
+        /// <returns>An established user session</returns>
+        public async Task<RpcSessionBase> StartSessionAsync(string host, int port, IPAddressSelectionRules ipAddressSelectionRules, AuthenticationInfo authenticationInfo, CancellationToken cancellationToken)
         {
+            if (authenticationInfo == null) throw new ArgumentNullException(nameof(authenticationInfo));
             CheckStarted();
-            if (Session != null)
-                throw new InvalidOperationException("Session already started");
-            
-            try
-            {
-                logger.Debug($"Connecting to {host}:{port}");
-                ChangeStatus(RpcClientStatus.Connecting);
-                await innerUdpClient.ConnectAsync(host, port, ipAddressSelectionRules, cancellationToken)
-                    .ConfigureAwait(false);
-                RpcUdpConnection connection = (RpcUdpConnection) innerUdpClient.Connection;
-                logger.Trace($"Waiting for session...");
-                await connection.Start(cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                await this.CloseAsync();
-                logger.Error($"Exception on establishing session: {ex}");
-                throw;
-            }
+            _logger.Debug($"Resolving {host} to ip address...");
+            IPEndPoint endPoint =
+                await Dns.ResolveEndpoint(host, port, ipAddressSelectionRules);
+            _logger.Debug($"Resolved {host} to {endPoint.Address}");
+            return await StartSessionAsync(endPoint, authenticationInfo, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Starts a new connection to the server
         /// </summary>
         /// <param name="endpoint">IP endpoint of a desired host</param>
-        public Task OpenConnectionAsync(IPEndPoint endpoint)
-        {
-            return OpenConnectionAsync(endpoint, default);
-        }
-
-        /// <summary>
-        /// Starts a new connection to the server
-        /// </summary>
-        /// <param name="endpoint">IP endpoint of a desired host</param>
+        /// <param name="authenticationInfo">Authentication parameters</param>
         /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete</param>
-        public async Task OpenConnectionAsync(IPEndPoint endpoint, CancellationToken cancellationToken)
+        /// <returns>An established user session</returns>
+        public async Task<RpcSessionBase> StartSessionAsync(IPEndPoint endpoint, AuthenticationInfo authenticationInfo, CancellationToken cancellationToken)
         {
             CheckStarted();
-            if (Session != null)
-                throw new InvalidOperationException("Session already started");
+            if (!ChangeStatus(RpcClientStatus.Connecting, s => s == RpcClientStatus.Disconnected,
+                    out RpcClientStatus oldStatus))
+                throw new InvalidOperationException(
+                    $"Wrong {nameof(RpcUdpClient)} status {oldStatus}, {RpcClientStatus.Disconnected} expected");
             try
             {
-                logger.Debug($"Connecting to {endpoint}");
-                ChangeStatus(RpcClientStatus.Connecting);
-                await innerUdpClient.ConnectAsync(endpoint, cancellationToken)
+                _logger.Debug($"Connecting to {endpoint}");
+                await _innerUdpClient.ConnectAsync(endpoint, cancellationToken)
                     .ConfigureAwait(false);
-                RpcUdpConnection connection = (RpcUdpConnection) innerUdpClient.Connection;
-                logger.Trace($"Waiting for session...");
-                await connection.Start(cancellationToken).ConfigureAwait(false);
+                RpcUdpConnection connection = (RpcUdpConnection) _innerUdpClient.Connection;
+                
+                _logger.Trace($"Handshaking...");
+                await connection.Controller.Handshake(cancellationToken).ConfigureAwait(false);
+                _logger.Trace($"Authenticating...");
+                await connection.Controller
+                    .Authenticate(authenticationInfo, cancellationToken)
+                    .ConfigureAwait(false);
+                _logger.Trace($"Creating user session...");
+                await connection.Controller.CreateUserSession(cancellationToken).ConfigureAwait(false);
+                
+                if (!ChangeStatus(RpcClientStatus.Connected, s => s == RpcClientStatus.Connecting, out oldStatus))
+                    throw new InvalidOperationException("Connection reset");
+
+                _logger.Debug($"Connected to {endpoint}");
+                return connection.UserSession;
             }
             catch (Exception ex)
             {
-                logger.Error($"Exception on establishing session: {ex}");
-                await this.CloseAsync();
+                _logger.Error($"Exception on establishing session: {ex}");
+                await CloseAsync();
                 throw;
             }
         }
@@ -248,18 +208,18 @@ namespace Neon.Rpc.Net.Udp
         /// </summary>
         public Task CloseAsync()
         {
-            return innerUdpClient.DisconnectAsync();
+            return _innerUdpClient.DisconnectAsync();
         }
 
         protected internal virtual RpcUdpConnection CreateConnection()
         {
-            RpcUdpConnection connection = new RpcUdpConnection(innerUdpClient, this, configuration);
+            RpcUdpConnection connection = new RpcUdpConnection(_innerUdpClient, _configuration);
             return connection;
         }
 
         internal void OnConnectionOpened(ConnectionOpenedEventArgs args)
         {
-            ChangeStatus(RpcClientStatus.Connected);
+            
         }
 
         internal void OnConnectionClosed(ConnectionClosedEventArgs args)
@@ -267,43 +227,7 @@ namespace Neon.Rpc.Net.Udp
             ChangeStatus(RpcClientStatus.Disconnected);
         }
 
-        void IRpcPeer.OnSessionOpened(SessionOpenedEventArgs args)
-        {
-            this.Session = args.Session;
-            ChangeStatus(RpcClientStatus.SessionReady);
-            
-            configuration.SynchronizeSafe(logger, $"{nameof(RpcTcpClient)}.{nameof(OnSessionClosed)}",
-                (state) => OnSessionOpened(state as SessionOpenedEventArgs), args);
-            configuration.SynchronizeSafe(logger, $"{nameof(RpcTcpClient)}.{nameof(OnSessionOpenedEvent)}",
-                (state) => OnSessionOpenedEvent?.Invoke(state as SessionOpenedEventArgs), args);
-        }
-
-        void IRpcPeer.OnSessionClosed(SessionClosedEventArgs args)
-        {
-            this.Session = null;
-            ChangeStatus(RpcClientStatus.Connected);
-            
-            configuration.SynchronizeSafe(logger, $"{nameof(RpcUdpClient)}.{nameof(OnSessionClosed)}", (state) =>
-            {
-                OnSessionClosed(state as SessionClosedEventArgs);
-            }, args);
-            configuration.SynchronizeSafe(logger, $"{nameof(RpcUdpClient)}.{nameof(OnSessionClosedEvent)}", (state) =>
-            {
-                OnSessionClosedEvent?.Invoke(state as SessionClosedEventArgs);
-            }, args);
-        }
-
-        protected virtual void OnSessionOpened(SessionOpenedEventArgs args)
-        {
-            
-        }
-        
-        protected virtual void OnSessionClosed(SessionClosedEventArgs args)
-        {
-            
-        }
-        
-        protected virtual void OnStatusChanged(RpcClientStatusChangedEventArgs args)
+        protected virtual void OnStatusChanged(RpcUdpClientStatusChangedEventArgs args)
         {
             
         }

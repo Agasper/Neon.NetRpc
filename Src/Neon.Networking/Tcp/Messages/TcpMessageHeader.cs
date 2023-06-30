@@ -10,16 +10,16 @@ namespace Neon.Networking.Tcp.Messages
 
         public TcpMessageHeader(int size, TcpMessageTypeEnum messageType, TcpMessageFlagsEnum flags)
         {
-            this.MessageSize = size;
-            this.Flags = flags;
-            this.MessageType = messageType;
+            MessageSize = size;
+            Flags = flags;
+            MessageType = messageType;
         }
 
-        public static TcpMessageHeader FromMessage(RawMessage message, TcpMessageTypeEnum messageType,
+        public static TcpMessageHeader FromMessage(IRawMessage message, TcpMessageTypeEnum messageType,
             TcpMessageFlagsEnum additionalFlags = TcpMessageFlagsEnum.None)
         {
             TcpMessageFlagsEnum flags = additionalFlags;
-            int size = 0;
+            var size = 0;
             if (message != null)
             {
                 size = message.Length;
@@ -31,7 +31,7 @@ namespace Neon.Networking.Tcp.Messages
 
             return new TcpMessageHeader(size, messageType, flags);
         }
-        
+
         public override string ToString()
         {
             return $"{nameof(TcpMessageHeader)}[size={MessageSize}, type={MessageType}, flags={Flags}]";

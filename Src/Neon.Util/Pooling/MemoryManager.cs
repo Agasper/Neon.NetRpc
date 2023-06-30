@@ -19,14 +19,7 @@ namespace Neon.Util.Pooling
         /// </summary>
         /// <param name="minimumLength">The minimum length of the array. Returning array may be bigger</param>
         /// <returns>Byte array</returns>
-        byte[] RentArray(int minimumLength);
-        
-        /// <summary>
-        /// Returns previously rented array
-        /// </summary>
-        /// <param name="array">The rented array</param>
-        /// <param name="clearArray">Should we clear array</param>
-        void ReturnArray(byte[] array, bool clearArray = false);
+        IRentedArray RentArray(int minimumLength);
 
         /// <summary>
         /// Returns a temporary memory stream with a default size
@@ -58,12 +51,19 @@ namespace Neon.Util.Pooling
         RecyclableMemoryStream GetStream(ArraySegment<byte> segment, Guid streamGuid);
     }
     
+    public delegate void DOnObjectFinalized(object sender, ObjectFinalizedEventArgs e);
+    
     public class MemoryManager : IMemoryManager
     {
+        static readonly byte[] EMPTY_ARRAY = new byte[0];
         /// <summary>
         /// Buffer size used for copying
         /// </summary>
-        public int DefaultBufferSize { get; set; } = 8192;
+        public int DefaultBufferSize { get; set; } = 4096;
+        
+        public event DOnObjectFinalized OnObjectFinalized;
+        public bool GenerateCallStacks { get => streamManager.GenerateCallStacks; set => streamManager.GenerateCallStacks = value; }
+        public bool ClearArrayOnReturn { get; set; }
         
         readonly ArrayPool<byte> arrayPool;
         readonly RecyclableMemoryStreamManager streamManager;
@@ -98,6 +98,17 @@ namespace Neon.Util.Pooling
             arrayPool = ArrayPool<byte>.Shared;
             streamManager = new RecyclableMemoryStreamManager(1024, 1024, 1024 * 1024, true);
             streamManager.ThrowExceptionOnToArray = true;
+            streamManager.StreamFinalized += StreamManagerOnStreamFinalized;
+        }
+
+        void StreamManagerOnStreamFinalized(object sender, RecyclableMemoryStreamManager.StreamFinalizedEventArgs e)
+        {
+            OnObjectFinalized?.Invoke(this, new ObjectFinalizedEventArgs(e.Id, typeof(RecyclableMemoryStream), e.AllocationStack));
+        }
+
+        internal void CallFinalizedEvent(ObjectFinalizedEventArgs args)
+        {
+            OnObjectFinalized?.Invoke(this, args);
         }
 
         public MemoryManager(ArrayPool<byte> arrayPool, RecyclableMemoryStreamManager streamManager)
@@ -111,19 +122,22 @@ namespace Neon.Util.Pooling
         /// </summary>
         /// <param name="minimumLength">The minimum length of the array. Returning array may be bigger</param>
         /// <returns>Byte array</returns>
-        public byte[] RentArray(int minimumLength)
+        public IRentedArray RentArray(int minimumLength)
         {
-            return arrayPool.Rent(minimumLength);
+            if (minimumLength == 0)
+                return new RentedArray(EMPTY_ARRAY, this);
+            return new RentedArray(arrayPool.Rent(minimumLength),this);
         }
         
         /// <summary>
         /// Returns previously rented array
         /// </summary>
         /// <param name="array">The rented array</param>
-        /// <param name="clearArray">Should we clear array</param>
-        public void ReturnArray(byte[] array, bool clearArray = false)
+        public void ReturnArray(byte[] array)
         {
-            arrayPool.Return(array, clearArray);
+            if (array == EMPTY_ARRAY)
+                return;
+            arrayPool.Return(array, ClearArrayOnReturn);
         }
 
         /// <summary>

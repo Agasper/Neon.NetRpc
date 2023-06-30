@@ -1,4 +1,5 @@
 ﻿using System;
+
 namespace Neon.Util
 {
     public static class EnvironmentExtensions

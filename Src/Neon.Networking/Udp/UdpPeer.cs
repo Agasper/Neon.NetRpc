@@ -1,14 +1,12 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Neon.Networking.Udp.Events;
-using Neon.Networking.Udp.Messages;
 using Neon.Logging;
 using Neon.Networking.Messages;
+using Neon.Networking.Udp.Events;
+using Neon.Networking.Udp.Messages;
 using Neon.Util.Polling;
 using Neon.Util.Pooling.Objects;
 
@@ -17,84 +15,79 @@ namespace Neon.Networking.Udp
     public abstract class UdpPeer
     {
         public virtual object Tag { get; set; }
-        public bool IsStarted => poller.IsStarted;
-        public UdpConfigurationPeer Configuration => configuration;
+        public bool IsStarted => _poller.IsStarted;
+        public UdpConfigurationPeer Configuration { get; }
 
         private protected abstract ILogger Logger { get; }
-        private protected bool IsBound => socket != null && socket.IsBound;
+        private protected bool IsBound => _socket != null && _socket.IsBound;
+        readonly Poller _poller;
+        readonly Random _random;
+        readonly GenericPool<SocketAsyncEventArgs> _socketArgsPool;
+        long _connectionId;
 
-        readonly UdpConfigurationPeer configuration;
-        readonly Poller poller;
-        readonly GenericPool<SocketAsyncEventArgs> socketArgsPool;
-        readonly Random random;
-        
-        IPEndPoint lastBoundTo;
-        Socket socket;
-        long connectionId;
+        IPEndPoint _lastBoundTo;
+        Socket _socket;
 
         public UdpPeer(UdpConfigurationPeer configuration)
         {
-            this.socketArgsPool = new GenericPool<SocketAsyncEventArgs>(() =>
+            _socketArgsPool = new GenericPool<SocketAsyncEventArgs>(() =>
             {
                 var arg = new SocketAsyncEventArgs();
                 arg.SetBuffer(new byte[ushort.MaxValue], 0, ushort.MaxValue);
-                var socket_ = this.socket;
+                Socket socket_ = _socket;
                 if (socket_ == null)
-                    throw new ObjectDisposedException(nameof(socket));
+                    throw new ObjectDisposedException(nameof(_socket));
                 if (socket_.LocalEndPoint.AddressFamily == AddressFamily.InterNetwork)
                     arg.RemoteEndPoint = new IPEndPoint(IPAddress.Any, 0);
                 else if (socket_.LocalEndPoint.AddressFamily == AddressFamily.InterNetworkV6)
                     arg.RemoteEndPoint = new IPEndPoint(IPAddress.IPv6Any, 0);
                 else
                     throw new InvalidOperationException(
-                    $"Invalid socket address family: {socket_.LocalEndPoint.AddressFamily}");
+                        $"Invalid socket address family: {socket_.LocalEndPoint.AddressFamily}");
                 arg.Completed += IO_Complete;
                 return arg;
             }, 0);
 
-            this.random = new Random();
-            this.poller = new Poller(5, PollEventsInternal_);
-            
-            this.configuration = configuration;
-            this.configuration.Lock();
+            _random = new Random();
+            _poller = new Poller(5, PollEventsInternal_);
+
+            Configuration = configuration;
+            Configuration.Lock();
         }
 
         internal virtual void OnConnectionClosedInternal(ConnectionClosedEventArgs args)
         {
-            configuration.SynchronizeSafe(Logger, $"{nameof(UdpPeer)}.{nameof(OnConnectionClosed)}",
-                (state) => OnConnectionClosed(state as ConnectionClosedEventArgs), args);
+            Configuration.SynchronizeSafe(Logger, $"{nameof(UdpPeer)}.{nameof(OnConnectionClosed)}",
+                state => OnConnectionClosed(state as ConnectionClosedEventArgs), args);
         }
-        
+
         internal virtual void OnConnectionOpenedInternal(ConnectionOpenedEventArgs args)
         {
-            configuration.SynchronizeSafe(Logger, $"{nameof(UdpPeer)}.{nameof(OnConnectionOpened)}",
-                (state) => OnConnectionOpened(state as ConnectionOpenedEventArgs), args);
+            Configuration.SynchronizeSafe(Logger, $"{nameof(UdpPeer)}.{nameof(OnConnectionOpened)}",
+                state => OnConnectionOpened(state as ConnectionOpenedEventArgs), args);
         }
-        
+
         internal virtual void OnConnectionStatusChangedInternal(ConnectionStatusChangedEventArgs args)
         {
-            configuration.SynchronizeSafe(Logger, $"{nameof(UdpPeer)}.{nameof(OnConnectionStatusChanged)}",
-                (state) => OnConnectionStatusChanged(state as ConnectionStatusChangedEventArgs), args);
+            Configuration.SynchronizeSafe(Logger, $"{nameof(UdpPeer)}.{nameof(OnConnectionStatusChanged)}",
+                state => OnConnectionStatusChanged(state as ConnectionStatusChangedEventArgs), args);
         }
 
         protected virtual void OnConnectionClosed(ConnectionClosedEventArgs args)
         {
-
         }
 
         protected virtual void OnConnectionOpened(ConnectionOpenedEventArgs args)
         {
-
         }
-        
+
         protected virtual void OnConnectionStatusChanged(ConnectionStatusChangedEventArgs args)
         {
-
         }
 
         internal long GetNextConnectionId()
         {
-            return Interlocked.Increment(ref connectionId);
+            return Interlocked.Increment(ref _connectionId);
         }
 
         void IO_Complete(object sender, SocketAsyncEventArgs e)
@@ -108,25 +101,25 @@ namespace Neon.Networking.Udp
             }
             finally
             {
-                socketArgsPool.Return(e);
+                _socketArgsPool.Return(e);
             }
         }
 
         /// <summary>
-        /// Start an internal network thread
+        ///     Start an internal network thread
         /// </summary>
         public virtual void Start()
         {
-            this.poller.StartPolling();
+            _poller.StartPolling();
         }
 
         /// <summary>
-        /// Disconnects and shutdown the client
+        ///     Disconnects and shutdown the client
         /// </summary>
         public virtual void Shutdown()
         {
-            this.socketArgsPool.Clear();
-            this.poller.StopPolling(false);
+            _socketArgsPool.Clear();
+            _poller.StopPolling(false);
             DestroySocket();
         }
 
@@ -139,62 +132,51 @@ namespace Neon.Networking.Udp
 
         public RawMessage CreateMessage()
         {
-            Guid newGuid = Guid.NewGuid();
-            return new RawMessage(configuration.MemoryManager, configuration.MemoryManager.GetStream(newGuid), false, false, newGuid);
+            return new RawMessage(Configuration.MemoryManager);
         }
 
         public RawMessage CreateMessage(ArraySegment<byte> segment)
         {
-            Guid newGuid = Guid.NewGuid();
-            return new RawMessage(configuration.MemoryManager, configuration.MemoryManager.GetStream(segment, newGuid), false, false, newGuid);
+            return new RawMessage(Configuration.MemoryManager, segment);
         }
 
         public RawMessage CreateMessage(int length)
         {
-            Guid newGuid = Guid.NewGuid();
-            return new RawMessage(configuration.MemoryManager, configuration.MemoryManager.GetStream(length, newGuid), false, false, newGuid);
+            return new RawMessage(Configuration.MemoryManager, length);
         }
-        
+
         internal RawMessage CreateMessage(int length, bool compressed, bool encrypted)
         {
-            Guid newGuid = Guid.NewGuid();
-            return new RawMessage(configuration.MemoryManager, configuration.MemoryManager.GetStream(length, newGuid), compressed, encrypted, newGuid);
+            return new RawMessage(Configuration.MemoryManager, length, compressed, encrypted);
         }
-        
-        internal RawMessage CreateMessageEmpty()
-        {
-            Guid newGuid = Guid.NewGuid();
-            return new RawMessage(configuration.MemoryManager, null, false, false, newGuid);
-        }
-        
+
         internal Datagram CreateDatagram(ChannelDescriptor channelDescriptor)
         {
-            Guid newGuid = Guid.NewGuid();
-            var datagram = new Datagram(configuration.MemoryManager, configuration.MemoryManager.GetStream(newGuid), newGuid);
+            var datagram = new Datagram(Configuration.MemoryManager);
             datagram.UpdateForChannelDescriptor(channelDescriptor);
             return datagram;
         }
 
         internal Datagram CreateDatagram(ArraySegment<byte> segment, ChannelDescriptor channelDescriptor)
         {
-            Guid newGuid = Guid.NewGuid();
-            var datagram = new Datagram(configuration.MemoryManager, configuration.MemoryManager.GetStream(segment, newGuid), newGuid);
+            var newGuid = Guid.NewGuid();
+            var datagram = new Datagram(Configuration.MemoryManager, segment);
             datagram.UpdateForChannelDescriptor(channelDescriptor);
             return datagram;
         }
 
         internal Datagram CreateDatagram(int payloadSize, ChannelDescriptor channelDescriptor)
         {
-            Guid newGuid = Guid.NewGuid();
-            var datagram = new Datagram(configuration.MemoryManager, configuration.MemoryManager.GetStream(payloadSize, newGuid), newGuid);
+            var newGuid = Guid.NewGuid();
+            var datagram = new Datagram(Configuration.MemoryManager, payloadSize);
             datagram.UpdateForChannelDescriptor(channelDescriptor);
             return datagram;
         }
-        
+
         internal Datagram CreateDatagramEmpty(MessageType messageType, ChannelDescriptor channelDescriptor)
         {
-            Guid newGuid = Guid.NewGuid();
-            var datagram = new Datagram(configuration.MemoryManager, null, newGuid);
+            var newGuid = Guid.NewGuid();
+            var datagram = new Datagram(Configuration.MemoryManager);
             datagram.UpdateForChannelDescriptor(channelDescriptor);
             datagram.Type = messageType;
             return datagram;
@@ -202,37 +184,42 @@ namespace Neon.Networking.Udp
 
         internal Datagram CreateDatagram(MessageType messageType, ChannelDescriptor channelDescriptor, int payloadSize)
         {
-            Guid newGuid = Guid.NewGuid();
-            var datagram = new Datagram(configuration.MemoryManager, configuration.MemoryManager.GetStream(payloadSize, newGuid), newGuid);
+            var newGuid = Guid.NewGuid();
+            var datagram = new Datagram(Configuration.MemoryManager, payloadSize);
             datagram.UpdateForChannelDescriptor(channelDescriptor);
             datagram.Type = messageType;
             return datagram;
         }
 
-        internal Datagram CreateDatagram(MessageType messageType, ChannelDescriptor channelDescriptor, RawMessage payload)
+        internal Datagram CreateDatagram(MessageType messageType, ChannelDescriptor channelDescriptor,
+            RawMessage payload)
         {
-            Guid newGuid = Guid.NewGuid();
-            var datagram = new Datagram(configuration.MemoryManager, configuration.MemoryManager.GetStream(payload.Length, newGuid), newGuid);
+            var newGuid = Guid.NewGuid();
+            var datagram = new Datagram(Configuration.MemoryManager, payload.Length);
             datagram.Type = messageType;
             datagram.UpdateForChannelDescriptor(channelDescriptor);
             payload.Position = 0;
             payload.CopyTo(datagram);
             return datagram;
         }
-        
-        internal Datagram ConvertMessageToDatagram(MessageType messageType, ChannelDescriptor channelDescriptor, UdpRawMessage message)
+
+        internal Datagram ConvertMessageToDatagram(MessageType messageType, ChannelDescriptor channelDescriptor,
+            UdpMessageInfo messageInfo)
         {
-            Datagram datagram = ConvertMessageToDatagram(messageType, channelDescriptor, message.Message);
-            datagram.Channel = message.Channel;
-            datagram.DeliveryType = message.DeliveryType;
+            Datagram datagram = ConvertMessageToDatagram(messageType, channelDescriptor, messageInfo.Message);
+            datagram.Channel = messageInfo.Channel;
+            datagram.DeliveryType = messageInfo.DeliveryType;
             return datagram;
         }
-        
-        internal Datagram ConvertMessageToDatagram(MessageType messageType, ChannelDescriptor channelDescriptor, RawMessage message)
+
+        internal Datagram ConvertMessageToDatagram(MessageType messageType, ChannelDescriptor channelDescriptor,
+            IRawMessage message)
         {
             Datagram datagram = null;
             if (message.Length == 0)
+            {
                 datagram = CreateDatagramEmpty(messageType, channelDescriptor);
+            }
             else
             {
                 datagram = CreateDatagram(messageType, channelDescriptor, message.Length);
@@ -240,26 +227,23 @@ namespace Neon.Networking.Udp
                 message.CopyTo(datagram);
                 datagram.Position = 0;
             }
-            
+
             datagram.Compressed = message.Compressed;
             datagram.Encrypted = message.Encrypted;
             datagram.Type = messageType;
-            
+
             return datagram;
         }
 
-        internal UdpRawMessage ConvertDatagramToUdpRawMessage(Datagram datagram)
+        internal UdpMessageInfo ConvertDatagramToUdpRawMessage(Datagram datagram)
         {
-            var message = ConvertDatagramToRawMessage(datagram);
-            return new UdpRawMessage(message, datagram.DeliveryType, datagram.Channel);
+            RawMessage message = ConvertDatagramToRawMessage(datagram);
+            return new UdpMessageInfo(message, datagram.DeliveryType, datagram.Channel);
         }
-        
+
         internal RawMessage ConvertDatagramToRawMessage(Datagram datagram)
         {
-            if (datagram.Length == 0)
-                return this.CreateMessageEmpty();
-            
-            var message = this.CreateMessage(datagram.Length, datagram.Compressed, datagram.Encrypted);
+            RawMessage message = CreateMessage(datagram.Length, datagram.Compressed, datagram.Encrypted);
             datagram.Position = 0;
             datagram.CopyTo(message);
             message.Position = 0;
@@ -276,18 +260,16 @@ namespace Neon.Networking.Udp
             catch (Exception ex)
             {
                 Logger.Critical($"Exception in polling thread: {ex}");
-                this.Shutdown();
+                Shutdown();
             }
         }
 
         protected virtual void PollEvents()
         {
-
         }
 
         private protected virtual void PollEventsInternal()
         {
-
         }
 
         protected virtual UdpConnection CreateConnection()
@@ -297,18 +279,18 @@ namespace Neon.Networking.Udp
 
         void Rebind()
         {
-            if (lastBoundTo == null)
+            if (_lastBoundTo == null)
                 throw new InvalidOperationException("Rebind failed: socket never have been bound");
-            Bind(lastBoundTo);
+            Bind(_lastBoundTo);
         }
 
         protected void DestroySocket()
         {
-            var socket_ = socket;
+            Socket socket_ = _socket;
             if (socket_ != null)
             {
                 socket_.Close();
-                this.socket = null;
+                _socket = null;
             }
         }
 
@@ -331,26 +313,27 @@ namespace Neon.Networking.Udp
         protected virtual void Bind(IPEndPoint endPoint)
         {
             CheckStarted();
-            if (socket != null)
+            if (_socket != null)
                 throw new InvalidOperationException("Socket already bound to this peer");
-            
-            socket = new Socket(endPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-            socket.ExclusiveAddressUse = !configuration.ReuseAddress;
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, configuration.ReuseAddress);
-            socket.Blocking = false;
-            
-            socket.ReceiveBufferSize = configuration.ReceiveBufferSize;
-            socket.SendBufferSize = configuration.SendBufferSize;
 
-            socket.Bind(endPoint);
-            lastBoundTo = endPoint;
+            _socket = new Socket(endPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+            _socket.ExclusiveAddressUse = !Configuration.ReuseAddress;
+            _socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress,
+                Configuration.ReuseAddress);
+            _socket.Blocking = false;
+
+            _socket.ReceiveBufferSize = Configuration.ReceiveBufferSize;
+            _socket.SendBufferSize = Configuration.SendBufferSize;
+
+            _socket.Bind(endPoint);
+            _lastBoundTo = endPoint;
 
             try
             {
                 const uint IOC_IN = 0x80000000;
                 const uint IOC_VENDOR = 0x18000000;
                 uint SIO_UDP_CONNRESET = IOC_IN | IOC_VENDOR | 12;
-                socket.IOControl((int)SIO_UDP_CONNRESET, new byte[] { Convert.ToByte(false) }, null);
+                _socket.IOControl((int) SIO_UDP_CONNRESET, new[] {Convert.ToByte(false)}, null);
             }
             catch
             {
@@ -360,14 +343,14 @@ namespace Neon.Networking.Udp
 
             try
             {
-                socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.DontFragment, 1);
+                _socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.DontFragment, 1);
             }
             catch
             {
                 Logger.Debug("DONT_FRAGMENT not supported on this platform");
             }
 
-            for (int i = 0; i < configuration.NetworkReceiveThreads; i++)
+            for (var i = 0; i < Configuration.NetworkReceiveThreads; i++)
                 StartReceive();
         }
 
@@ -375,15 +358,15 @@ namespace Neon.Networking.Udp
         {
             try
             {
-                var socket_ = this.socket;
+                Socket socket_ = _socket;
                 if (socket_ == null)
                     return;
-                SocketAsyncEventArgs arg = socketArgsPool.Pop();
+                SocketAsyncEventArgs arg = _socketArgsPool.Pop();
                 arg.SetBuffer(arg.Buffer, 0, arg.Buffer.Length);
                 if (!socket_.ReceiveFromAsync(arg))
                     IO_Complete(this, arg);
             }
-            catch(ObjectDisposedException)
+            catch (ObjectDisposedException)
             {
             }
         }
@@ -393,7 +376,6 @@ namespace Neon.Networking.Udp
             try
             {
                 if (e.SocketError != SocketError.Success)
-                {
                     switch (e.SocketError)
                     {
                         case SocketError.ConnectionReset:
@@ -403,7 +385,7 @@ namespace Neon.Networking.Udp
                             return;
 
                         case SocketError.NotConnected:
-                            Logger.Debug($"Socket has been unbound. Rebinding");
+                            Logger.Debug("Socket has been unbound. Rebinding");
                             // socket is unbound; try to rebind it (happens on mobile when process goes to sleep)
                             Rebind();
                             return;
@@ -416,26 +398,26 @@ namespace Neon.Networking.Udp
                             Logger.Error("Socket error on receive: " + e.SocketError);
                             return;
                     }
-                }
 
-                if (configuration.ConnectionSimulation != null &&
-                    random.NextDouble() < configuration.ConnectionSimulation.PacketLoss)
+                if (Configuration.ConnectionSimulation != null &&
+                    _random.NextDouble() < Configuration.ConnectionSimulation.PacketLoss)
                 {
-                    Logger.Debug($"We got a datagram from {e.RemoteEndPoint}, but according to connection simulation rules we dropped it");
+                    Logger.Debug(
+                        $"We got a datagram from {e.RemoteEndPoint}, but according to connection simulation rules we dropped it");
                     return;
                 }
 
-                ArraySegment<byte> segment = new ArraySegment<byte>(e.Buffer, 0, e.BytesTransferred);
+                var segment = new ArraySegment<byte>(e.Buffer, 0, e.BytesTransferred);
                 //Logger.Trace($"Got datagram {segment.Count} bytes from {e.RemoteEndPoint}");
-                Datagram datagram = Datagram.Parse(configuration.MemoryManager, segment);
+                Datagram datagram = Datagram.Parse(Configuration.MemoryManager, segment);
                 var ep = new UdpNetEndpoint(e.RemoteEndPoint);
 
-                if (configuration.ConnectionSimulation != null)
+                if (Configuration.ConnectionSimulation != null)
                     OnDatagramInternal(datagram, ep);
                 else
                     _ = OnDatagramInternalWithSimulationAsync(datagram, ep);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Logger.Error($"Unhandled exception in EndReceive: {ex}");
             }
@@ -444,7 +426,7 @@ namespace Neon.Networking.Udp
                 StartReceive();
             }
         }
-        
+
         void OnDatagramInternal(Datagram datagram, UdpNetEndpoint remoteEndpoint)
         {
             try
@@ -459,9 +441,9 @@ namespace Neon.Networking.Udp
 
         async Task OnDatagramInternalWithSimulationAsync(Datagram datagram, UdpNetEndpoint remoteEndpoint)
         {
-            if (configuration.ConnectionSimulation != null)
+            if (Configuration.ConnectionSimulation != null)
             {
-                int delay = configuration.ConnectionSimulation.GetHalfDelay();
+                int delay = Configuration.ConnectionSimulation.GetHalfDelay();
                 if (delay > 0)
                     await Task.Delay(delay).ConfigureAwait(false);
             }
@@ -478,39 +460,40 @@ namespace Neon.Networking.Udp
 
         private protected abstract void OnDatagram(Datagram datagram, UdpNetEndpoint remoteEndpoint);
 
-        internal async Task SendDatagramAsync(UdpConnection connection, Datagram datagram)
+        internal async Task SendDatagramAsync(UdpConnection connection, Datagram datagram, CancellationToken cancellationToken)
         {
             if (connection == null)
                 throw new ArgumentNullException(nameof(connection));
             if (datagram == null)
                 throw new ArgumentNullException(nameof(datagram));
 
-            if (configuration.ConnectionSimulation != null)
+            if (Configuration.ConnectionSimulation != null)
             {
-                if (random.NextDouble() < configuration.ConnectionSimulation.PacketLoss)
+                if (_random.NextDouble() < Configuration.ConnectionSimulation.PacketLoss)
                 {
-                    Logger.Trace($"We're sending {datagram} for {connection}, but according to connection simulation rules we dropped it");
+                    Logger.Trace(
+                        $"We're sending {datagram} for {connection}, but according to connection simulation rules we dropped it");
                     return;
                 }
 
-                int delay = configuration.ConnectionSimulation.GetHalfDelay();
+                int delay = Configuration.ConnectionSimulation.GetHalfDelay();
                 if (delay > 0)
                     await Task.Delay(delay).ConfigureAwait(false);
             }
 
-            var socket_ = this.socket;
+            Socket socket_ = _socket;
             if (socket_ == null)
-                throw new ObjectDisposedException(nameof(socket), "Socket was disposed");
+                throw new ObjectDisposedException(nameof(_socket), "Socket was disposed");
 
-            SendDatagramAsyncResult operationInfo = new SendDatagramAsyncResult(connection, datagram);
-            SocketAsyncEventArgs arg = socketArgsPool.Pop();
+            var operationInfo = new SendDatagramAsyncResult(connection, datagram);
+            SocketAsyncEventArgs arg = _socketArgsPool.Pop();
             int bytes = datagram.BuildTo(new ArraySegment<byte>(arg.Buffer, 0, arg.Buffer.Length));
             arg.SetBuffer(arg.Buffer, 0, bytes);
-            arg.RemoteEndPoint = connection.EndPoint.EndPoint;
+            arg.RemoteEndPoint = connection.RemoteEndpoint;
             arg.UserToken = operationInfo;
             if (!socket_.SendToAsync(arg))
                 IO_Complete(this, arg);
-            var result = await operationInfo.Task.ConfigureAwait(false);
+            SocketError result = await operationInfo.Task.ConfigureAwait(false);
             if (result != SocketError.Success)
                 throw new SocketException((int) result);
         }
@@ -519,7 +502,7 @@ namespace Neon.Networking.Udp
         {
             try
             {
-                SendDatagramAsyncResult opInfo = (SendDatagramAsyncResult)e.UserToken;
+                var opInfo = (SendDatagramAsyncResult) e.UserToken;
                 opInfo.SetComplete(e.SocketError);
                 //
                 // if (e.SocketError != SocketError.Success)

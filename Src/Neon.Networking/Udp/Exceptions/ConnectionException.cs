@@ -5,10 +5,14 @@ namespace Neon.Networking.Udp.Exceptions
     public class ConnectionException : Exception
     {
         public DisconnectReason DisconnectReason { get; }
-        
+
         public ConnectionException(DisconnectReason disconnectReason, string message) : base(message)
         {
-            this.DisconnectReason = disconnectReason;
+            DisconnectReason = disconnectReason;
+        }
+
+        public ConnectionException()
+        {
         }
 
         // public static ConnectionException CreateFromReason(DisconnectReason reason)
@@ -43,11 +47,6 @@ namespace Neon.Networking.Udp.Exceptions
                 default:
                     return new ConnectionException(reason, "Connection closed");
             }
-        }
-        
-        public ConnectionException() : base()
-        {
-            
         }
     }
 }

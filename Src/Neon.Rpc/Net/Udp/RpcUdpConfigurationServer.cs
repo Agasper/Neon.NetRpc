@@ -1,7 +1,6 @@
 ﻿using Neon.Logging;
 using Neon.Networking;
 using Neon.Networking.Udp;
-using Neon.Rpc.Authorization;
 using Neon.Util.Pooling;
 
 namespace Neon.Rpc.Net.Udp
@@ -62,16 +61,32 @@ namespace Neon.Rpc.Net.Udp
         }
 
         /// <summary>
-        /// A manager who provide us streams and arrays for a temporary use
+        /// Log manager (default: LogManager.Default)
         /// </summary>
-        public IMemoryManager MemoryManager
+        public override ILogManager LogManager
         {
-            get => udpConfiguration.MemoryManager;
+            get => base._logManager;
+            set
+            {
+                CheckLocked();
+                CheckNull(value);
+                udpConfiguration.LogManager = value;
+                base._logManager = value;
+            }
+        }
+
+        /// <summary>
+        /// A manager which provide us streams and arrays for a temporary use
+        /// </summary>
+        public override IMemoryManager MemoryManager
+        {
+            get => base._memoryManager;
             set
             {
                 CheckLocked();
                 CheckNull(value);
                 udpConfiguration.MemoryManager = value;
+                base._memoryManager = value;
             }
         }
         
@@ -153,24 +168,10 @@ namespace Neon.Rpc.Net.Udp
             }
         }
         
-        /// <summary>
-        /// Sets the authentication for processing authentication. If set server will require client authentication
-        /// </summary>
-        public IAuthSessionFactory AuthSessionFactory
-        {
-            get => authSessionFactory;
-            set
-            {
-                CheckLocked();
-                authSessionFactory = value;
-            }
-        }
-
         internal UdpConfigurationServer UdpConfiguration => udpConfiguration;
         UdpConfigurationServer udpConfiguration;
-        protected IAuthSessionFactory authSessionFactory;
 
-        public RpcUdpConfigurationServer() : base()
+        public RpcUdpConfigurationServer()
         {
             udpConfiguration = new UdpConfigurationServer();
             udpConfiguration.ContextSynchronizationMode = ContextSynchronizationMode.Send;

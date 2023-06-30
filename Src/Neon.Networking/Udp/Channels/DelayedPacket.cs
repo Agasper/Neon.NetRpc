@@ -7,14 +7,14 @@ namespace Neon.Networking.Udp.Channels
     struct DelayedPacket : IDisposable
     {
         public Datagram Datagram { get; }
-        public Task Task => tcs.Task;
+        public Task Task => _tcs.Task;
 
-        readonly TaskCompletionSource<object> tcs;
+        readonly TaskCompletionSource<object> _tcs;
 
         public DelayedPacket(Datagram datagram)
         {
-            this.Datagram = datagram;
-            this.tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+            Datagram = datagram;
+            _tcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
         }
 
         public void Dispose()
@@ -24,17 +24,17 @@ namespace Neon.Networking.Udp.Channels
 
         public void SetComplete()
         {
-            tcs?.TrySetResult(null);
+            _tcs?.TrySetResult(null);
         }
-        
+
         public void SetCancelled()
         {
-            tcs?.TrySetCanceled();
+            _tcs?.TrySetCanceled();
         }
 
         public void SetException(Exception exception)
         {
-            tcs?.TrySetException(exception);
+            _tcs?.TrySetException(exception);
         }
     }
 }

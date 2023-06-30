@@ -6,26 +6,26 @@ namespace Neon.Networking.Udp
     public struct UdpNetEndpoint : IEquatable<UdpNetEndpoint>
     {
         /// <summary>
-        /// The remote endpoint
+        ///     The remote endpoint
         /// </summary>
-        public EndPoint EndPoint { get; }
+        public EndPoint _EndPoint { get; }
 
-        string stringEp;
+        readonly string _stringEp;
 
         public UdpNetEndpoint(EndPoint endPoint)
         {
-            this.EndPoint = endPoint ?? throw new ArgumentNullException(nameof(endPoint));
-            this.stringEp = this.EndPoint.ToString();
+            _EndPoint = endPoint ?? throw new ArgumentNullException(nameof(endPoint));
+            _stringEp = _EndPoint.ToString();
         }
 
         public override string ToString()
         {
-            return $"{nameof(UdpNetEndpoint)}[{this.stringEp}]";
+            return $"{nameof(UdpNetEndpoint)}[{_stringEp}]";
         }
 
         public bool Equals(UdpNetEndpoint other)
         {
-            return Equals(EndPoint, other.EndPoint);
+            return Equals(_EndPoint, other._EndPoint);
         }
 
         public override bool Equals(object obj)
@@ -35,14 +35,14 @@ namespace Neon.Networking.Udp
 
         public override int GetHashCode()
         {
-            return (EndPoint != null ? EndPoint.GetHashCode() : 0);
+            return _EndPoint != null ? _EndPoint.GetHashCode() : 0;
         }
 
         public static bool operator ==(UdpNetEndpoint a, UdpNetEndpoint b)
         {
             return a.Equals(b);
         }
-        
+
         public static bool operator !=(UdpNetEndpoint a, UdpNetEndpoint b)
         {
             return !a.Equals(b);

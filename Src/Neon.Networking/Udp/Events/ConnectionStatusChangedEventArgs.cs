@@ -7,8 +7,8 @@
 
         internal ConnectionStatusChangedEventArgs(UdpConnectionStatus status, UdpConnection connection)
         {
-            this.Connection = connection;
-            this.Status = status;
+            Connection = connection;
+            Status = status;
         }
     }
 }

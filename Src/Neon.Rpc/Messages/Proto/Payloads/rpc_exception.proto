@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package neon.rpc;
+
+option csharp_namespace = "Neon.Rpc.Messages.Proto";
+
+message RpcExceptionProto {
+    string message = 2;
+    string stack_trace = 3;
+    map<string,string> meta = 4;
+}

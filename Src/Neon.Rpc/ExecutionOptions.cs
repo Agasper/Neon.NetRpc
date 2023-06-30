@@ -5,11 +5,7 @@ namespace Neon.Rpc
     public struct ExecutionOptions
     {
         /// <summary>
-        /// Timeout for the request
-        /// </summary>
-        public int Timeout { get; set; }
-        /// <summary>
-        /// User-defined object state
+        /// User-defined state
         /// </summary>
         public object State { get; set; }
         /// <summary>
@@ -17,30 +13,29 @@ namespace Neon.Rpc
         /// </summary>
         public CancellationToken CancellationToken { get; set; }
 
-        public ExecutionOptions(int timeout, object state, CancellationToken cancellationToken)
+        public ExecutionOptions(object state, CancellationToken cancellationToken)
         {
-            this.Timeout = timeout;
-            this.State = state;
-            this.CancellationToken = cancellationToken;
+            State = state;
+            CancellationToken = cancellationToken;
         }
 
-        public ExecutionOptions WithTimeout(int timeout)
+        public ExecutionOptions WithState(object state)
         {
-            this.Timeout = timeout;
+            State = state;
             return this;
         }
-        
+
         public ExecutionOptions WithCancellationToken(CancellationToken cancellationToken)
         {
-            this.CancellationToken = cancellationToken;
+            CancellationToken = cancellationToken;
             return this;
         }
 
         public override string ToString()
         {
-            return $"{nameof(ExecutionOptions)}[state={State},timeout={Timeout}]";
+            return $"{nameof(ExecutionOptions)}[state={State}]";
         }
 
-        public static ExecutionOptions Default => new ExecutionOptions(System.Threading.Timeout.Infinite, null, CancellationToken.None);
+        public static ExecutionOptions Default => new ExecutionOptions(null, CancellationToken.None);
     }
 }

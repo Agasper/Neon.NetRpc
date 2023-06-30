@@ -7,8 +7,8 @@
 
         internal ClientStatusChangedEventArgs(UdpClientStatus status, UdpClient client)
         {
-            this.Client = client;
-            this.Status = status;
+            Client = client;
+            Status = status;
         }
     }
 }

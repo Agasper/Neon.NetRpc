@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Net.Sockets;
-using Neon.Networking.Tcp.Events;
 using Neon.Logging;
 using Neon.Networking.Messages;
+using Neon.Networking.Tcp.Events;
 using Neon.Util.Polling;
 
 namespace Neon.Networking.Tcp
@@ -10,43 +10,45 @@ namespace Neon.Networking.Tcp
     public abstract class TcpPeer
     {
         /// <summary>
-        /// A user defined tag
+        ///     A user defined tag
         /// </summary>
         public object Tag { get; set; }
-        /// <summary>
-        /// Current peer configuration
-        /// </summary>
-        public TcpConfigurationPeer Configuration => configuration;
-        /// <summary>
-        /// Returns true is peer has been started, false if not
-        /// </summary>
-        public bool IsStarted => poller.IsStarted;
 
-        private protected readonly TcpConfigurationPeer configuration;
+        /// <summary>
+        ///     Current peer configuration
+        /// </summary>
+        public TcpConfigurationPeer Configuration => _configuration;
+
+        /// <summary>
+        ///     Returns true is peer has been started, false if not
+        /// </summary>
+        public bool IsStarted => _poller.IsStarted;
+
         private protected abstract ILogger Logger { get; }
-        readonly Poller poller;
+        private protected readonly TcpConfigurationPeer _configuration;
+        readonly Poller _poller;
 
         public TcpPeer(TcpConfigurationPeer configuration)
         {
             configuration.Lock();
-            this.configuration = configuration;
-            this.poller = new Poller(5, PollEventsInternal_);
+            _configuration = configuration;
+            _poller = new Poller(5, PollEventsInternal_);
         }
 
         /// <summary>
-        /// Start an internal network thread
+        ///     Start an internal network thread
         /// </summary>
         public virtual void Start()
         {
-            this.poller.StartPolling();
+            _poller.StartPolling();
         }
 
         /// <summary>
-        /// Stop an internal network thread
+        ///     Stop an internal network thread
         /// </summary>
         public virtual void Shutdown()
         {
-            this.poller.StopPolling(false);
+            _poller.StopPolling(false);
         }
 
         protected void CheckStarted()
@@ -62,96 +64,94 @@ namespace Neon.Networking.Tcp
 
         protected void SetSocketOptions(Socket socket)
         {
-            socket.ReceiveBufferSize = configuration.ReceiveBufferSize;
-            socket.SendBufferSize = configuration.SendBufferSize;
-            socket.NoDelay = configuration.NoDelay;
+            socket.ReceiveBufferSize = _configuration.ReceiveBufferSize;
+            socket.SendBufferSize = _configuration.SendBufferSize;
+            socket.NoDelay = _configuration.NoDelay;
             socket.Blocking = false;
-            if (configuration.LingerOption != null)
-                socket.LingerState = configuration.LingerOption;
+            if (_configuration.LingerOption != null)
+                socket.LingerState = _configuration.LingerOption;
         }
 
         protected Socket GetNewSocket(AddressFamily addressFamily)
         {
-            Socket socket = new Socket(addressFamily, SocketType.Stream, ProtocolType.Tcp);
-            socket.ExclusiveAddressUse = !configuration.ReuseAddress;
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, configuration.ReuseAddress);
+            var socket = new Socket(addressFamily, SocketType.Stream, ProtocolType.Tcp);
+            socket.ExclusiveAddressUse = !_configuration.ReuseAddress;
+            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress,
+                _configuration.ReuseAddress);
             socket.Blocking = false;
             return socket;
         }
 
         /// <summary>
-        /// Creating a new empty message with a length defaulted by memory manager 
+        ///     Creating a new empty message with a length defaulted by memory manager
         /// </summary>
         /// <returns>A new message</returns>
         public RawMessage CreateMessage()
         {
-            Guid newGuid = Guid.NewGuid();
-            return new RawMessage(configuration.MemoryManager, configuration.MemoryManager.GetStream(newGuid), false, false, newGuid);
+            return new RawMessage(_configuration.MemoryManager);
         }
 
         /// <summary>
-        /// Creating a new empty message based on existing data. Data will be copied to the new message
+        ///     Creating a new empty message based on existing data. Data will be copied to the new message
         /// </summary>
         /// <returns>A new message</returns>
         public RawMessage CreateMessage(ArraySegment<byte> segment)
         {
-            Guid newGuid = Guid.NewGuid();
-            return new RawMessage(configuration.MemoryManager, configuration.MemoryManager.GetStream(segment, newGuid), false, false, newGuid);
+            return new RawMessage(_configuration.MemoryManager, segment);
         }
 
         /// <summary>
-        /// Creating a new empty message with a predefined size. Returning message size may be bigger than requested value
+        ///     Creating a new empty message with a predefined size. Returning message size may be bigger than requested value
         /// </summary>
-        /// <param name="size">Size in bytes</param>
+        /// <param name="length">Size in bytes</param>
         /// <returns>A new message</returns>
-        public RawMessage CreateMessage(int size)
+        public RawMessage CreateMessage(int length)
         {
-            Guid newGuid = Guid.NewGuid();
-            return new RawMessage(configuration.MemoryManager, configuration.MemoryManager.GetStream(size, newGuid), false, false, newGuid);
+            return new RawMessage(_configuration.MemoryManager, length);
         }
 
         internal virtual void OnConnectionClosedInternal(TcpConnection tcpConnection, Exception ex)
         {
             var args = new ConnectionClosedEventArgs(tcpConnection, ex);
-            
-            configuration.SynchronizeSafe(Logger, $"{nameof(TcpConnection)}.{nameof(args.Connection.OnConnectionClosed)}",
-                (state) =>
+
+            _configuration.SynchronizeSafe(Logger,
+                $"{nameof(TcpConnection)}.{nameof(args.Connection.OnConnectionClosed)}",
+                state =>
                 {
                     var args_ = state as ConnectionClosedEventArgs;
                     args_.Connection.OnConnectionClosed(args_);
                 }, args
             );
-            
-            configuration.SynchronizeSafe(Logger, $"{nameof(TcpPeer)}.{nameof(OnConnectionClosed)}",
-                (state) => OnConnectionClosed(state as ConnectionClosedEventArgs), args
+
+            _configuration.SynchronizeSafe(Logger, $"{nameof(TcpPeer)}.{nameof(OnConnectionClosed)}",
+                state => OnConnectionClosed(state as ConnectionClosedEventArgs), args
             );
         }
 
         internal void OnConnectionOpenedInternal(TcpConnection tcpConnection)
         {
-            ConnectionOpenedEventArgs args = new ConnectionOpenedEventArgs(tcpConnection);
-            
-            configuration.SynchronizeSafe(Logger, $"{nameof(TcpConnection)}.{nameof(args.Connection.OnConnectionOpened)}",
-                (state) =>
+            var args = new ConnectionOpenedEventArgs(tcpConnection);
+
+            _configuration.SynchronizeSafe(Logger,
+                $"{nameof(TcpConnection)}.{nameof(args.Connection.OnConnectionOpened)}",
+                state =>
                 {
                     var args_ = state as ConnectionOpenedEventArgs;
                     args_.Connection.OnConnectionOpened(args_);
                 }, args
             );
-            
-            configuration.SynchronizeSafe(Logger, $"{nameof(TcpPeer)}.{nameof(OnConnectionOpened)}",
-                (state) => OnConnectionOpened(state as ConnectionOpenedEventArgs), args
+
+            _configuration.SynchronizeSafe(Logger, $"{nameof(TcpPeer)}.{nameof(OnConnectionOpened)}",
+                state => OnConnectionOpened(state as ConnectionOpenedEventArgs), args
             );
         }
-        
+
         protected virtual void OnConnectionClosed(ConnectionClosedEventArgs args)
         {
-
         }
 
         protected virtual void OnConnectionOpened(ConnectionOpenedEventArgs args)
         {
-
         }
 
         void PollEventsInternal_()
@@ -161,22 +161,19 @@ namespace Neon.Networking.Tcp
                 PollEventsInternal();
                 PollEvents();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                Logger.Critical("Exception in polling thread: " + ex.ToString());
-                this.Shutdown();
+                Logger.Critical("Exception in polling thread: " + ex);
+                Shutdown();
             }
         }
 
         private protected virtual void PollEventsInternal()
         {
-            
         }
 
         protected virtual void PollEvents()
         {
-            
         }
-
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+
 namespace Neon.Util.Pooling.Objects
 {
     /// <summary>
@@ -28,7 +29,7 @@ namespace Neon.Util.Pooling.Objects
         {
             this.pool = pool;
             this.obj = obj;
-            this.disposed = false;
+            disposed = false;
         }
 
         /// <summary>

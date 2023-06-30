@@ -1,70 +1,53 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Net.Sockets;
 
 namespace Neon.Logging
 {
     public class LoggingNameFilters : IList<LoggingNameFilter>
     {
         /// <summary>
-        /// Default severity for all the names that are not in the filters
+        ///     Default severity for all the names that are not in the filters
         /// </summary>
         public LogSeverity Default { get; set; }
-        
-        LogSeverity defaultFilter;
-        readonly List<LoggingNameFilter> filters;
-        
+
+        readonly List<LoggingNameFilter> _filters;
+
+        LogSeverity _defaultFilter;
+
         /// <summary>
-        /// Creates a new LoggingNameFilters with no filters and default severity TRACE
+        ///     Creates a new LoggingNameFilters with no filters and default severity TRACE
         /// </summary>
         public LoggingNameFilters()
         {
+            Default = LogSeverity.TRACE;
+            _filters = new List<LoggingNameFilter>();
         }
 
-        public bool IsFiltered(ILogger logger, LogSeverity severity)
-        {
-            if (severity < Default)
-                return true;
-            
-            for (int i = 0; i < filters.Count; i++)
-            {
-                var filter = filters[i];
-                if (logger.Name.StartsWith(filter.Name, StringComparison.InvariantCulture))
-                    return true;
-            }
-
-            return false;
-        }
-        
         /// <summary>
-        /// Creates a new LoggingNameFilters with no filters
+        ///     Creates a new LoggingNameFilters with no filters
         /// </summary>
         /// <param name="defaultFilter">Default severity</param>
-        public LoggingNameFilters(LogSeverity defaultFilter)
+        public LoggingNameFilters(LogSeverity defaultFilter) : this()
         {
-            this.defaultFilter = defaultFilter;
-            this.filters = new List<LoggingNameFilter>();
+            _defaultFilter = defaultFilter;
         }
-        
+
         /// <summary>
-        /// Creates a new LoggingNameFilters with the specified filters
+        ///     Creates a new LoggingNameFilters with the specified filters
         /// </summary>
         /// <param name="defaultFilter">Default severity</param>
         /// <param name="filters">Filters</param>
-        public LoggingNameFilters(LogSeverity defaultFilter, params LoggingNameFilter[] filters)
+        public LoggingNameFilters(LogSeverity defaultFilter, params LoggingNameFilter[] filters) : this(defaultFilter)
         {
-            this.defaultFilter = defaultFilter;
-            this.filters = new List<LoggingNameFilter>();
-            foreach (var filter in filters)
-            {
-                this.filters.Add(filter);
-            }
+            _filters = new List<LoggingNameFilter>();
+            foreach (LoggingNameFilter filter in filters) 
+                _filters.Add(filter);
         }
-        
+
         public IEnumerator<LoggingNameFilter> GetEnumerator()
         {
-            return filters.GetEnumerator();
+            return _filters.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -73,59 +56,74 @@ namespace Neon.Logging
         }
 
         /// <summary>
-        /// Adds a new filter
+        ///     Adds a new filter
         /// </summary>
         /// <param name="item">filter</param>
         public void Add(LoggingNameFilter item)
         {
-            filters.Add(item);
+            _filters.Add(item);
         }
 
         /// <summary>
-        /// Clears all the filters
+        ///     Clears all the filters
         /// </summary>
         public void Clear()
         {
-            filters.Clear();
+            _filters.Clear();
         }
-        
+
         public bool Contains(LoggingNameFilter item)
         {
-            return filters.Contains(item);
+            return _filters.Contains(item);
         }
-        
+
         public void CopyTo(LoggingNameFilter[] array, int arrayIndex)
         {
-            filters.CopyTo(array, arrayIndex);
+            _filters.CopyTo(array, arrayIndex);
         }
 
         public bool Remove(LoggingNameFilter item)
         {
-            return filters.Remove(item);
+            return _filters.Remove(item);
         }
 
-        public int Count => filters.Count;
+        public int Count => _filters.Count;
         public bool IsReadOnly => false;
-        
+
         public int IndexOf(LoggingNameFilter item)
         {
-            return filters.IndexOf(item);
+            return _filters.IndexOf(item);
         }
 
         public void Insert(int index, LoggingNameFilter item)
         {
-            filters.Insert(index, item);
+            _filters.Insert(index, item);
         }
 
         public void RemoveAt(int index)
         {
-            filters.RemoveAt(index);
+            _filters.RemoveAt(index);
         }
 
         public LoggingNameFilter this[int index]
         {
-            get => filters[index];
-            set => filters[index] = value;
+            get => _filters[index];
+            set => _filters[index] = value;
+        }
+
+        public bool IsFiltered(ILogger logger, LogSeverity severity)
+        {
+            if (severity < Default)
+                return true;
+
+            for (var i = 0; i < _filters.Count; i++)
+            {
+                LoggingNameFilter filter = _filters[i];
+                if (logger.Name.StartsWith(filter.Name, StringComparison.InvariantCulture) && severity < filter.Severity)
+                    return true;
+            }
+
+            return false;
         }
     }
 }

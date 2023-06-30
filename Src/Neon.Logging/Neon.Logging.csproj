@@ -1,44 +1,46 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <RootNamespace>Neon.Logging</RootNamespace>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <Authors>Neon</Authors>
-    <PackageLicenseFile>license/LICENSE</PackageLicenseFile>
-    <RepositoryUrl>https://github.com/Agasper/Neon.NetRpc</RepositoryUrl>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>1.0.0</Version>
-    <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>SN\SN.snk</AssemblyOriginatorKeyFile>
-  </PropertyGroup>
+    <PropertyGroup>
+        <RootNamespace>Neon.Logging</RootNamespace>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <Authors>Neon</Authors>
+        <PackageLicenseFile>license/LICENSE</PackageLicenseFile>
+        <RepositoryUrl>https://github.com/Agasper/Neon.NetRpc</RepositoryUrl>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <Version>1.0.0</Version>
+        <SignAssembly>true</SignAssembly>
+        <AssemblyOriginatorKeyFile>SN\SN.snk</AssemblyOriginatorKeyFile>
+    </PropertyGroup>
 
-  <PropertyGroup><ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles></PropertyGroup>
+    <PropertyGroup>
+        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+    </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-    <DocumentationFile>bin\Release\Neon.Logging.xml</DocumentationFile>
-    <NoWarn>1701;1702;1591</NoWarn>
-  </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <DocumentationFile>bin\Release\Neon.Logging.xml</DocumentationFile>
+        <NoWarn>1701;1702;1591</NoWarn>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <None Include="../../LICENSE" Pack="true" PackagePath="license" />
-    <None Remove="Neon.Logging.csproj.DotSettings" />
-    <None Update="link.xml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      <PackageCopyToOutput>true</PackageCopyToOutput> <!-- https://github.com/NuGet/Home/issues/9879 -->
-    </None>
-    <None Remove="SN\**" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <Folder Include="Formatters\" />
-    <Folder Include="Handlers\" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <Compile Remove="SN\**" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <EmbeddedResource Remove="SN\**" />
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="../../LICENSE" Pack="true" PackagePath="license"/>
+        <None Remove="Neon.Logging.csproj.DotSettings"/>
+        <None Update="link.xml">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <PackageCopyToOutput>true</PackageCopyToOutput> <!-- https://github.com/NuGet/Home/issues/9879 -->
+        </None>
+        <None Remove="SN\**"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="Formatters\"/>
+        <Folder Include="Handlers\"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Remove="SN\**"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Remove="SN\**"/>
+    </ItemGroup>
 </Project>

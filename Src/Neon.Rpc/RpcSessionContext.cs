@@ -1,29 +1,28 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
+using Google.Protobuf.WellKnownTypes;
 using Neon.Logging;
-using Neon.Rpc.Authorization;
+using Neon.Rpc.Controllers;
 
 namespace Neon.Rpc
 {
-    public class RpcSessionContext : RpcSessionContextBase
+    public class RpcSessionContext
     {
-        public int DefaultExecutionTimeout { get;  }
-        public bool OrderedExecution { get;  }
-        public int OrderedExecutionMaxQueue { get;  }
-        public TaskScheduler TaskScheduler { get; }
-        public AuthSessionBase AuthSession { get; }
-        public RemotingInvocationRules RemotingInvocationRules { get; }
-
-        internal RpcSessionContext(int defaultExecutionTimeout, bool orderedExecution, int orderedExecutionMaxQueue,
-            TaskScheduler taskScheduler, ILogManager logManager, IRpcConnectionInternal rpcConnectionInternal,
-            RemotingInvocationRules remotingInvocationRules, AuthSessionBase authSession)
-            : base(logManager, rpcConnectionInternal)
+        public Any AuthenticationResult { get; }
+        public object AuthenticationState { get; }
+        public IRpcConnection Connection { get; }
+        public ILogManager LogManager { get; }
+        internal RpcController Controller { get; }
+        internal TaskScheduler TaskScheduler { get; }
+        
+        internal RpcSessionContext(RpcController controller, object authenticationState, IRpcConnection connection,
+            Any authenticationResult, TaskScheduler taskScheduler, ILogManager logManager)
         {
-            this.DefaultExecutionTimeout = defaultExecutionTimeout;
-            this.OrderedExecution = orderedExecution;
-            this.OrderedExecutionMaxQueue = orderedExecutionMaxQueue;
-            this.TaskScheduler = taskScheduler;
-            this.RemotingInvocationRules = remotingInvocationRules;
-            this.AuthSession = authSession;
+            LogManager = logManager;
+            Controller = controller;
+            Connection = connection;
+            AuthenticationState = authenticationState;
+            AuthenticationResult = authenticationResult;
+            TaskScheduler = taskScheduler;
         }
     }
 }

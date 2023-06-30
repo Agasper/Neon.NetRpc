@@ -1,7 +1,4 @@
-﻿using System;
-using System.IO;
-
-namespace Neon.Networking.IO
+﻿namespace Neon.Networking.IO
 {
 #if NETSTANDARD2_1 || NETCOREAPP3_1
     static class SpanExtensions
@@ -28,7 +25,8 @@ namespace Neon.Networking.IO
 
         public static unsafe float ReadSingle(this ReadOnlySpan<byte> span, ref int position)
         {
-            uint tmpBuffer = (uint)(span[position] | span[position + 1] << 8 | span[position + 2] << 16 | span[position + 3] << 24);
+            uint tmpBuffer =
+ (uint)(span[position] | span[position + 1] << 8 | span[position + 2] << 16 | span[position + 3] << 24);
             var result = *((float*)&tmpBuffer);
             position += 4;
             return result;
@@ -103,7 +101,8 @@ namespace Neon.Networking.IO
 
         public static uint ReadUInt32(this ReadOnlySpan<byte> span, ref int position)
         {
-            uint result = (uint)(span[position] | span[position + 1] << 8 | span[position + 2] << 16 | span[position + 3] << 24);
+            uint result =
+ (uint)(span[position] | span[position + 1] << 8 | span[position + 2] << 16 | span[position + 3] << 24);
             position += 4;
             return result;
         }

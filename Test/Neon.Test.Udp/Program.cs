@@ -20,15 +20,12 @@ namespace Neon.Test.Udp
         public static async Task Main(string[] args)
         {
             //Creating log managers
-            LogManager logManagerNetworkClient = new LogManager();
-            logManagerNetworkClient.Handlers.Add(new LoggingHandlerConsole(new NamedLoggingFormatter("NET_CLIENT")));
-            logManagerNetworkClient.Severity = LogSeverity.TRACE;
-            LogManager logManagerNetworkServer = new LogManager();
-            logManagerNetworkServer.Handlers.Add(new LoggingHandlerConsole(new NamedLoggingFormatter("NET_SERVER")));
-            logManagerNetworkServer.Severity = LogSeverity.TRACE;
             LogManager logManagerMain = new LogManager();
             logManagerMain.Handlers.Add(new LoggingHandlerConsole(new NamedLoggingFormatter("MAIN")));
-            logManagerMain.Severity = LogSeverity.DEBUG;
+            LogManager logManagerServer = new LogManager();
+            logManagerServer.Handlers.Add(new LoggingHandlerConsole(new NamedLoggingFormatter("SERVER")));
+            LogManager logManagerClient = new LogManager();
+            logManagerClient.Handlers.Add(new LoggingHandlerConsole(new NamedLoggingFormatter("CLIENT")));
 
             //Getting the main logger
             logger = logManagerMain.GetLogger(nameof(Program));
@@ -52,7 +49,7 @@ namespace Neon.Test.Udp
             //Creating a server configuration
             UdpConfigurationServer configurationServer = new UdpConfigurationServer();
             configurationServer.MemoryManager = memoryManager; //Setting our memory manager
-            configurationServer.LogManager = logManagerNetworkServer; //Setting our log manager
+            configurationServer.LogManager = logManagerServer; //Setting our log manager
             configurationServer.ContextSynchronizationMode = ContextSynchronizationMode.Post; //Changing synchronization mode to post,
                                                                                         //to reduce network thread sleep time
             configurationServer.SetSynchronizationContext(context); //Setting out synchronization context
@@ -69,7 +66,7 @@ namespace Neon.Test.Udp
             //Creating client configuration
             UdpConfigurationClient configurationClient = new UdpConfigurationClient();
             configurationClient.MemoryManager = memoryManager; //Setting our memory manager
-            configurationClient.LogManager = logManagerNetworkClient; //Setting our log manager
+            configurationClient.LogManager = logManagerClient; //Setting our log manager
             configurationClient.ContextSynchronizationMode = ContextSynchronizationMode.Post;  //Changing synchronization mode to post,
                                                                                             //to reduce network thread sleep time
             configurationClient.SetSynchronizationContext(context); //Setting out synchronization context
@@ -84,7 +81,7 @@ namespace Neon.Test.Udp
             client.Start();
 
             //Connecting to the server, preferring ipv6 address
-            await client.ConnectAsync("localhost", 10000, IPAddressSelectionRules.PreferIpv6);
+            await client.ConnectAsync("localhost", 10000, IPAddressSelectionRules.PreferIpv6, CancellationToken.None);
             //Disconnecting
             await client.DisconnectAsync();
 

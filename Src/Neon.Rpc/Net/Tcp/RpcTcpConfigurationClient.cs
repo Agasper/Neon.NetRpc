@@ -74,18 +74,34 @@ namespace Neon.Rpc.Net.Tcp
                 tcpConfiguration.LogManager = value;
             }
         }
+        
+        /// <summary>
+        /// Log manager (default: LogManager.Default)
+        /// </summary>
+        public override ILogManager LogManager
+        {
+            get => base._logManager;
+            set
+            {
+                CheckLocked();
+                CheckNull(value);
+                tcpConfiguration.LogManager = value;
+                base._logManager = value;
+            }
+        }
 
         /// <summary>
         /// A manager which provide us streams and arrays for a temporary use
         /// </summary>
-        public IMemoryManager MemoryManager
+        public override IMemoryManager MemoryManager
         {
-            get => tcpConfiguration.MemoryManager;
+            get => base._memoryManager;
             set
             {
                 CheckLocked();
                 CheckNull(value);
                 tcpConfiguration.MemoryManager = value;
+                base._memoryManager = value;
             }
         }
 
@@ -162,7 +178,8 @@ namespace Neon.Rpc.Net.Tcp
         {
             tcpConfiguration = new TcpConfigurationClient();
             tcpConfiguration.ConnectTimeout = Timeout.Infinite;
-            tcpConfiguration.ContextSynchronizationMode = ContextSynchronizationMode.Send;
+            tcpConfiguration.MemoryManager = base._memoryManager;
+            tcpConfiguration.LogManager = base._logManager;
         }
     }
 }

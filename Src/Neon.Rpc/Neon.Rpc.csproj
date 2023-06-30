@@ -16,6 +16,11 @@
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <DocumentationFile>bin\Release\netstandard2.0\Neon.Rpc.xml</DocumentationFile>
     <NoWarn>1701;1702;1591</NoWarn>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <None Include="../../LICENSE" Pack="true" PackagePath="license" />
@@ -28,17 +33,21 @@
     <ProjectReference Include="..\Neon.Networking\Neon.Networking.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Payload\" />
-    <Folder Include="Net\" />
-    <Folder Include="Net\Tcp\" />
     <Folder Include="Net\Udp\" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="SN\SN.snk" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Grpc.Tools" Version="2.54.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Neon.Protobuf-Unity" Version="3.21.1" />
     <PackageReference Include="System.Buffers" Version="4.5.1" />
     <PackageReference Include="System.Memory" Version="4.5.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <Protobuf Include="Messages\Proto\**\*.proto" ProtoRoot="Messages\Proto" OutputDir="$(ProjectDir)Messages\ProtoGenerated" CompileOutputs="false" Access="internal" />
   </ItemGroup>
 </Project>

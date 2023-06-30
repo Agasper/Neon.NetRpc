@@ -1,7 +1,6 @@
 using System;
 using System.Net;
 using System.Threading;
-using Neon.Logging;
 using Neon.Networking;
 
 namespace Neon.Rpc.Net.Tcp
@@ -12,20 +11,20 @@ namespace Neon.Rpc.Net.Tcp
     public class RpcTcpClientReconnector : IDisposable
     {
         const int INTERVAL = 1000;
-        Timer timer;
+        Timer _timer;
 
-        readonly RpcTcpClient client;
+        readonly RpcTcpClient _client;
 
-        IPEndPoint endpoint;
-        string host;
-        int port;
-        int delay;
-        bool useEndpoint;
-        bool authRequired;
-        object authObject;
-        IPAddressSelectionRules ipAddressSelectionRules;
+        IPEndPoint _endpoint;
+        string _host;
+        int _port;
+        int _delay;
+        bool _useEndpoint;
+        AuthenticationInfo _authenticationInfo;
+        IPAddressSelectionRules _ipAddressSelectionRules;
+        CancellationTokenSource _cts;
 
-        DateTime? disconnectedFrom;
+        DateTime? _disconnectedFrom;
         
         /// <summary>
         /// Helper for maintaining client to server connection active
@@ -33,16 +32,14 @@ namespace Neon.Rpc.Net.Tcp
         /// <param name="client">Instance of RpcTcpClient</param>
         /// <param name="delay">After connection dropped we should wait a delay before trying to establish a new connection</param>
         /// <param name="endpoint">Server endpoint</param>
-        /// <param name="authRequired">Does server require authentication</param>
-        /// <param name="authObject">If server require authentication, the object we want to pass to</param>
-        public RpcTcpClientReconnector(RpcTcpClient client, int delay, IPEndPoint endpoint, bool authRequired, object authObject)
+        /// <param name="authenticationInfo">Authentication info</param>
+        public RpcTcpClientReconnector(RpcTcpClient client, int delay, IPEndPoint endpoint, AuthenticationInfo authenticationInfo)
         {
-            this.delay = delay;
-            this.client = client;
-            this.endpoint = endpoint;
-            this.authObject = authObject;
-            this.authRequired = authRequired;
-            this.useEndpoint = true;
+            _delay = delay;
+            _client = client;
+            _endpoint = endpoint;
+            _authenticationInfo = authenticationInfo;
+            _useEndpoint = true;
         }
         
         /// <summary>
@@ -53,18 +50,16 @@ namespace Neon.Rpc.Net.Tcp
         /// <param name="host">Server IP address or domain</param>
         /// <param name="port">Server port</param>
         /// <param name="ipAddressSelectionRules">If destination host resolves to a few ap addresses, which we should take</param>
-        /// <param name="authRequired">Does server require authentication</param>
-        /// <param name="authObject">If server require authentication, the object we want to pass to</param>
-        public RpcTcpClientReconnector(RpcTcpClient client, int delay, string host, int port, IPAddressSelectionRules ipAddressSelectionRules, bool authRequired, object authObject)
+        /// <param name="authenticationInfo">Authentication info</param>
+        public RpcTcpClientReconnector(RpcTcpClient client, int delay, string host, int port, IPAddressSelectionRules ipAddressSelectionRules, AuthenticationInfo authenticationInfo)
         {
-            this.ipAddressSelectionRules = ipAddressSelectionRules;
-            this.delay = delay;
-            this.client = client;
-            this.host = host;
-            this.port = port;
-            this.authObject = authObject;
-            this.authRequired = authRequired;
-            this.useEndpoint = false;
+            _ipAddressSelectionRules = ipAddressSelectionRules;
+            _client = client;
+            _delay = delay;
+            _host = host;
+            _port = port;
+            _authenticationInfo = authenticationInfo;
+            _useEndpoint = false;
         }
 
         /// <summary>
@@ -73,7 +68,8 @@ namespace Neon.Rpc.Net.Tcp
         public void Start()
         {
             Stop();
-            timer = new Timer(Callback, null, INTERVAL, INTERVAL);
+            _cts = new CancellationTokenSource();
+            _timer = new Timer(Callback, _cts, INTERVAL, INTERVAL);
         }
 
         /// <summary>
@@ -81,27 +77,30 @@ namespace Neon.Rpc.Net.Tcp
         /// </summary>
         public void Stop()
         {
-            timer?.Dispose();
-            timer = null;
+            _cts.Cancel();
+            _cts.Dispose();
+            _cts = null;
+            _timer?.Dispose();
+            _timer = null;
         }
 
         void Callback(object state)
         {
-            if (client.Status == RpcClientStatus.Disconnected && !disconnectedFrom.HasValue)
+            if (_client.Status == RpcClientStatus.Disconnected && !_disconnectedFrom.HasValue)
             {
-                disconnectedFrom = DateTime.UtcNow;
+                _disconnectedFrom = DateTime.UtcNow;
                 OnDisconnected();
             }
             
-            if (client.Status != RpcClientStatus.Disconnected)
+            if (_client.Status != RpcClientStatus.Disconnected)
             {
-                disconnectedFrom = null;
+                _disconnectedFrom = null;
             }
 
-            if (disconnectedFrom.HasValue && disconnectedFrom.Value.AddMilliseconds(delay) < DateTime.UtcNow)
+            if (_disconnectedFrom.HasValue && _disconnectedFrom.Value.AddMilliseconds(_delay) < DateTime.UtcNow)
             {
-                Go();
-                disconnectedFrom = null;
+                Go((CancellationToken)state);
+                _disconnectedFrom = null;
             }
         }
 
@@ -115,7 +114,7 @@ namespace Neon.Rpc.Net.Tcp
             
         }
 
-        async void Go()
+        async void Go(CancellationToken cancellationToken)
         {
             try
             {
@@ -127,18 +126,14 @@ namespace Neon.Rpc.Net.Tcp
                 //
                 OnReconnect();
                 
-                if (useEndpoint)
-                    await client.OpenConnectionAsync(endpoint).ConfigureAwait(false);
+                if (_useEndpoint)
+                    await _client.StartSessionAsync(_endpoint, _authenticationInfo, cancellationToken).ConfigureAwait(false);
                 else
-                    await client.OpenConnectionAsync(host, port, ipAddressSelectionRules).ConfigureAwait(false);
-                if (authRequired)
-                    await client.StartSessionWithAuth(authObject);
-                else
-                    await client.StartSessionNoAuth();
+                    await _client.StartSessionAsync(_host, _port, _ipAddressSelectionRules, _authenticationInfo, cancellationToken).ConfigureAwait(false);
             }
             catch
             {
-                client.Close();
+                _client.Close();
             }
         }
 
@@ -147,7 +142,8 @@ namespace Neon.Rpc.Net.Tcp
         /// </summary>
         public void Dispose()
         {
-            timer?.Dispose();
+            _cts?.Dispose();
+            _timer?.Dispose();
         }
     }
 }

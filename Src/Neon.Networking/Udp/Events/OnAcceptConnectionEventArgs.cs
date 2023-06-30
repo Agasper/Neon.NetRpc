@@ -1,6 +1,4 @@
 ﻿using System.Net;
-using Neon.Networking.Messages;
-using Neon.Networking.Udp.Messages;
 
 namespace Neon.Networking.Udp.Events
 {
@@ -10,7 +8,7 @@ namespace Neon.Networking.Udp.Events
 
         public OnAcceptConnectionEventArgs(EndPoint endpoint)
         {
-            this.Endpoint = endpoint;
+            Endpoint = endpoint;
         }
     }
 }

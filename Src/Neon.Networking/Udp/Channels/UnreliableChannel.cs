@@ -1,7 +1,8 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
-using Neon.Networking.Udp.Messages;
 using Neon.Logging;
+using Neon.Networking.Udp.Messages;
 
 namespace Neon.Networking.Udp.Channels
 {
@@ -11,17 +12,16 @@ namespace Neon.Networking.Udp.Channels
             ChannelDescriptor descriptor, IChannelConnection connection)
             : base(logManager, descriptor, connection)
         {
-
         }
 
-        public override async Task SendDatagramAsync(Datagram datagram)
+        public override async Task SendDatagramAsync(Datagram datagram, CancellationToken cancellationToken)
         {
             if (datagram == null) throw new ArgumentNullException(nameof(datagram));
             try
             {
                 CheckDatagramValid(datagram);
                 // datagram.Sequence = GetNextSequenceOut();
-                await connection.SendDatagramAsync(datagram).ConfigureAwait(false);
+                await _connection.SendDatagramAsync(datagram, cancellationToken).ConfigureAwait(false);
             }
             finally
             {

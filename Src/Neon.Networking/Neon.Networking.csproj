@@ -1,58 +1,59 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <RootNamespace>Neon.Networking</RootNamespace>
-    <Deterministic>false</Deterministic>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <Authors>Neon</Authors>
-    <RepositoryUrl>https://github.com/Agasper/Neon.NetRpc</RepositoryUrl>
-    <PackageLicenseFile>license/LICENSE</PackageLicenseFile>
-    <Version>1.0.0</Version>
-    <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>SN\SN.snk</AssemblyOriginatorKeyFile>
-  </PropertyGroup>
+    <PropertyGroup>
+        <RootNamespace>Neon.Networking</RootNamespace>
+        <Deterministic>false</Deterministic>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <Authors>Neon</Authors>
+        <RepositoryUrl>https://github.com/Agasper/Neon.NetRpc</RepositoryUrl>
+        <PackageLicenseFile>license/LICENSE</PackageLicenseFile>
+        <Version>1.0.0</Version>
+        <SignAssembly>true</SignAssembly>
+        <AssemblyOriginatorKeyFile>SN\SN.snk</AssemblyOriginatorKeyFile>
+    </PropertyGroup>
 
-  <PropertyGroup><ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles></PropertyGroup>
+    <PropertyGroup>
+        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+    </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DefineConstants>TRACE;__CONSTRAINED__;DEBUG;NETSTANDARD;NETSTANDARD2_0</DefineConstants>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DocumentationFile>bin\Release\netstandard2.0\Neon.Networking.xml</DocumentationFile>
-    <NoWarn>1701;1702;1591</NoWarn>
-  </PropertyGroup>
-  <ItemGroup>
-    <None Include="../../LICENSE" Pack="true" PackagePath="license" />
-    <None Update="link.xml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      <PackageCopyToOutput>true</PackageCopyToOutput> <!-- https://github.com/NuGet/Home/issues/9879 -->
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Tcp\" />
-    <Folder Include="Tcp\Messages\" />
-    <Folder Include="Tcp\Events\" />
-    <Folder Include="IO\" />
-    <Folder Include="Cryptography\" />
-    <Folder Include="Udp\" />
-    <Folder Include="Udp\Exceptions\" />
-    <Folder Include="Udp\Messages\" />
-    <Folder Include="Udp\Channels\" />
-    <Folder Include="Messages\" />
-    <Folder Include="Udp\Events\" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="SharpZipLib" Version="1.3.1" />
-    <PackageReference Include="System.Buffers" Version="4.5.1" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Remove="SN\SN.snk" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Neon.Logging\Neon.Logging.csproj" />
-    <ProjectReference Include="..\Neon.Util\Neon.Util.csproj" />
-  </ItemGroup>
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+        <DefineConstants>TRACE;__CONSTRAINED__;DEBUG;NETSTANDARD;NETSTANDARD2_0</DefineConstants>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <DocumentationFile>bin\Release\netstandard2.0\Neon.Networking.xml</DocumentationFile>
+        <NoWarn>1701;1702;1591</NoWarn>
+    </PropertyGroup>
+    <ItemGroup>
+        <None Include="../../LICENSE" Pack="true" PackagePath="license" />
+        <None Update="link.xml">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <PackageCopyToOutput>true</PackageCopyToOutput> <!-- https://github.com/NuGet/Home/issues/9879 -->
+        </None>
+    </ItemGroup>
+    <ItemGroup>
+        <Folder Include="Cryptography\" />
+        <Folder Include="Tcp\" />
+        <Folder Include="Tcp\Messages\" />
+        <Folder Include="Tcp\Events\" />
+        <Folder Include="Udp\" />
+        <Folder Include="Udp\Exceptions\" />
+        <Folder Include="Udp\Messages\" />
+        <Folder Include="Udp\Channels\" />
+        <Folder Include="Udp\Events\" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Neon.Protobuf-Unity" Version="3.21.1" />
+        <PackageReference Include="SharpZipLib" Version="1.4.2" />
+        <PackageReference Include="System.Buffers" Version="4.5.1" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Remove="SN\SN.snk" />
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Neon.Logging\Neon.Logging.csproj" />
+        <ProjectReference Include="..\Neon.Util\Neon.Util.csproj" />
+    </ItemGroup>
 </Project>

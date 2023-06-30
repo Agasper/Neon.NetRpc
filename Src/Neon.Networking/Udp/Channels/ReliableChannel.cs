@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Neon.Networking.Udp.Messages;
 using Neon.Logging;
+using Neon.Networking.Udp.Messages;
 using Neon.Util;
 
 namespace Neon.Networking.Udp.Channels
@@ -11,61 +11,53 @@ namespace Neon.Networking.Udp.Channels
     {
         const int START_WINDOW_SIZE = 64;
 
-        int recvWindowStart;
-        bool[] recvEarlyReceived;
-        Datagram[] recvWithheld;
+        readonly bool _ordered;
+        readonly bool[] _recvEarlyReceived;
+        readonly Datagram[] _recvWithheld;
+        readonly Queue<DelayedPacket> _sendDelayedPackets;
+        readonly PendingPacket[] _sendPendingPackets;
+        readonly int _windowSize;
 
-        int ackWindowStart;
-        int windowSize;
-        PendingPacket[] sendPendingPackets;
-        Queue<DelayedPacket> sendDelayedPackets;
+        int _ackWindowStart;
+        bool _disposed;
 
-        bool ordered;
-        bool disposed;
+        int _recvWindowStart;
 
         public ReliableChannel(ILogManager logManager,
             ChannelDescriptor descriptor, IChannelConnection connection, bool ordered)
-                : base(logManager, descriptor, connection)
+            : base(logManager, descriptor, connection)
         {
-            this.ordered = ordered;
-            this.recvWindowStart = 0;
-            this.ackWindowStart = 0;
-            this.windowSize = START_WINDOW_SIZE;
+            _ordered = ordered;
+            _recvWindowStart = 0;
+            _ackWindowStart = 0;
+            _windowSize = START_WINDOW_SIZE;
             if (ordered)
-                this.recvWithheld = new Datagram[START_WINDOW_SIZE];
+                _recvWithheld = new Datagram[START_WINDOW_SIZE];
             else
-                this.recvEarlyReceived = new bool[START_WINDOW_SIZE];
-            this.sendPendingPackets = new PendingPacket[START_WINDOW_SIZE];
-            this.sendDelayedPackets = new Queue<DelayedPacket>();
+                _recvEarlyReceived = new bool[START_WINDOW_SIZE];
+            _sendPendingPackets = new PendingPacket[START_WINDOW_SIZE];
+            _sendDelayedPackets = new Queue<DelayedPacket>();
         }
 
         public override void Dispose()
         {
-            if (!disposed)
+            if (!_disposed)
                 return;
-            disposed = true;
-            lock (channelMutex)
+            _disposed = true;
+            lock (_channelMutex)
             {
-                if (recvWithheld != null)
-                {
-                    for (int i = 0; i < recvWithheld.Length; i++)
+                if (_recvWithheld != null)
+                    for (var i = 0; i < _recvWithheld.Length; i++)
                     {
-                        var record = recvWithheld[i];
+                        Datagram record = _recvWithheld[i];
                         if (record != null)
                             record.Dispose();
-                        recvWithheld[i] = null;
+                        _recvWithheld[i] = null;
                     }
-                }
 
-                for (int i = 0; i < sendPendingPackets.Length; i++)
-                {
-                    sendPendingPackets[i].Clear();
-                }
+                for (var i = 0; i < _sendPendingPackets.Length; i++) _sendPendingPackets[i].Clear();
 
-                foreach (var delayedPacket in sendDelayedPackets)
-                {
-                    delayedPacket.Dispose();
-                }
+                foreach (DelayedPacket delayedPacket in _sendDelayedPackets) delayedPacket.Dispose();
             }
         }
 
@@ -74,32 +66,32 @@ namespace Neon.Networking.Udp.Channels
         {
             try
             {
-                lock (channelMutex)
+                lock (_channelMutex)
                 {
-                    int relate = RelativeSequenceNumber(datagram.Sequence, ackWindowStart);
+                    int relate = RelativeSequenceNumber(datagram.Sequence, _ackWindowStart);
                     if (relate < 0)
                     {
-                        logger.Trace($"{SignForLogs} got duplicate/late ack");
+                        _logger.Trace($"{SignForLogs} got duplicate/late ack");
                         return; //late/duplicate ack
                     }
 
                     if (relate == 0)
                     {
-                        logger.Trace($"{SignForLogs} got ack {datagram} just in time, clearing pending datagrams...");
+                        _logger.Trace($"{SignForLogs} got ack {datagram} just in time, clearing pending datagrams...");
                         //connection.UpdateLatency(sendPendingPackets[ackWindowStart % WINDOW_SIZE].GetDelay());
 
-                        int delayedPacketsCounter = 0;
+                        var delayedPacketsCounter = 0;
 
-                        sendPendingPackets[ackWindowStart % windowSize].Clear();
-                        ackWindowStart = (ackWindowStart + 1) % MAX_SEQUENCE;
+                        _sendPendingPackets[_ackWindowStart % _windowSize].Clear();
+                        _ackWindowStart = (_ackWindowStart + 1) % MAX_SEQUENCE;
                         delayedPacketsCounter++;
 
-                        while (sendPendingPackets[ackWindowStart % windowSize].AckReceived)
+                        while (_sendPendingPackets[_ackWindowStart % _windowSize].AckReceived)
                         {
-                            logger.Trace(
-                                $"{SignForLogs} clearing early pending {sendPendingPackets[ackWindowStart % windowSize].Datagram}");
-                            sendPendingPackets[ackWindowStart % windowSize].Clear();
-                            ackWindowStart = (ackWindowStart + 1) % MAX_SEQUENCE;
+                            _logger.Trace(
+                                $"{SignForLogs} clearing early pending {_sendPendingPackets[_ackWindowStart % _windowSize].Datagram}");
+                            _sendPendingPackets[_ackWindowStart % _windowSize].Clear();
+                            _ackWindowStart = (_ackWindowStart + 1) % MAX_SEQUENCE;
                             delayedPacketsCounter++;
                         }
 
@@ -126,27 +118,27 @@ namespace Neon.Networking.Udp.Channels
 
                     //} while (curSequence != ackWindowStart);
 
-                    int sendRelate = RelativeSequenceNumber(datagram.Sequence, lastSequenceOut);
+                    int sendRelate = RelativeSequenceNumber(datagram.Sequence, _lastSequenceOut);
                     if (sendRelate < 0)
                     {
-                        if (sendRelate < -windowSize)
+                        if (sendRelate < -_windowSize)
                         {
-                            logger.Trace($"{SignForLogs} very old ack received");
+                            _logger.Trace($"{SignForLogs} very old ack received");
                             return;
                         }
 
                         //we have sent this message, it's just early
-                        if (sendPendingPackets[datagram.Sequence % START_WINDOW_SIZE].GotAck())
-                        {
+                        if (_sendPendingPackets[datagram.Sequence % START_WINDOW_SIZE].GotAck())
                             //connection.UpdateLatency(sendPendingPackets[ackWindowStart % WINDOW_SIZE].GetDelay());
-                            logger.Trace($"{SignForLogs} got early ack {datagram}, sendRelate:{sendRelate} relate:{relate}");
-                        }
+                            _logger.Trace(
+                                $"{SignForLogs} got early ack {datagram}, sendRelate:{sendRelate} relate:{relate}");
                         else
-                            logger.Trace($"{SignForLogs} got ack {datagram} for packet we're not waiting for {sendRelate} {relate}");
+                            _logger.Trace(
+                                $"{SignForLogs} got ack {datagram} for packet we're not waiting for {sendRelate} {relate}");
                     }
                     else if (sendRelate > 0)
                     {
-                        logger.Debug($"{SignForLogs} got ack {datagram} for message we have not sent");
+                        _logger.Debug($"{SignForLogs} got ack {datagram} for message we have not sent");
                     }
                 }
             }
@@ -154,18 +146,22 @@ namespace Neon.Networking.Udp.Channels
             {
                 datagram.Dispose();
             }
-
-
         }
 
-                
+
         void AdvanceWindow()
         {
-            if (ordered)
-                recvWithheld[recvWindowStart % START_WINDOW_SIZE] = null;
+            if (_ordered)
+                _recvWithheld[_recvWindowStart % START_WINDOW_SIZE] = null;
             else
-                recvEarlyReceived[recvWindowStart % START_WINDOW_SIZE] = false;
-            recvWindowStart = (recvWindowStart + 1) % MAX_SEQUENCE;
+                _recvEarlyReceived[_recvWindowStart % START_WINDOW_SIZE] = false;
+            _recvWindowStart = (_recvWindowStart + 1) % MAX_SEQUENCE;
+        }
+
+        async Task SendAck(Datagram datagram)
+        {
+            using(Datagram ack = datagram.CreateAck())
+                await _connection.SendDatagramAsync(ack, _connection.CancellationToken);
         }
 
         public override void OnDatagram(Datagram datagram)
@@ -178,14 +174,14 @@ namespace Neon.Networking.Udp.Channels
                 return;
             }
 
-            _ = connection.SendDatagramAsync(datagram.CreateAck());
+            _ = SendAck(datagram);
 
-            int relate = 0;
-            List<Datagram> releaseDatagramBuffer = new List<Datagram>();
+            var relate = 0;
+            var releaseDatagramBuffer = new List<Datagram>();
 
-            lock (channelMutex)
+            lock (_channelMutex)
             {
-                relate = RelativeSequenceNumber(datagram.Sequence, recvWindowStart);
+                relate = RelativeSequenceNumber(datagram.Sequence, _recvWindowStart);
                 if (relate == 0)
                 {
                     //right in time
@@ -194,27 +190,23 @@ namespace Neon.Networking.Udp.Channels
 
                     int nextSeqNr = (datagram.Sequence + 1) % MAX_SEQUENCE;
 
-                    if (ordered)
-                    {
-                        while (recvWithheld[nextSeqNr % windowSize] != null)
+                    if (_ordered)
+                        while (_recvWithheld[nextSeqNr % _windowSize] != null)
                         {
-                            releaseDatagramBuffer.Add(recvWithheld[nextSeqNr % windowSize]);
+                            releaseDatagramBuffer.Add(_recvWithheld[nextSeqNr % _windowSize]);
                             AdvanceWindow();
                             nextSeqNr++;
                         }
-                    }
                     else
-                    {
-                        while (recvEarlyReceived[nextSeqNr % windowSize])
+                        while (_recvEarlyReceived[nextSeqNr % _windowSize])
                         {
                             AdvanceWindow();
                             nextSeqNr++;
                         }
-                    }
                 }
             }
 
-            for (int i = 0; i < releaseDatagramBuffer.Count; i++)
+            for (var i = 0; i < releaseDatagramBuffer.Count; i++)
                 ReleaseDatagram(releaseDatagramBuffer[i]);
 
             if (relate == 0)
@@ -223,61 +215,64 @@ namespace Neon.Networking.Udp.Channels
             if (relate < 0)
             {
                 //duplicate
-                logger.Trace($"{SignForLogs} dropped duplicate {datagram}");
+                _logger.Trace($"{SignForLogs} dropped duplicate {datagram}");
                 datagram.Dispose();
                 return;
             }
 
-            if (relate > windowSize)
+            if (relate > _windowSize)
             {
                 //too early message
-                logger.Trace($"{SignForLogs} dropped too early {datagram}");
+                _logger.Trace($"{SignForLogs} dropped too early {datagram}");
                 datagram.Dispose();
                 return;
             }
 
-            if (ordered)
+            if (_ordered)
             {
-                if (recvWithheld[datagram.Sequence % START_WINDOW_SIZE] != null)
+                if (_recvWithheld[datagram.Sequence % START_WINDOW_SIZE] != null)
                 {
                     //duplicate
-                    logger.Trace($"{SignForLogs} dropped duplicate {datagram}");
+                    _logger.Trace($"{SignForLogs} dropped duplicate {datagram}");
                     datagram.Dispose();
                     return;
                 }
 
-                recvWithheld[datagram.Sequence % START_WINDOW_SIZE] = datagram;
+                _recvWithheld[datagram.Sequence % START_WINDOW_SIZE] = datagram;
             }
             else
             {
-                if (recvEarlyReceived[datagram.Sequence % START_WINDOW_SIZE])
+                if (_recvEarlyReceived[datagram.Sequence % START_WINDOW_SIZE])
                 {
                     //duplicate
-                    logger.Trace($"{SignForLogs} dropped duplicate {datagram}");
+                    _logger.Trace($"{SignForLogs} dropped duplicate {datagram}");
                     datagram.Dispose();
                     return;
                 }
 
-                recvEarlyReceived[datagram.Sequence % START_WINDOW_SIZE] = true;
+                _recvEarlyReceived[datagram.Sequence % START_WINDOW_SIZE] = true;
                 ReleaseDatagram(datagram);
             }
         }
 
         public override void PollEvents()
         {
-            lock (channelMutex) //resending packets
+            lock (_channelMutex) //resending packets
             {
-                int ackWindowStart = this.ackWindowStart;
-                int lastSequenceOut = this.lastSequenceOut;
+                int ackWindowStart = _ackWindowStart;
+                int lastSequenceOut = _lastSequenceOut;
 
-                for (int pendingSeq = ackWindowStart; pendingSeq != lastSequenceOut; pendingSeq = (pendingSeq + 1) % MAX_SEQUENCE)
+                for (int pendingSeq = ackWindowStart;
+                     pendingSeq != lastSequenceOut;
+                     pendingSeq = (pendingSeq + 1) % MAX_SEQUENCE)
                 {
-                    ref PendingPacket pendingPacket = ref sendPendingPackets[pendingSeq % START_WINDOW_SIZE];
-                    var delay = pendingPacket.GetDelay();
-                    if (pendingPacket.TryReSend(connection.GetInitialResendDelay(), true))
+                    ref PendingPacket pendingPacket = ref _sendPendingPackets[pendingSeq % START_WINDOW_SIZE];
+                    int delay = pendingPacket.GetDelay();
+                    if (pendingPacket.TryReSend(_connection.GetInitialResendDelay(), true))
                     {
-                        connection.SendDatagramAsync(pendingPacket.Datagram);
-                        logger.Debug($"{SignForLogs} resending {pendingPacket.Datagram} after {delay}ms with num {pendingPacket.ReSendNum}");
+                        _connection.SendDatagramAsync(pendingPacket.Datagram, _connection.CancellationToken);
+                        _logger.Debug(
+                            $"{SignForLogs} resending {pendingPacket.Datagram} after {delay}ms with num {pendingPacket.ReSendNum}");
                     }
                 }
             }
@@ -285,29 +280,27 @@ namespace Neon.Networking.Udp.Channels
 
         void TrySendDelayedPackets(int count)
         {
-            lock (channelMutex)
+            lock (_channelMutex)
             {
-                int counter = 0;
-                while (sendDelayedPackets.Count > 0 && counter++ < count)
-                {
-                    SendImmediately(sendDelayedPackets.Dequeue());
-                }
+                var counter = 0;
+                while (_sendDelayedPackets.Count > 0 && counter++ < count)
+                    SendImmediately(_sendDelayedPackets.Dequeue());
             }
         }
 
-        public override async Task SendDatagramAsync(Datagram datagram)
+        public override async Task SendDatagramAsync(Datagram datagram, CancellationToken cancellationToken)
         {
             CheckDatagramValid(datagram);
 
             if (!await SendImmediately(datagram).ConfigureAwait(false))
             {
-                logger.Debug(
-                    $"{SignForLogs} can't send right now (window is full) {datagram}. Delaying... Queue: {sendDelayedPackets.Count}");
+                _logger.Debug(
+                    $"{SignForLogs} can't send right now (window is full) {datagram}. Delaying... Queue: {_sendDelayedPackets.Count}");
 
-                DelayedPacket delayedPacket = new DelayedPacket(datagram);
-                lock (channelMutex)
+                var delayedPacket = new DelayedPacket(datagram);
+                lock (_channelMutex)
                 {
-                    sendDelayedPackets.Enqueue(delayedPacket);
+                    _sendDelayedPackets.Enqueue(delayedPacket);
                 }
 
                 await delayedPacket.Task.ConfigureAwait(false);
@@ -317,38 +310,37 @@ namespace Neon.Networking.Udp.Channels
 
         void SendImmediately(DelayedPacket delayedPacket)
         {
-            var datagram = delayedPacket.Datagram;
+            Datagram datagram = delayedPacket.Datagram;
             datagram.Sequence = GetNextSequenceOut();
-            sendPendingPackets[datagram.Sequence % START_WINDOW_SIZE].Init(datagram);
-            _ = connection.SendDatagramAsync(datagram).ContinueWith((t, state) =>
+            _sendPendingPackets[datagram.Sequence % START_WINDOW_SIZE].Init(datagram);
+            _ = _connection.SendDatagramAsync(datagram, _connection.CancellationToken).ContinueWith((t, state) =>
             {
-                DelayedPacket delayedPacket_ = (DelayedPacket)state;
+                var delayedPacket_ = (DelayedPacket) state;
                 if (t.IsFaulted)
                     delayedPacket_.SetException(t.Exception.GetInnermostException());
                 else if (t.IsCompleted)
                     delayedPacket_.SetComplete();
                 else
                     delayedPacket_.SetCancelled();
-                    
             }, delayedPacket, CancellationToken.None);
         }
 
         async Task<bool> SendImmediately(Datagram datagram)
         {
-            bool result = false;
-            lock (channelMutex)
+            var result = false;
+            lock (_channelMutex)
             {
                 if (CanSendImmediately())
                 {
                     result = true;
                     datagram.Sequence = GetNextSequenceOut();
-                    sendPendingPackets[datagram.Sequence % START_WINDOW_SIZE].Init(datagram);
+                    _sendPendingPackets[datagram.Sequence % START_WINDOW_SIZE].Init(datagram);
                 }
             }
 
             if (result)
             {
-                await connection.SendDatagramAsync(datagram).ConfigureAwait(false);
+                await _connection.SendDatagramAsync(datagram, _connection.CancellationToken).ConfigureAwait(false);
                 return true;
             }
 
@@ -357,11 +349,11 @@ namespace Neon.Networking.Udp.Channels
 
         bool CanSendImmediately()
         {
-            int lastSequenceOut = this.lastSequenceOut;
-            int ackWindowStart = this.ackWindowStart;
+            int lastSequenceOut = _lastSequenceOut;
+            int ackWindowStart = _ackWindowStart;
 
             int relate = RelativeSequenceNumber(lastSequenceOut, ackWindowStart);
-            return relate < windowSize;
+            return relate < _windowSize;
         }
     }
 }

@@ -1,6 +1,4 @@
-﻿using static Neon.Networking.Tcp.TcpClient;
-
-namespace Neon.Networking.Tcp.Events
+﻿namespace Neon.Networking.Tcp.Events
 {
     public class ClientStatusChangedEventArgs
     {
@@ -9,8 +7,8 @@ namespace Neon.Networking.Tcp.Events
 
         internal ClientStatusChangedEventArgs(TcpClientStatus newStatus, TcpClient client)
         {
-            this.Client = client;
-            this.Status = newStatus;
+            Client = client;
+            Status = newStatus;
         }
     }
 }

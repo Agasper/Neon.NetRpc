@@ -6,7 +6,7 @@ namespace Neon.Logging
     {
         public string Name { get; }
         public LogSeverity Severity { get; }
-        
+
         public LoggingNameFilter(string name, LogSeverity severity)
         {
             Name = name;
@@ -24,13 +24,13 @@ namespace Neon.Logging
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != this.GetType()) return false;
+            if (obj.GetType() != GetType()) return false;
             return Equals((LoggingNameFilter) obj);
         }
 
         public override int GetHashCode()
         {
-            return (Name != null ? Name.GetHashCode() : 0);
+            return Name != null ? Name.GetHashCode() : 0;
         }
     }
 }

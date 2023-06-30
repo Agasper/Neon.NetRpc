@@ -3,7 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
+        <Nullable>disable</Nullable>
         <AssemblyName>Neon.Test.Util</AssemblyName>
         <RootNamespace>Neon.Test.Util</RootNamespace>
         <IsPublishable>false</IsPublishable>

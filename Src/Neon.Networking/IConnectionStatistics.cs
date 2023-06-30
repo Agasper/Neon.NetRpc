@@ -4,7 +4,7 @@ namespace Neon.Networking
     {
         int? Latency { get; }
         int? AvgLatency { get; }
-        
+
         long PacketsOutTotal { get; }
         long PacketsInTotal { get; }
         long BytesOutTotal { get; }

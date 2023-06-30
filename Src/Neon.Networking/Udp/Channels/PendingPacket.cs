@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks;
 using Neon.Networking.Udp.Messages;
 
 namespace Neon.Networking.Udp.Channels
@@ -13,43 +12,43 @@ namespace Neon.Networking.Udp.Channels
 
         public void Init(Datagram datagram)
         {
-            this.Timestamp = DateTime.UtcNow;
-            this.Datagram = datagram;
-            this.ReSendNum = 0;
-            this.AckReceived = false;
+            Timestamp = DateTime.UtcNow;
+            Datagram = datagram;
+            ReSendNum = 0;
+            AckReceived = false;
         }
 
         public int GetDelay()
         {
-            return (int)(DateTime.UtcNow - Timestamp).TotalMilliseconds;
+            return (int) (DateTime.UtcNow - Timestamp).TotalMilliseconds;
         }
 
         public bool GotAck()
         {
             if (Datagram == null)
                 return false;
-            this.AckReceived = true;
+            AckReceived = true;
             return true;
         }
 
         public void Clear()
         {
-            this.Datagram?.Dispose();
-            this.Datagram = null;
-            this.AckReceived = false;
+            Datagram?.Dispose();
+            Datagram = null;
+            AckReceived = false;
         }
 
         public bool TryReSend(int resendDelay, bool multiplyOnSendNum)
         {
-            var datagram = Datagram;
+            Datagram datagram = Datagram;
             if (datagram == null)
                 return false;
-            if (this.AckReceived)
+            if (AckReceived)
                 return false;
 
             int actualDelay = resendDelay;
             if (multiplyOnSendNum)
-                actualDelay *= (ReSendNum + 1);
+                actualDelay *= ReSendNum + 1;
             if ((DateTime.UtcNow - Timestamp).TotalMilliseconds < actualDelay)
                 return false;
 
