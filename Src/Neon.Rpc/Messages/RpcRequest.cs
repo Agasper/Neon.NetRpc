@@ -4,7 +4,7 @@ using Neon.Util.Pooling;
 
 namespace Neon.Rpc.Messages
 {
-    public class RpcRequest : RpcMessageBase
+    class RpcRequest : RpcMessageBase
     {
         public string Path { get => _header.Data.RpcRequest.Path; set => _header.Data.RpcRequest.Path = value; }
         public bool ExpectResponse { get => _header.Data.RpcRequest.ExpectResponse; set => _header.Data.RpcRequest.ExpectResponse = value; }

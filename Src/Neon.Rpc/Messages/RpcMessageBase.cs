@@ -6,7 +6,7 @@ using Neon.Util.Pooling;
 
 namespace Neon.Rpc.Messages
 {
-    public abstract class RpcMessageBase : IDisposable
+    abstract class RpcMessageBase : IDisposable
     {
         public int MessageId { get => _header.MessageId; set => _header.MessageId = value; }
         public bool HasPayload { get => _header.HasPayload; set => _header.HasPayload = value; }

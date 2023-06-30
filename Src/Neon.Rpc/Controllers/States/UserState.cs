@@ -2,7 +2,7 @@ using Neon.Rpc.Messages;
 
 namespace Neon.Rpc.Controllers.States
 {
-    public struct UserState
+    struct UserState
     {
         public RpcSessionBase _session;
         public RpcObjectScheme _rpcObjectScheme;

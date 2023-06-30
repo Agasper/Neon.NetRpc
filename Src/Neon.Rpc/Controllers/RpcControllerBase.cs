@@ -124,14 +124,14 @@ namespace Neon.Rpc.Controllers
                             RpcRequest rpcRequest = new RpcRequest(_context.Configuration.MemoryManager, header, payload);
                             baseMessage = rpcRequest;
                             if (!_logger.IsFiltered(LogSeverity.TRACE))
-                                _logger.Trace($"{GetLogsSign()} received a message {rpcRequest.ToString(_context.Configuration.LogMessageBody)} from {rawMessage}");
+                                _logger.Trace($"{GetLogsSign()} received a message {rpcRequest.ToString(_context.Configuration.LogMessageBodyDebug)} from {rawMessage}");
                             OnRpcRequest(rpcRequest);
                             break;
                         case RpcMessageHeaderDataProto.MessageTypeOneofCase.RpcResponse:
                             RpcResponse rpcResponse = new RpcResponse(_context.Configuration.MemoryManager, header, payload);
                             baseMessage = rpcResponse;
                             if (!_logger.IsFiltered(LogSeverity.TRACE))
-                                _logger.Trace($"{GetLogsSign()} received a message {rpcResponse.ToString(_context.Configuration.LogMessageBody)} from {rawMessage}");
+                                _logger.Trace($"{GetLogsSign()} received a message {rpcResponse.ToString(_context.Configuration.LogMessageBodyDebug)} from {rawMessage}");
                             OnRpcResponse(rpcResponse);
                             break;
                         default:
@@ -357,7 +357,7 @@ namespace Neon.Rpc.Controllers
                     rpcMessage.WriteTo(rawMessage);
                     
                     if (!_logger.IsFiltered(LogSeverity.TRACE))
-                        _logger.Trace($"{GetLogsSign()} sending {rpcMessage.ToString(_context.Configuration.LogMessageBody)} as {rawMessage}");
+                        _logger.Trace($"{GetLogsSign()} sending {rpcMessage.ToString(_context.Configuration.LogMessageBodyDebug)} as {rawMessage}");
 
                     await CompressAndSendRawMessageAsync(rawMessage, deliveryType, channel, cancellationToken);
                     _logger.Debug($"{GetLogsSign()} sent {rpcMessage}");

@@ -3,13 +3,13 @@ using Neon.Util.Pooling;
 
 namespace Neon.Rpc.Messages
 {
-    public interface IRpcPayload
+    interface IRpcPayload
     {
         byte[] Array { get; }
         int Size { get; }
     }
     
-    public class RpcPayload : IRpcPayload, IDisposable
+    class RpcPayload : IRpcPayload, IDisposable
     {
         public byte[] Array
         {

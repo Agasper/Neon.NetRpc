@@ -1,8 +1,7 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
-using Google.Protobuf.WellKnownTypes;
 
-namespace Neon.Rpc.Net
+namespace Neon.Rpc
 {
     /// <summary>
     /// RPC session factory

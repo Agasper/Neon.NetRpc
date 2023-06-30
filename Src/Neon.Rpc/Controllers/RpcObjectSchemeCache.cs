@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace Neon.Rpc.Controllers
 {
-    public static class RpcObjectSchemeCache
+    static class RpcObjectSchemeCache
     {
         static ConditionalWeakTable<Type, RpcObjectScheme> _weakTable =
             new ConditionalWeakTable<Type, RpcObjectScheme>();

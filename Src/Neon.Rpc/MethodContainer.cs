@@ -13,7 +13,7 @@ namespace Neon.Rpc
     /// <summary>
     /// Container optimizes any method execution with a lambda expressions
     /// </summary>
-    public class MethodContainer
+    class MethodContainer
     {
         delegate object DInvokeDelegate(object instance, IMessage arg, CancellationToken cancellationToken);
         delegate IMessage DGetTaskResult(Task task);

@@ -4,7 +4,7 @@ using Neon.Util.Pooling;
 
 namespace Neon.Rpc.Messages
 {
-    public class RpcResponse : RpcMessageBase
+    class RpcResponse : RpcMessageBase
     {
         public RpcResponseStatusCode StatusCode { get => (RpcResponseStatusCode)_header.Data.RpcResponse.StatusCode; set => _header.Data.RpcResponse.StatusCode = (int)value; }
         

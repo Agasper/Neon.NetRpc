@@ -19,7 +19,7 @@ namespace Neon.Rpc.Net
         
         public virtual IMemoryManager MemoryManager { get => _memoryManager; set { CheckLocked(); CheckNull(value); _memoryManager = value; } }
         
-        public bool LogMessageBody { get => _logMessageBody; set { CheckLocked(); CheckNull(value); _logMessageBody = value; } }
+        public bool LogMessageBodyDebug { get => _logMessageBodyDebug; set { CheckLocked(); CheckNull(value); _logMessageBodyDebug = value; } }
         /// <summary>
         /// Should methods be executed in the same order as come, or we can execute they simultaneously (default: false)
         /// </summary>
@@ -59,7 +59,7 @@ namespace Neon.Rpc.Net
         CryptographyConfiguration _cryptographyConfiguration;
         ISessionFactory _sessionFactory;
         bool _orderedExecution;
-        bool _logMessageBody;
+        bool _logMessageBodyDebug;
         int _orderedExecutionMaxQueue;
         int _compressionThreshold;
         CompressionLevel _compressionLevel;
