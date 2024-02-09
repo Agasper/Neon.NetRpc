@@ -166,7 +166,7 @@ namespace Neon.Rpc.Controllers
             if (!_context.Configuration.OrderedExecution)
             {
                 await Task.Factory.StartNew(() => ExecuteRequestInternalAsync(request, cancellationToken), 
-                    cancellationToken, TaskCreationOptions.None,
+                    cancellationToken, TaskCreationOptions.DenyChildAttach,
                     _context.Configuration.TaskScheduler ?? TaskScheduler.Default).Unwrap();
             }
             else
@@ -178,7 +178,9 @@ namespace Neon.Rpc.Controllers
                     newTask = _orderedExecutionTask.ContinueWith((t, o)
                         => ExecuteRequestInternalAsync(o as RpcRequest, cancellationToken), request,
                         cancellationToken,
-                            TaskContinuationOptions.ExecuteSynchronously,
+                            TaskContinuationOptions.ExecuteSynchronously | 
+                            TaskContinuationOptions.LazyCancellation |
+                        TaskContinuationOptions.DenyChildAttach,
                         _context.Configuration.TaskScheduler ?? TaskScheduler.Default).Unwrap();
                     _orderedExecutionTask = newTask;
                 }
@@ -226,16 +228,17 @@ namespace Neon.Rpc.Controllers
         void OnRpcRequest(RpcRequest request)
         {
             _logger.Trace($"{GetLogsSign()} starting local execution of {request}");
-            EnqueueAndSynchronizeRequest(request, _context.Connection.CancellationToken).ContinueWith(t =>
+            EnqueueAndSynchronizeRequest(request, _context.Connection.CancellationToken).ContinueWith((t, state) =>
             {
+                RpcRequest request_ = (RpcRequest)state;
                 if (t.IsFaulted)
-                    _logger.Error($"{GetLogsSign()} local exception in request processing {request}", t.Exception);
+                    _logger.Error($"{GetLogsSign()} local exception in request processing {request_}", t.Exception);
                 else if (t.IsCanceled)
-                    _logger.Debug($"{GetLogsSign()} local execution cancelled for request {request}");
+                    _logger.Debug($"{GetLogsSign()} local execution cancelled for request {request_}");
                 else if(t.IsCompleted)
-                    _logger.Debug($"{GetLogsSign()} locally executed {request} successfully");
-                request.Dispose();
-            }, TaskContinuationOptions.ExecuteSynchronously);
+                    _logger.Debug($"{GetLogsSign()} locally executed {request_} successfully");
+                request_.Dispose();
+            }, request, TaskContinuationOptions.ExecuteSynchronously);
         }
 
         void OnRpcResponse(RpcResponse rpcResponse)
@@ -259,8 +262,7 @@ namespace Neon.Rpc.Controllers
         }
 
         protected abstract Task<IMessage> OnRpcRequestExecute(RpcRequest request, CancellationToken cancellationToken);
-
-
+        
         RpcResponse GetErrorResponse(int messageId, RpcException exception)
         {
             RpcResponse response = new RpcResponse(_context.Configuration.MemoryManager);
@@ -269,7 +271,6 @@ namespace Neon.Rpc.Controllers
             response.SetPayload(exception.CreateProto());
             return response;
         }
-
 
         PendingRpcRequest<T> CreateRequest<T>(string method, bool expectResponse, IMessage arg) where T : IMessage<T>, new()
         {
@@ -339,7 +340,7 @@ namespace Neon.Rpc.Controllers
         
         public override string ToString()
         {
-            return $"{GetType().Name}[connection_id={_context.Connection.Id},endpoint={_context.Connection.RemoteEndpoint}]";
+            return $"{GetType().Name}[connection_id={_context.Connection.Id.ToString()},endpoint={_context.Connection.RemoteEndpoint}]";
         }
 
         Task SendRpcMessageAsync(RpcMessageBase rpcMessage, CancellationToken cancellationToken)

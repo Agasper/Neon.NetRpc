@@ -21,7 +21,9 @@ namespace Neon.Util
                     {
                         Tuple<SendOrPostCallback, object> args__ = (Tuple<SendOrPostCallback, object>) args_;
                         args__.Item1(args__.Item2);
-                    }, new Tuple<SendOrPostCallback, object>(d, state), TaskContinuationOptions.RunContinuationsAsynchronously);
+                    }, new Tuple<SendOrPostCallback, object>(d, state), 
+                    TaskContinuationOptions.RunContinuationsAsynchronously |
+                    TaskContinuationOptions.DenyChildAttach);
             }
         }
 

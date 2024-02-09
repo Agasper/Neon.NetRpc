@@ -28,7 +28,7 @@ namespace Neon.Rpc.Cryptography.Ciphers
             Buffer.BlockCopy(key, 0, iv, 0, iv.Length);
             SetKey(key, iv);
         }
-        //
+        
         // public ICryptoTransform CreateEncryptor()
         // {
         //     if (!_keyInitialized)

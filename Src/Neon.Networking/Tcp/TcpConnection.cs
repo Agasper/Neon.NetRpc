@@ -593,7 +593,8 @@ namespace Neon.Networking.Tcp
                 _sendTask = _sendTask.ContinueWith(
                         (task, msg) => { return SendMessageImmediatelyInternalAsync(msg as TcpMessage); }, 
                         message, message.CancellationToken,
-                        TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default)
+                        TaskContinuationOptions.ExecuteSynchronously | 
+                        TaskContinuationOptions.LazyCancellation, TaskScheduler.Default)
                     .Unwrap();
 
                 newSendTask = _sendTask;
