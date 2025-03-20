@@ -1,7 +1,9 @@
 ﻿using System;
+using System.IO.Compression;
 using System.Net.Sockets;
 using System.Threading;
 using Neon.Logging;
+using Neon.Networking.Cryptography;
 using Neon.Util;
 using Neon.Util.Pooling;
 
@@ -9,6 +11,19 @@ namespace Neon.Networking.Tcp
 {
     public abstract class TcpConfigurationPeer
     {
+        /// <summary>
+        /// Setup cryptography settings
+        /// </summary>
+        public CryptographyConfiguration CryptographyConfiguration
+        {
+            get => _cryptographyConfiguration;
+            set
+            {
+                CheckLocked();
+                _cryptographyConfiguration = value;
+            }
+        }
+        
         /// <summary>
         ///     Allows you to simulate bad network behaviour. Packet loss applied only to UDP (default: null)
         /// </summary>
@@ -167,6 +182,34 @@ namespace Neon.Networking.Tcp
                 _contextSynchronizationMode = value;
             }
         }
+        
+        /// <summary>
+        ///  Compress all the messages if their size is more than value
+        /// </summary>
+        public int CompressionThreshold
+        {
+            get => _compressionThreshold;
+            set
+            {
+                CheckLocked();
+                _compressionThreshold = value;
+            }
+        }
+        
+        /// <summary>
+        ///  Compression level 0-9
+        /// </summary>
+        public int CompressionLevel
+        {
+            get => _compressionLevel;
+            set
+            {
+                CheckLocked();
+                if (value < 0 || value > 9)
+                    throw new ArgumentOutOfRangeException("value", value, "Value must be between 0 and 9");
+                _compressionLevel = value;
+            }
+        }
 
         protected ConnectionSimulation _connectionSimulation;
         protected ContextSynchronizationMode _contextSynchronizationMode;
@@ -174,13 +217,15 @@ namespace Neon.Networking.Tcp
         protected int _keepAliveInterval;
         protected int _keepAliveTimeout;
         protected LingerOption _lingerOption;
-
+        protected int _compressionThreshold;
+        protected int _compressionLevel;
         protected bool _locked;
         protected ILogManager _logManager;
         protected IMemoryManager _memoryManager;
         protected bool _noDelay;
         protected int _receiveBufferSize;
         protected bool _reuseAddress;
+        protected CryptographyConfiguration _cryptographyConfiguration;
 
         //internal SynchronizationContext SyncronizationContext => syncronizationContext;
 
@@ -200,6 +245,8 @@ namespace Neon.Networking.Tcp
             _keepAliveEnabled = true;
             _keepAliveInterval = 1000;
             _keepAliveTimeout = 10000;
+            _compressionThreshold = 1024;
+            _compressionLevel = 6;
         }
 
         internal void Lock()

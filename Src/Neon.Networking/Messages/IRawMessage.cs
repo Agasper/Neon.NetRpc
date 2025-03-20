@@ -23,19 +23,6 @@ namespace Neon.Networking.Messages
         /// </summary>
         int Length { get; set; }
         
-        /// <summary>Gets a value indicating whether the current message is compressed.</summary>
-        /// <returns>
-        ///     <see langword="true" /> if the message is compressed; otherwise, <see langword="false" />.
-        /// </returns>
-        bool Compressed { get; }
-
-        /// <summary>Gets a value indicating whether the current message is encrypted.</summary>
-        /// <returns>
-        ///     <see langword="true" /> if the message is encrypted; otherwise, <see langword="false" />.
-        /// </returns>
-        bool Encrypted { get; }
-
-
         /// <summary>
         ///     Copies the contents of this message into destination message.
         /// </summary>
@@ -65,43 +52,6 @@ namespace Neon.Networking.Messages
         /// <param name="bytesToCopy">The amount of bytes to copy.</param>
         /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
         void CopyTo(Stream destination, int bytesToCopy);
-
-        /// <summary>
-        ///     Decrypting the message, returning a new decrypted one
-        /// </summary>
-        /// <param name="cipher">An instance of the cipher, used for decryption</param>
-        /// <returns>A decrypted message</returns>
-        /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
-        /// <exception cref="T:System.InvalidOperationException">If the message not compressed</exception>
-        /// <exception cref="T:System.ArgumentNullException"><paramref name="cipher" /> is <see langword="null" />.</exception>
-        RawMessage Decrypt(ICipher cipher);
-
-        /// <summary>
-        ///     Encrypting the message, returning a new encrypted one
-        /// </summary>
-        /// <param name="cipher">An instance of the cipher, used for encryption</param>
-        /// <returns>An encrypted message</returns>
-        /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
-        /// <exception cref="T:System.InvalidOperationException">If the message not compressed</exception>
-        /// <exception cref="T:System.ArgumentNullException"><paramref name="cipher" /> is <see langword="null" />.</exception>
-        RawMessage Encrypt(ICipher cipher);
-        
-        /// <summary>
-        ///     Compressing the message, returning a new compressed one
-        /// </summary>
-        /// <param name="compressionLevel">Compression level</param>
-        /// <returns>A compressed message</returns>
-        /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
-        /// <exception cref="T:System.InvalidOperationException">If the message not compressed</exception>
-        RawMessage Compress(CompressionLevel compressionLevel);
-
-        /// <summary>
-        ///     Decompressing the message, returning a new decompressed one
-        /// </summary>
-        /// <returns>A decompressed message</returns>
-        /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
-        /// <exception cref="T:System.InvalidOperationException">If the message not compressed</exception>
-        RawMessage Decompress();
 
         /// <summary>
         ///     Returns a sequence containing the contents of the stream.

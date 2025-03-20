@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Neon.Logging;
 using Neon.Networking.Messages;
+using Neon.Networking.Tcp.Messages;
 using Neon.Networking.Udp.Events;
 using Neon.Networking.Udp.Messages;
 using Neon.Util.Polling;
@@ -144,12 +145,7 @@ namespace Neon.Networking.Udp
         {
             return new RawMessage(Configuration.MemoryManager, length);
         }
-
-        internal RawMessage CreateMessage(int length, bool compressed, bool encrypted)
-        {
-            return new RawMessage(Configuration.MemoryManager, length, compressed, encrypted);
-        }
-
+        
         internal Datagram CreateDatagram(ChannelDescriptor channelDescriptor)
         {
             var datagram = new Datagram(Configuration.MemoryManager);
@@ -223,13 +219,15 @@ namespace Neon.Networking.Udp
             else
             {
                 datagram = CreateDatagram(messageType, channelDescriptor, message.Length);
+                UdpMessageHeader header = new UdpMessageHeader(MessageFlagsEnum.None);
+                header.WriteToDatagram(datagram);
+                
                 message.Position = 0;
                 message.CopyTo(datagram);
+                
                 datagram.Position = 0;
             }
 
-            datagram.Compressed = message.Compressed;
-            datagram.Encrypted = message.Encrypted;
             datagram.Type = messageType;
 
             return datagram;
@@ -243,8 +241,9 @@ namespace Neon.Networking.Udp
 
         internal RawMessage ConvertDatagramToRawMessage(Datagram datagram)
         {
-            RawMessage message = CreateMessage(datagram.Length, datagram.Compressed, datagram.Encrypted);
-            datagram.Position = 0;
+            RawMessage message = CreateMessage(datagram.Length);
+            UdpMessageHeader header = UdpMessageHeader.ReadFromDatagram(datagram);
+            
             datagram.CopyTo(message);
             message.Position = 0;
             return message;

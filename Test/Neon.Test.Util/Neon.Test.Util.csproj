@@ -13,7 +13,6 @@
     <ItemGroup>
       <ProjectReference Include="..\..\Src\Neon.Logging\Neon.Logging.csproj" />
       <ProjectReference Include="..\..\Src\Neon.Networking\Neon.Networking.csproj" />
-      <ProjectReference Include="..\..\Src\Neon.Rpc\Neon.Rpc.csproj" />
       <ProjectReference Include="..\..\Src\Neon.Util\Neon.Util.csproj" />
     </ItemGroup>
 

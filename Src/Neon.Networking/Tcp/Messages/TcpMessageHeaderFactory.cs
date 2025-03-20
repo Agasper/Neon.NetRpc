@@ -1,4 +1,5 @@
 ﻿using System;
+using Neon.Networking.Messages;
 
 namespace Neon.Networking.Tcp.Messages
 {
@@ -44,8 +45,8 @@ namespace Neon.Networking.Tcp.Messages
         {
             if (!_flagsRead)
             {
-                header.Flags = (TcpMessageFlagsEnum) ((value >> 2) & 0b0000_0011);
-                header.MessageType = (TcpMessageTypeEnum) (value & 0b0000_0011);
+                header.Flags = (MessageFlagsEnum) ((value >> 2) & 0b0000_0011);
+                header.MessageType = (MessageTypeEnum) (value & 0b0000_0011);
                 _flagsRead = true;
                 return false;
             }

@@ -34,13 +34,9 @@
         </None>
     </ItemGroup>
     <ItemGroup>
-        <Folder Include="Cryptography\" />
-        <Folder Include="Tcp\" />
-        <Folder Include="Tcp\Messages\" />
         <Folder Include="Tcp\Events\" />
         <Folder Include="Udp\" />
         <Folder Include="Udp\Exceptions\" />
-        <Folder Include="Udp\Messages\" />
         <Folder Include="Udp\Channels\" />
         <Folder Include="Udp\Events\" />
     </ItemGroup>

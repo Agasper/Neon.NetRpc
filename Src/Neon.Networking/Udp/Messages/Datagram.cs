@@ -12,8 +12,6 @@ namespace Neon.Networking.Udp.Messages
         static readonly ArraySegment<byte> EMPTY_SEGMENT = new ArraySegment<byte>(new byte[0], 0, 0);
 
         public MessageType Type { get; set; }
-        public bool Compressed { get; set; }
-        public bool Encrypted { get; set; }
         public ushort Sequence { get; set; }
         public bool IsFragmented { get; private set; }
         public FragmentInfo FragmentationInfo { get; private set; }
@@ -66,16 +64,13 @@ namespace Neon.Networking.Udp.Messages
             var reader = new ByteArrayReader(data);
             byte serviceByte = reader.ReadByte();
             byte serviceByte2 = reader.ReadByte();
-            int deliveryMethod = (serviceByte & 0b_1110_0000) >> 5;
-            int channel = (byte) ((serviceByte & 0b_0001_1100) >> 2);
-            bool fragmented = (serviceByte & 0b_0000_0010) >> 1 == 1;
-            bool compressed = (serviceByte & 0b_0000_0001) == 1;
+            int channel = (byte) ((serviceByte & 0b_0000_0111));
+            DeliveryType deliveryType = (DeliveryType)((serviceByte & 0b_0011_1000) >> 3);
+            bool fragmented = (serviceByte & 0b_0100_0000) >> 6 == 1;
 
-            var datagramType = (MessageType) ((serviceByte2 & 0b_1111_0000) >> 4);
-            bool encrypted = (serviceByte2 & 0b_0000_1000) >> 3 == 1;
+            var datagramType = (MessageType) (serviceByte2 & 0b_0000_1111);
             //free bit serviceByte2 0b_0000_1111
-
-            var deliveryType = (DeliveryType) deliveryMethod;
+            
             ushort sequence = reader.ReadUInt16();
             FragmentInfo fragmentInfo = default;
             if (fragmented)
@@ -92,8 +87,6 @@ namespace Neon.Networking.Udp.Messages
             var datagram = new Datagram(memoryManager, segment, guid);
             datagram.Guid = guid;
             datagram._channel = channel;
-            datagram.Compressed = compressed;
-            datagram.Encrypted = encrypted;
             datagram.Sequence = sequence;
             datagram.Type = datagramType;
             datagram.DeliveryType = deliveryType;
@@ -110,18 +103,14 @@ namespace Neon.Networking.Udp.Messages
             var writer = new ByteArrayWriter(segment);
             var serviceByte = 0;
 
-            serviceByte |= (byte) DeliveryType << 5;
-            serviceByte |= Channel << 2;
-            if (Compressed)
-                serviceByte |= 0b_0000_0001;
+            serviceByte |= Channel;
+            serviceByte |= (byte) DeliveryType << 3;
             if (IsFragmented)
-                serviceByte |= 0b_0000_0010;
+                serviceByte |= 0b_0100_0000;
             writer.Write((byte) serviceByte);
 
             serviceByte = 0;
-            serviceByte |= (byte) Type << 4;
-            if (Encrypted)
-                serviceByte |= 0b_0000_1000;
+            serviceByte |= (byte) Type;
             writer.Write((byte) serviceByte);
 
             writer.Write(Sequence);
@@ -212,7 +201,7 @@ namespace Neon.Networking.Udp.Messages
             if (_stream != null && !_disposed)
                 len += "+" + _stream.Length;
             return
-                $"{nameof(Datagram)}[g={Guid},type={Type},dtype={DeliveryType},channel={Channel},seq={Sequence},len={len},frag={fragInfo},comp={Compressed},enc={Encrypted}]";
+                $"{nameof(Datagram)}[g={Guid},type={Type},dtype={DeliveryType},channel={Channel},seq={Sequence},len={len},frag={fragInfo}]";
         }
 
         public struct FragmentInfo

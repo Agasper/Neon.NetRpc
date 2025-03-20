@@ -1,10 +1,14 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Neon.Logging;
+using Neon.Networking.Cryptography;
+using Neon.Networking.Cryptography.Ciphers;
+using Neon.Networking.Cryptography.KeyExchange;
 using Neon.Networking.Messages;
 using Neon.Networking.Tcp.Events;
 using Neon.Networking.Tcp.Messages;
@@ -94,7 +98,7 @@ namespace Neon.Networking.Tcp
         public TcpConnectionStatistics Statistics { get; }
 
         protected DateTime? LastKeepAliveRequestReceived { get; private set; }
-        readonly TcpMessageHeaderFactory _awaitingMessageHeaderFactory;
+        readonly TcpMessageHeaderFactory _awaitingTcpMessageHeaderFactory;
         readonly CancellationTokenSource _connectionCancellationToken;
         readonly ConcurrentQueue<TcpDelayedMessage> _latencySimulationRecvQueue;
         readonly ConcurrentQueue<TcpDelayedMessage> _latencySimulationSendQueue;
@@ -105,7 +109,7 @@ namespace Neon.Networking.Tcp
         readonly IRentedArray _sendBuffer;
         readonly object _sendMutex = new object();
         readonly SemaphoreSlim _sendSemaphore;
-        TcpMessageHeader _awaitingMessageHeader;
+        TcpMessageHeader _awaitingTcpMessageHeader;
         RawMessage _awaitingNextMessage;
         bool _awaitingNextMessageHeaderValid;
         int _awaitingNextMessageWrote;
@@ -116,6 +120,9 @@ namespace Neon.Networking.Tcp
         DateTime _lastKeepAliveSent;
         int _sendQueueSize;
         volatile Task _sendTask;
+
+        IRpcCipher _cipher;
+        IKeyExchangeAlgorithm _keyExchange;
 
         Socket _socket;
 
@@ -130,7 +137,7 @@ namespace Neon.Networking.Tcp
             _sendSemaphore = new SemaphoreSlim(1, 1);
             _recvBuffer = parent.Configuration.MemoryManager.RentArray(parent.Configuration.ReceiveBufferSize);
             _sendBuffer = parent.Configuration.MemoryManager.RentArray(parent.Configuration.SendBufferSize);
-            _awaitingMessageHeaderFactory = new TcpMessageHeaderFactory();
+            _awaitingTcpMessageHeaderFactory = new TcpMessageHeaderFactory();
             Parent = parent;
             _logger = parent.Configuration.LogManager.GetLogger(typeof(TcpConnection));
             _logger.Meta["connection_endpoint"] = new RefLogLabel<TcpConnection>(this, v => v.RemoteEndpoint);
@@ -180,6 +187,7 @@ namespace Neon.Networking.Tcp
             _closed = false;
             Started = DateTime.UtcNow;
             _lastKeepAliveSent = DateTime.UtcNow;
+            CreateCryptography();
             _logger.Info($"#{Id} initialized");
 
             InitVirtual();
@@ -214,6 +222,9 @@ namespace Neon.Networking.Tcp
 
             _recvBuffer.Dispose();
             _sendBuffer.Dispose();
+            
+            _cipher?.Dispose();
+            _keyExchange?.Dispose();
 
             _logger.Debug($"#{Id} disposed!");
         }
@@ -231,6 +242,37 @@ namespace Neon.Networking.Tcp
         internal void StartReceive()
         {
             _socket.BeginReceive(_recvBuffer.Array, 0, _recvBuffer.Array.Length, SocketFlags.None, ReceiveCallback, null);
+        }
+
+        bool CreateCryptography()
+        {
+            if (Parent.Configuration.CryptographyConfiguration.EncryptionAlgorithm == EncryptionAlgorithmEnum.None)
+                return false;
+
+            _cipher = CryptographyHelper.CreateCipher(Parent.Configuration.CryptographyConfiguration.EncryptionAlgorithm);
+            _keyExchange =
+                CryptographyHelper.CreateKeyExchangeAlgorithm(
+                    Parent.Configuration.MemoryManager,
+                    Parent.Configuration.CryptographyConfiguration
+                        .KeyExchangeAlgorithm, _cipher);
+
+            return true;
+        }
+
+        internal virtual async Task OnConnected(CancellationToken cancellationToken)
+        {
+            if (_keyExchange == null)
+                return;
+
+            var clientKeyData = _keyExchange.GenerateClientKeyData();
+            using (var handshakeMessage = Parent.CreateMessage())
+            {
+                handshakeMessage.Write(clientKeyData);
+                await SendMessageInternalAsync(new TcpMessage(MessageFlagsEnum.None,
+                    MessageTypeEnum.HandshakeRequest, handshakeMessage, cancellationToken));
+            }
+
+            await _keyExchange.KeyExchangeCompleted;
         }
 
         protected internal virtual void OnConnectionClosed(ConnectionClosedEventArgs args)
@@ -331,11 +373,11 @@ namespace Neon.Networking.Tcp
                     {
                         if (bytesLeft > 0)
                         {
-                            _awaitingNextMessageHeaderValid = _awaitingMessageHeaderFactory.Write(
+                            _awaitingNextMessageHeaderValid = _awaitingTcpMessageHeaderFactory.Write(
                                 new ArraySegment<byte>(_recvBuffer.Array, recvBufferPos, bytesLeft), out int headerGotRead,
-                                out _awaitingMessageHeader);
+                                out _awaitingTcpMessageHeader);
                             recvBufferPos += headerGotRead;
-                            _logger.Trace($"#{Id} ReceiveCallback(): Read header {_awaitingMessageHeader}");
+                            _logger.Trace($"#{Id} ReceiveCallback(): Read header {_awaitingTcpMessageHeader}");
                         }
                         else
                         {
@@ -349,9 +391,7 @@ namespace Neon.Networking.Tcp
                             {
                                 var newGuid = Guid.NewGuid();
                                 _awaitingNextMessage = new RawMessage(Parent.Configuration.MemoryManager,
-                                    _awaitingMessageHeader.MessageSize,
-                                    _awaitingMessageHeader.Flags.HasFlag(TcpMessageFlagsEnum.Compressed),
-                                    _awaitingMessageHeader.Flags.HasFlag(TcpMessageFlagsEnum.Encrypted),
+                                    _awaitingTcpMessageHeader.MessageSize,
                                     newGuid, false);
                             }
                             // else
@@ -362,11 +402,11 @@ namespace Neon.Networking.Tcp
                     }
                     else
                     {
-                        if (_awaitingNextMessageWrote < _awaitingMessageHeader.MessageSize && bytesLeft > 0)
+                        if (_awaitingNextMessageWrote < _awaitingTcpMessageHeader.MessageSize && bytesLeft > 0)
                         {
                             int toRead = bytesLeft;
-                            if (toRead > _awaitingMessageHeader.MessageSize - _awaitingNextMessageWrote)
-                                toRead = _awaitingMessageHeader.MessageSize - _awaitingNextMessageWrote;
+                            if (toRead > _awaitingTcpMessageHeader.MessageSize - _awaitingNextMessageWrote)
+                                toRead = _awaitingTcpMessageHeader.MessageSize - _awaitingNextMessageWrote;
                             if (toRead > 0)
                             {
                                 _awaitingNextMessage.Write(_recvBuffer.Array, recvBufferPos, toRead);
@@ -376,10 +416,10 @@ namespace Neon.Networking.Tcp
 
                             _logger.Trace($"#{Id} ReceiveCallback(): Read {toRead} bytes in the message");
                         }
-                        else if (_awaitingNextMessageWrote == _awaitingMessageHeader.MessageSize)
+                        else if (_awaitingNextMessageWrote == _awaitingTcpMessageHeader.MessageSize)
                         {
                             _logger.Trace(
-                                $"#{Id} ReceiveCallback(): Message done {_awaitingNextMessageWrote}=={_awaitingMessageHeader.MessageSize} !");
+                                $"#{Id} ReceiveCallback(): Message done {_awaitingNextMessageWrote}=={_awaitingTcpMessageHeader.MessageSize} !");
                             Statistics.PacketIn();
                             RawMessage message = _awaitingNextMessage;
                             if (message != null)
@@ -388,9 +428,10 @@ namespace Neon.Networking.Tcp
                                 message.MakeReadOnly();
                             }
                             _awaitingNextMessage = null;
-                            OnMessageReceivedInternalWithSimulation(new TcpMessage(_awaitingMessageHeader, message, CancellationToken.None));
+                            OnMessageReceivedInternalWithSimulation(new TcpMessage(_awaitingTcpMessageHeader.Flags, 
+                                _awaitingTcpMessageHeader.MessageType, message, CancellationToken.None));
                             _awaitingNextMessageWrote = 0;
-                            _awaitingMessageHeaderFactory.Reset();
+                            _awaitingTcpMessageHeaderFactory.Reset();
                             _awaitingNextMessageHeaderValid = false;
                         }
                         else if (bytesLeft == 0)
@@ -432,7 +473,7 @@ namespace Neon.Networking.Tcp
             OnMessageReceivedInternal(message);
         }
 
-        void OnMessageReceivedInternal(TcpMessage message)
+        internal virtual void OnMessageReceivedInternal(TcpMessage message)
         {
             // if (message.Header.MessageType == TcpMessageTypeEnum.KeepAliveRequest ||
             //         message.Header.MessageType == TcpMessageTypeEnum.KeepAliveResponse)
@@ -440,25 +481,77 @@ namespace Neon.Networking.Tcp
             // else
             _logger.Debug($"#{Id} received message {message}");
 
-            if (message.Header.MessageType == TcpMessageTypeEnum.KeepAliveRequest)
+            if (message.MessageType == MessageTypeEnum.KeepAliveRequest)
             {
                 LastKeepAliveRequestReceived = DateTime.UtcNow;
-                SendMessageAsync(new TcpMessage(
-                    new TcpMessageHeader(0, TcpMessageTypeEnum.KeepAliveResponse, TcpMessageFlagsEnum.None),
+                _ = SendMessageInternalAsync(new TcpMessage(
+                    MessageFlagsEnum.None, MessageTypeEnum.KeepAliveResponse,
                     null, CancellationToken.None));
                 message.Dispose();
                 return;
             }
 
-            if (message.Header.MessageType == TcpMessageTypeEnum.KeepAliveResponse)
+            if (message.MessageType == MessageTypeEnum.KeepAliveResponse)
             {
                 Statistics.UpdateInstantLatency((int) (DateTime.UtcNow - _lastKeepAliveSent).TotalMilliseconds);
                 _keepAliveResponseGot = true;
                 message.Dispose();
                 return;
             }
+            
+            if (message.MessageType == MessageTypeEnum.HandshakeRequest)
+            {
+                if (_keyExchange == null)
+                    throw new InvalidOperationException("Client requests encrypted connection, but our encryption is disabled");
 
-            var args = new MessageEventArgs(this, message.RawMessage);
+                var keyData = message.RawMessage.ReadBytes(message.RawMessage.Length);
+                var serverKeyData = _keyExchange.KeyDataExchange(new ArraySegment<byte>(keyData, 0, keyData.Length));
+                using (var handshakeResponseMessage = Parent.CreateMessage())
+                {
+                    handshakeResponseMessage.Write(serverKeyData);
+                    _ = SendMessageInternalAsync(new TcpMessage(MessageFlagsEnum.None, 
+                        MessageTypeEnum.HandshakeResponse, handshakeResponseMessage, CancellationToken.None));
+                }
+                return;
+            }
+            
+            if (message.MessageType == MessageTypeEnum.HandshakeResponse)
+            {
+                if (_keyExchange == null)
+                    throw new InvalidOperationException("Key exchange is null on handshake response");
+
+                var keyData = message.RawMessage.ReadBytes(message.RawMessage.Length);
+                _keyExchange.UpdateServerKeyData(new ArraySegment<byte>(keyData, 0, keyData.Length));
+                return;
+            }
+
+            List<TcpMessage> toDispose = new List<TcpMessage>(2);
+            TcpMessage finalMessage = message;
+            if (message.Flags.HasFlag(MessageFlagsEnum.Compressed))
+            {
+                toDispose.Add(finalMessage);
+                finalMessage = new TcpMessage(finalMessage.Flags & MessageFlagsEnum.Compressed, finalMessage.MessageType,
+                    finalMessage.RawMessage.Decompress(), finalMessage.CancellationToken);
+            }
+
+            if (message.Flags.HasFlag(MessageFlagsEnum.Encrypted))
+            {
+                if (_keyExchange.Status != KeyExchangeStatus.CommonKeySet)
+                    throw new InvalidOperationException("We got encrypted message but key is not set");
+                toDispose.Add(finalMessage);
+                finalMessage = new TcpMessage(finalMessage.Flags & MessageFlagsEnum.Encrypted, finalMessage.MessageType,
+                    finalMessage.RawMessage.Decrypt(_cipher), finalMessage.CancellationToken);
+            }
+            else
+            {
+                if (Parent.Configuration.CryptographyConfiguration.EncryptionAlgorithm != EncryptionAlgorithmEnum.None)
+                    throw new InvalidOperationException("We require encryption connection, but other side sent it unencrypted");
+            }
+
+            foreach (var msg in toDispose)
+                msg.Dispose();
+            
+            var args = new MessageEventArgs(this, finalMessage.RawMessage);
             Parent.Configuration.SynchronizeSafe(_logger, $"{nameof(TcpConnection)}.{nameof(OnMessageReceived)}",
                 state => OnMessageReceived(state as MessageEventArgs), args
             );
@@ -476,8 +569,8 @@ namespace Neon.Networking.Tcp
                         {
                             _keepAliveResponseGot = false;
                             _lastKeepAliveSent = DateTime.UtcNow;
-                            SendMessageAsync(new TcpMessage(
-                                new TcpMessageHeader(0, TcpMessageTypeEnum.KeepAliveRequest, TcpMessageFlagsEnum.None),
+                            _ = SendMessageInternalAsync(new TcpMessage(
+                                MessageFlagsEnum.None, MessageTypeEnum.KeepAliveRequest,
                                 null, CancellationToken.None));
                         }
                         catch (Exception ex)
@@ -508,7 +601,7 @@ namespace Neon.Networking.Tcp
                     if (DateTime.UtcNow >= msg.ReleaseTimestamp)
                     {
                         if (_latencySimulationSendQueue.TryDequeue(out TcpDelayedMessage _msg))
-                            _ = SendMessageSkipSimulationAsync(_msg.Message)
+                            _ = SendMessageInQueueInternalAsync(_msg.Message)
                                 .ContinueWith(_msg.Complete, TaskContinuationOptions.ExecuteSynchronously);
                     }
                     else
@@ -559,31 +652,55 @@ namespace Neon.Networking.Tcp
         public virtual Task SendMessageAsync(IRawMessage message, CancellationToken cancellationToken)
         {
             if (message == null) throw new ArgumentNullException(nameof(message));
-            if (message.Length == 0)
-                return Task.CompletedTask;
+            if (!(message is RawMessage rawMessage))
+                throw new FormatException($"Invalid message type: {message.GetType().FullName}");
             var tcpMessage =
-                new TcpMessage(TcpMessageHeader.FromMessage(message, TcpMessageTypeEnum.UserData), message, cancellationToken);
-            return SendMessageAsync(tcpMessage);
+                new TcpMessage(MessageFlagsEnum.None, MessageTypeEnum.UserData, rawMessage, cancellationToken);
+            return SendMessageInternalAsync(tcpMessage);
         }
 
-        Task SendMessageAsync(TcpMessage message)
+        internal async Task SendMessageInternalAsync(TcpMessage message)
         {
             CheckConnected();
+            List<TcpMessage> toDispose = new List<TcpMessage>(2);
+            TcpMessage finalMessage = message;
 
-            if (Parent.Configuration.ConnectionSimulation != null)
+            try
             {
-                int delay = Parent.Configuration.ConnectionSimulation.GetHalfDelay();
-                var delayedMessage =
-                    new TcpDelayedMessage(message,
-                        DateTime.UtcNow.AddMilliseconds(delay));
-                _latencySimulationSendQueue.Enqueue(delayedMessage);
-                return delayedMessage.GetTask();
-            }
+                if (finalMessage.RawMessage.Length > Parent.Configuration.CompressionThreshold)
+                {
+                    finalMessage = new TcpMessage(finalMessage.Flags | MessageFlagsEnum.Compressed, finalMessage.MessageType,
+                        finalMessage.RawMessage.Compress(Parent.Configuration.CompressionLevel), finalMessage.CancellationToken);
+                    toDispose.Add(finalMessage);
+                }
 
-            return SendMessageSkipSimulationAsync(message);
+                if (_keyExchange != null && _keyExchange.Status == KeyExchangeStatus.CommonKeySet)
+                {
+                    finalMessage = new TcpMessage(finalMessage.Flags | MessageFlagsEnum.Encrypted, finalMessage.MessageType,
+                        finalMessage.RawMessage.Encrypt(_cipher), finalMessage.CancellationToken);
+                    toDispose.Add(finalMessage);
+                }
+                
+                if (Parent.Configuration.ConnectionSimulation != null)
+                {
+                    int delay = Parent.Configuration.ConnectionSimulation.GetHalfDelay();
+                    var delayedMessage =
+                        new TcpDelayedMessage(finalMessage,
+                            DateTime.UtcNow.AddMilliseconds(delay));
+                    _latencySimulationSendQueue.Enqueue(delayedMessage);
+                    await delayedMessage.GetTask();
+                }
+                else
+                    await SendMessageInQueueInternalAsync(finalMessage);
+            }
+            finally
+            {
+                foreach (var msg in toDispose)
+                    msg.Dispose();
+            }
         }
 
-        async Task SendMessageSkipSimulationAsync(TcpMessage message)
+        async Task SendMessageInQueueInternalAsync(TcpMessage message)
         {
             message.CancellationToken.ThrowIfCancellationRequested();
             Task newSendTask = null;
@@ -613,13 +730,17 @@ namespace Neon.Networking.Tcp
                 if (!Connected)
                     return;
 
+                if (message.RawMessage is RawMessage rawMessage)
+                    rawMessage.Locked = true;
+                    
                 // if (message.Header.MessageType == TcpMessageTypeEnum.KeepAliveRequest || 
                 //     message.Header.MessageType == TcpMessageTypeEnum.KeepAliveResponse)
                 //     logger.Trace($"#{Id} sending {message}");
                 // else
                 _logger.Debug($"#{Id} sending {message}");
 
-                ArraySegment<byte> headerBytes = TcpMessageHeaderFactory.Build(message.Header);
+                ArraySegment<byte> headerBytes = TcpMessageHeaderFactory.Build(
+                    new TcpMessageHeader(message.RawMessage.Length, message.MessageType, message.Flags));
                 Buffer.BlockCopy(headerBytes.Array, headerBytes.Offset, _sendBuffer.Array, 0, headerBytes.Count);
                 int bufferPosition = headerBytes.Count;
                 var totalBytesSent = 0;
@@ -682,6 +803,8 @@ namespace Neon.Networking.Tcp
             }
             finally
             {
+                if (message.RawMessage is RawMessage rawMessage)
+                    rawMessage.Locked = false;
                 Interlocked.Decrement(ref _sendQueueSize);
                 _sendSemaphore.Release();
             }

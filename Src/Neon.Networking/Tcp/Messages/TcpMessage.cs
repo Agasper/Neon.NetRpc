@@ -6,13 +6,15 @@ namespace Neon.Networking.Tcp.Messages
 {
     class TcpMessage : IDisposable
     {
-        public TcpMessageHeader Header { get; }
-        public IRawMessage RawMessage { get; }
+        public MessageFlagsEnum Flags { get; set; }
+        public MessageTypeEnum MessageType { get; set; }
+        public RawMessage RawMessage { get; }
         public CancellationToken CancellationToken { get; }
 
-        public TcpMessage(TcpMessageHeader header, IRawMessage rawMessage, CancellationToken cancellationToken)
+        public TcpMessage(MessageFlagsEnum flags, MessageTypeEnum type, RawMessage rawMessage, CancellationToken cancellationToken)
         {
-            Header = header;
+            Flags = flags;
+            MessageType = type;
             RawMessage = rawMessage;
             CancellationToken = cancellationToken;
         }
@@ -24,7 +26,7 @@ namespace Neon.Networking.Tcp.Messages
 
         public override string ToString()
         {
-            return $"{nameof(TcpMessage)}[message={RawMessage}]";
+            return $"{nameof(TcpMessage)}[message={RawMessage},flags={Flags},type={MessageType}]";
         }
     }
 }

@@ -12,6 +12,7 @@ namespace Neon.Networking.Messages
 {
     public abstract class BaseRawMessage : IByteReader, IByteWriter, IDisposable
     {
+        internal bool Locked { get; set; }
         public static readonly Encoding DEFAULT_ENCODING = Encoding.UTF8;
         protected readonly Encoding _encoding;
         protected readonly IMemoryManager _memoryManager;
@@ -165,6 +166,8 @@ namespace Neon.Networking.Messages
         {
             if (_readOnly)
                 throw new InvalidOperationException("Message is read-only");
+            if (Locked)
+                throw new InvalidOperationException("Message is temporary locked, due to internal operations like sending");
         }
 
         public override string ToString()
@@ -754,6 +757,22 @@ namespace Neon.Networking.Messages
             CheckDisposed();
             CheckWrite();
             _writer.Write(value);
+        }
+        
+        /// <summary>
+        ///     Writes a byte array to the underlying message with length and offset and advances the position by the length of the array
+        /// </summary>
+        /// <param name="value">The value to write.</param>
+        /// <exception cref="T:System.ObjectDisposedException">The message is disposed.</exception>
+        /// <exception cref="T:System.InvalidOperationException">The message is empty</exception>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="value" /> is <see langword="null" />.</exception>
+        public void Write(ArraySegment<byte> value)
+        {
+            if (value.Array == null)
+                throw new ArgumentNullException(nameof(value.Array));
+            CheckDisposed();
+            CheckWrite();
+            _writer.Write(value.Array, value.Offset, value.Count);
         }
 
         /// <summary>

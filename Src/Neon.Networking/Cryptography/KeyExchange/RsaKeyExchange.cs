@@ -1,0 +1,147 @@
+using System;
+using System.IO;
+using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
+using System.Threading.Tasks;
+using Google.Protobuf;
+using Neon.Util;
+using Neon.Util.Pooling;
+
+namespace Neon.Networking.Cryptography.KeyExchange
+{
+    class RsaKeyExchange : IKeyExchangeAlgorithm
+    {
+        public KeyExchangeStatus Status { get; private set; }
+        public int KeySize => _keySize;
+        public Task KeyExchangeCompleted => _keyExchangeTaskCompletionSource.Task;
+        
+        static RNGCryptoServiceProvider rngCsp = new RNGCryptoServiceProvider();
+        
+        RSACryptoServiceProvider _rsaCryptoServiceProvider;
+        readonly IMemoryManager _memoryManager;
+        readonly TaskCompletionSource<object> _keyExchangeTaskCompletionSource;
+
+        int _keySize;
+        int _commonKeySize;
+        byte[] _commonKey;
+    
+        public RsaKeyExchange(IMemoryManager memoryManager, int keySize, int commonKeySize)
+        {
+            _memoryManager = memoryManager ?? throw new ArgumentNullException(nameof(memoryManager));
+            _keySize = keySize;
+            _commonKeySize = commonKeySize;
+            _keyExchangeTaskCompletionSource = new TaskCompletionSource<object>();
+        }
+    
+        public void Dispose()
+        {
+            _rsaCryptoServiceProvider?.Dispose();
+        }
+    
+        ArraySegment<byte> SerializeRsaParameters(RSAParameters parameters)
+        {
+            using (var stream = _memoryManager.GetStream(Guid.NewGuid()))
+            {
+                using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, true))
+                {
+                    // VarIntBitConverterNet.WriteVarintBytes(writer, parameters.Q.Length);
+                    // writer.Write(parameters.Q);
+                    // VarIntBitConverterNet.WriteVarintBytes(writer, parameters.D.Length);
+                    // writer.Write(parameters.D);
+                    // VarIntBitConverterNet.WriteVarintBytes(writer, parameters.P.Length);
+                    // writer.Write(parameters.P);
+                    // VarIntBitConverterNet.WriteVarintBytes(writer, parameters.DP.Length);
+                    // writer.Write(parameters.DP);
+                    VarIntBitConverterNet.WriteVarintBytes(writer, parameters.Exponent.Length);
+                    writer.Write(parameters.Exponent);
+                    VarIntBitConverterNet.WriteVarintBytes(writer, parameters.Modulus.Length);
+                    writer.Write(parameters.Modulus);
+                    // VarIntBitConverterNet.WriteVarintBytes(writer, parameters.DQ.Length);
+                    // writer.Write(parameters.DQ);
+                    // VarIntBitConverterNet.WriteVarintBytes(writer, parameters.InverseQ.Length);
+                    // writer.Write(parameters.InverseQ);
+                    
+                    stream.Position = 0;
+                    return new ArraySegment<byte>(stream.GetBuffer(), 0, (int)stream.Length);
+                }
+            }
+        }
+    
+        RSAParameters DeserializeRsaParameters(ArraySegment<byte> data)
+        {
+            RSAParameters result = new RSAParameters();
+            using (var stream = _memoryManager.GetStream(data.Count, Guid.NewGuid()))
+            {
+                stream.Write(data);
+                stream.Position = 0;
+                using (var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, true))
+                {
+                    // int qLen = VarIntBitConverterNet.ToInt32(reader);
+                    // result.Q = reader.ReadBytes(qLen);
+                    // int dLen = VarIntBitConverterNet.ToInt32(reader);
+                    // result.D = reader.ReadBytes(dLen);
+                    // int pLen = VarIntBitConverterNet.ToInt32(reader);
+                    // result.P = reader.ReadBytes(pLen);
+                    // int dpLen = VarIntBitConverterNet.ToInt32(reader);
+                    // result.DP = reader.ReadBytes(dpLen);
+                    int expLen = VarIntBitConverterNet.ToInt32(reader);
+                    result.Exponent = reader.ReadBytes(expLen);
+                    int modLen = VarIntBitConverterNet.ToInt32(reader);
+                    result.Modulus = reader.ReadBytes(modLen);
+                    // int DqLen = VarIntBitConverterNet.ToInt32(reader);
+                    // result.DQ = reader.ReadBytes(DqLen);
+                    // int iqLen = VarIntBitConverterNet.ToInt32(reader);
+                    // result.InverseQ = reader.ReadBytes(iqLen);
+
+                    return result;
+                }
+            }
+        }
+        
+        public ArraySegment<byte> GenerateClientKeyData()
+        {
+            if (Status != KeyExchangeStatus.Initial || _rsaCryptoServiceProvider != null)
+                throw new InvalidOperationException($"Wrong status {Status}, expected {KeyExchangeStatus.Initial}");
+            _rsaCryptoServiceProvider = new RSACryptoServiceProvider(_keySize);
+            var result = SerializeRsaParameters(_rsaCryptoServiceProvider.ExportParameters(false));
+            Status = KeyExchangeStatus.ClientKeyDataGenerated;
+            return result;
+        }
+
+        public ArraySegment<byte> KeyDataExchange(ArraySegment<byte> keyData)
+        {
+            if (Status != KeyExchangeStatus.Initial || _rsaCryptoServiceProvider != null)
+                throw new InvalidOperationException($"Wrong status {Status}, expected {KeyExchangeStatus.Initial}");
+            _rsaCryptoServiceProvider = new RSACryptoServiceProvider(_keySize);
+            _rsaCryptoServiceProvider.ImportParameters(DeserializeRsaParameters(keyData));
+            _commonKey = new byte[_commonKeySize / 8];
+            rngCsp.GetBytes(_commonKey);
+            var result = _rsaCryptoServiceProvider.Encrypt(_commonKey, RSAEncryptionPadding.Pkcs1);
+            Status = KeyExchangeStatus.CommonKeySet;
+            _keyExchangeTaskCompletionSource.TrySetResult(null);
+            return new ArraySegment<byte>(result,0,result.Length);
+        }
+        
+
+        public void UpdateServerKeyData(ArraySegment<byte> keyData)
+        {
+            if (Status != KeyExchangeStatus.ClientKeyDataGenerated)
+                throw new InvalidOperationException(
+                    $"Wrong status {Status}, expected {KeyExchangeStatus.ClientKeyDataGenerated}");
+            byte[] keyDataBytes = new byte[keyData.Count];
+            Array.Copy(keyData.Array, keyData.Offset, keyDataBytes, 0, keyDataBytes.Length);
+            _commonKey = _rsaCryptoServiceProvider.Decrypt(keyDataBytes, RSAEncryptionPadding.Pkcs1);
+            if (_commonKey.Length*8 != _commonKeySize)
+                throw new InvalidOperationException($"Wrong key size {_commonKey.Length}, expected {_commonKeySize}");
+            Status = KeyExchangeStatus.CommonKeySet;
+            _keyExchangeTaskCompletionSource.TrySetResult(null);
+        }
+
+        public ArraySegment<byte> GetKey()
+        {
+            if (Status != KeyExchangeStatus.CommonKeySet)
+                throw new InvalidOperationException($"Wrong status {Status}, expected {KeyExchangeStatus.CommonKeySet}");
+            return new ArraySegment<byte>(_commonKey,0,_commonKey.Length);
+        }
+    }
+}

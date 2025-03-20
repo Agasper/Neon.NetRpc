@@ -85,8 +85,6 @@ namespace Neon.Networking.Udp
                 Datagram datagramFrag = Parent.CreateDatagram(mtu, channel.Descriptor);
                 datagramFrag.Type = MessageType.UserData;
                 datagramFrag.SetFragmentation(new Datagram.FragmentInfo(groupId, frame, frames));
-                datagramFrag.Compressed = message.Compressed;
-                datagramFrag.Encrypted = message.Encrypted;
 
                 int toCopy = mtu - Datagram.GetHeaderSize(true);
                 if (toCopy > message.Length - message.Position) toCopy = message.Length - message.Position;
