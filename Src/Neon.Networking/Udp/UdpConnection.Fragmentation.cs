@@ -55,8 +55,8 @@ namespace Neon.Networking.Udp
                     $"#{Id} fragment {datagram.FragmentationInfo.FragmentationGroupId} completed, merging...");
                 if (_fragments.TryRemove(datagram.FragmentationInfo.FragmentationGroupId, out FragmentHolder removed))
                 {
-                    UdpMessageInfo messageInfo = fragmentHolder.Merge(Parent);
-                    ReleaseMessage(messageInfo);
+                    UdpMessage message = fragmentHolder.Merge(Parent);
+                    ReleaseMessage(message);
                     fragmentHolder.Dispose();
                 }
             }

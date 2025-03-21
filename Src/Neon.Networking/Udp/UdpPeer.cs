@@ -200,11 +200,11 @@ namespace Neon.Networking.Udp
         }
 
         internal Datagram ConvertMessageToDatagram(MessageType messageType, ChannelDescriptor channelDescriptor,
-            UdpMessageInfo messageInfo)
+            UdpMessage message)
         {
-            Datagram datagram = ConvertMessageToDatagram(messageType, channelDescriptor, messageInfo.Message);
-            datagram.Channel = messageInfo.Channel;
-            datagram.DeliveryType = messageInfo.DeliveryType;
+            Datagram datagram = ConvertMessageToDatagram(messageType, channelDescriptor, message.Message);
+            datagram.Channel = message.Channel;
+            datagram.DeliveryType = message.DeliveryType;
             return datagram;
         }
 
@@ -233,10 +233,10 @@ namespace Neon.Networking.Udp
             return datagram;
         }
 
-        internal UdpMessageInfo ConvertDatagramToUdpRawMessage(Datagram datagram)
+        internal UdpMessage ConvertDatagramToUdpRawMessage(Datagram datagram)
         {
             RawMessage message = ConvertDatagramToRawMessage(datagram);
-            return new UdpMessageInfo(message, datagram.DeliveryType, datagram.Channel);
+            return new UdpMessage(message, datagram.DeliveryType, datagram.Channel);
         }
 
         internal RawMessage ConvertDatagramToRawMessage(Datagram datagram)

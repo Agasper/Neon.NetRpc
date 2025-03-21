@@ -43,7 +43,7 @@ namespace Neon.Networking.Udp.Messages
                 throw new ObjectDisposedException(nameof(FragmentHolder));
         }
 
-        public UdpMessageInfo Merge(UdpPeer peer)
+        public UdpMessage Merge(UdpPeer peer)
         {
             CheckDisposed();
             if (!IsCompleted)
@@ -61,7 +61,7 @@ namespace Neon.Networking.Udp.Messages
 
             Datagram head = _datagrams[0];
 
-            RawMessage message = peer.CreateMessage(payloadSize, head.Compressed, head.Encrypted);
+            RawMessage message = peer.CreateMessage(payloadSize);
 
             for (var i = 0; i < _datagrams.Length; i++)
             {
@@ -73,7 +73,7 @@ namespace Neon.Networking.Udp.Messages
                 }
             }
 
-            return new UdpMessageInfo(message, head.DeliveryType, head.Channel);
+            return new UdpMessage(message, head.DeliveryType, head.Channel);
         }
 
         public bool SetFrame(Datagram datagram)

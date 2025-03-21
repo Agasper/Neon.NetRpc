@@ -216,7 +216,7 @@ namespace Neon.Networking.Udp
             _connectionCancellationToken.Dispose();
         }
 
-        protected virtual void OnMessageReceived(UdpMessageInfo udpMessageInfo)
+        protected virtual void OnMessageReceived(UdpMessage udpMessage)
         {
         }
 
@@ -237,13 +237,13 @@ namespace Neon.Networking.Udp
             _connectionTimeoutDeadline = DateTime.UtcNow.AddMilliseconds(Parent.Configuration.ConnectionTimeout);
         }
 
-        void ReleaseMessage(UdpMessageInfo messageInfo)
+        void ReleaseMessage(UdpMessage message)
         {
-            _logger.Debug($"#{Id} released message {messageInfo}");
-            messageInfo.Message.Position = 0;
+            _logger.Debug($"#{Id} released message {message}");
+            message.Message.Position = 0;
             Parent.Configuration.SynchronizeSafe(_logger, $"{nameof(UdpConnection)}.{nameof(OnMessageReceived)}",
-                state => OnMessageReceived(state as UdpMessageInfo),
-                messageInfo);
+                state => OnMessageReceived(state as UdpMessage),
+                message);
         }
 
         internal void Init(UdpNetEndpoint udpNetEndpoint, bool isClientConnection)
@@ -455,22 +455,22 @@ namespace Neon.Networking.Udp
         /// <summary>
         ///     Sends the message
         /// </summary>
-        /// <param name="udpMessageInfo">A message</param>
+        /// <param name="udpMessage">A message</param>
         /// <exception cref="IOException">If connection not in the Connected state</exception>
         /// <exception cref="ArgumentException">If the message too big to be send with this channel</exception>
-        public async Task SendMessageAsync(UdpMessageInfo udpMessageInfo, CancellationToken cancellationToken)
+        public async Task SendMessageAsync(UdpMessage udpMessage, CancellationToken cancellationToken)
         {
             if (_status != UdpConnectionStatus.Connected)
                 throw new IOException("Connection not established");
 
-            var descriptor = new ChannelDescriptor(udpMessageInfo.Channel, udpMessageInfo.DeliveryType);
+            var descriptor = new ChannelDescriptor(udpMessage.Channel, udpMessage.DeliveryType);
             IChannel channel_ = GetOrAddChannel(descriptor);
 
-            if (!CheckCanBeSendUnfragmented(udpMessageInfo.Message))
+            if (!CheckCanBeSendUnfragmented(udpMessage.Message))
             {
                 //need split
-                if (udpMessageInfo.DeliveryType == DeliveryType.Unreliable ||
-                    udpMessageInfo.DeliveryType == DeliveryType.UnreliableSequenced)
+                if (udpMessage.DeliveryType == DeliveryType.Unreliable ||
+                    udpMessage.DeliveryType == DeliveryType.UnreliableSequenced)
                 {
                     if (Parent.Configuration.TooLargeUnreliableMessageBehaviour ==
                         UdpConfigurationPeer.TooLargeMessageBehaviour.RaiseException)
@@ -479,15 +479,15 @@ namespace Neon.Networking.Udp
                     return;
                 }
 
-                await SendFragmentedMessage(udpMessageInfo.Message, channel_, cancellationToken);
+                await SendFragmentedMessage(udpMessage.Message, channel_, cancellationToken);
                 return;
             }
 
             Datagram datagram =
-                Parent.ConvertMessageToDatagram(MessageType.UserData, channel_.Descriptor, udpMessageInfo);
+                Parent.ConvertMessageToDatagram(MessageType.UserData, channel_.Descriptor, udpMessage);
             await channel_.SendDatagramAsync(datagram, cancellationToken);
-            _logger.Debug($"#{Id} sent {udpMessageInfo}");
-            udpMessageInfo.Message.Dispose();
+            _logger.Debug($"#{Id} sent {udpMessage}");
+            udpMessage.Message.Dispose();
         }
 
         public override string ToString()

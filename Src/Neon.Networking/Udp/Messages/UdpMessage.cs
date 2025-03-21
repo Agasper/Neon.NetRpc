@@ -3,13 +3,13 @@ using Neon.Networking.Messages;
 
 namespace Neon.Networking.Udp.Messages
 {
-    public class UdpMessageInfo : IDisposable
+    public class UdpMessage : IDisposable
     {
         public IRawMessage Message { get; }
         public DeliveryType DeliveryType { get; }
         public int Channel { get; }
 
-        public UdpMessageInfo(IRawMessage message, DeliveryType deliveryType, int channel)
+        public UdpMessage(IRawMessage message, DeliveryType deliveryType, int channel)
         {
             if (message == null)
                 throw new ArgumentNullException(nameof(message));
@@ -26,7 +26,7 @@ namespace Neon.Networking.Udp.Messages
 
         public override string ToString()
         {
-            return $"{nameof(UdpMessageInfo)}[msg={Message},delivery={DeliveryType},channel={Channel}]";
+            return $"{nameof(UdpMessage)}[msg={Message},delivery={DeliveryType},channel={Channel}]";
         }
     }
 }
