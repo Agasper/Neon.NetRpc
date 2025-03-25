@@ -190,15 +190,9 @@ namespace Neon.Networking.Tcp
             _lastKeepAliveSent = DateTime.UtcNow;
             CreateCryptography();
             _logger.Info($"#{Id} initialized");
-
-            InitVirtual();
+            
             Parent.OnConnectionOpenedInternal(this);
         }
-
-        protected virtual void InitVirtual()
-        {
-        }
-
         /// <summary>
         ///     Returns the memory used by this connection
         /// </summary>

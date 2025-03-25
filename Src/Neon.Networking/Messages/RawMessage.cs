@@ -34,7 +34,9 @@ namespace Neon.Networking.Messages
         internal MessageFlagsEnum UnrapMessage(MessageFlagsEnum flags, ICipher cipher, out RawMessage finalMessage)
         {
             if (flags.HasFlag(MessageFlagsEnum.Encrypted) && cipher == null)
-                throw new ArgumentException("Cipher not provided, but encrypted flag is set");
+                throw new InvalidOperationException("Other side sent encrypted message, but we have disabled encryption");
+            if (!flags.HasFlag(MessageFlagsEnum.Encrypted) && cipher != null)
+                throw new InvalidOperationException("We require encryption, but other side sent plain message");
             
             var newFlags = flags;
             finalMessage = this;
