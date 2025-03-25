@@ -7,12 +7,11 @@ namespace Neon.Networking.Cryptography.KeyExchange
     {
         KeyExchangeStatus Status { get; }
         int KeySize { get; }
-        Task KeyExchangeCompleted { get; }
         
         ArraySegment<byte> GenerateClientKeyData();
         ArraySegment<byte> KeyDataExchange(ArraySegment<byte> keyData);
         void UpdateServerKeyData(ArraySegment<byte> keyData);
         
-        ArraySegment<byte> GetKey();
+        byte[] GetKey();
     }
 }

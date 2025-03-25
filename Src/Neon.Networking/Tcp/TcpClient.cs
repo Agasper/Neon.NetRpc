@@ -141,7 +141,7 @@ namespace Neon.Networking.Tcp
                 if (!connection.Connected)
                     throw new InvalidOperationException("Connection reset");
 
-                await connection.OnConnected(cancellationToken);
+                await connection.EncryptionHandshake(cancellationToken);
 
                 if (!ChangeStatus(TcpClientStatus.Connected, s => s == TcpClientStatus.Connecting, out oldStatus))
                     throw new InvalidOperationException("Connection reset");

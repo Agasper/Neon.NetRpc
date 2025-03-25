@@ -13,13 +13,11 @@ namespace Neon.Networking.Cryptography.KeyExchange
     {
         public KeyExchangeStatus Status { get; private set; }
         public int KeySize => _keySize;
-        public Task KeyExchangeCompleted => _keyExchangeTaskCompletionSource.Task;
         
         static RNGCryptoServiceProvider rngCsp = new RNGCryptoServiceProvider();
         
         RSACryptoServiceProvider _rsaCryptoServiceProvider;
         readonly IMemoryManager _memoryManager;
-        readonly TaskCompletionSource<object> _keyExchangeTaskCompletionSource;
 
         int _keySize;
         int _commonKeySize;
@@ -30,7 +28,6 @@ namespace Neon.Networking.Cryptography.KeyExchange
             _memoryManager = memoryManager ?? throw new ArgumentNullException(nameof(memoryManager));
             _keySize = keySize;
             _commonKeySize = commonKeySize;
-            _keyExchangeTaskCompletionSource = new TaskCompletionSource<object>();
         }
     
         public void Dispose()
@@ -118,7 +115,6 @@ namespace Neon.Networking.Cryptography.KeyExchange
             rngCsp.GetBytes(_commonKey);
             var result = _rsaCryptoServiceProvider.Encrypt(_commonKey, RSAEncryptionPadding.Pkcs1);
             Status = KeyExchangeStatus.CommonKeySet;
-            _keyExchangeTaskCompletionSource.TrySetResult(null);
             return new ArraySegment<byte>(result,0,result.Length);
         }
         
@@ -134,14 +130,13 @@ namespace Neon.Networking.Cryptography.KeyExchange
             if (_commonKey.Length*8 != _commonKeySize)
                 throw new InvalidOperationException($"Wrong key size {_commonKey.Length}, expected {_commonKeySize}");
             Status = KeyExchangeStatus.CommonKeySet;
-            _keyExchangeTaskCompletionSource.TrySetResult(null);
         }
 
-        public ArraySegment<byte> GetKey()
+        public byte[] GetKey()
         {
             if (Status != KeyExchangeStatus.CommonKeySet)
                 throw new InvalidOperationException($"Wrong status {Status}, expected {KeyExchangeStatus.CommonKeySet}");
-            return new ArraySegment<byte>(_commonKey,0,_commonKey.Length);
+            return _commonKey;
         }
     }
 }

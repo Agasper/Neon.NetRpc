@@ -1,16 +1,20 @@
 ﻿using System;
 using System.IO;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
 using Neon.Util.Io;
 
 namespace Neon.Networking.Cryptography.Ciphers
 {
     public abstract class AesBaseRpcCipher : IRpcCipher
     {
+        public bool IsKeySet => _keyInitialized;
         public int KeySize => _cipher.KeySize;
+        public Task KeySetTask => _keySetTask.Task;
         
         protected Aes _cipher;
         protected bool _keyInitialized;
+        protected TaskCompletionSource<object> _keySetTask;
 
         public AesBaseRpcCipher()
         {
@@ -18,6 +22,7 @@ namespace Neon.Networking.Cryptography.Ciphers
             _cipher.BlockSize = 128;
             _cipher.Padding = PaddingMode.ISO10126;
             _cipher.Mode = CipherMode.CBC;
+            _keySetTask = new TaskCompletionSource<object>();
         }
 
         public void SetKey(byte[] key)
@@ -54,6 +59,7 @@ namespace Neon.Networking.Cryptography.Ciphers
             _cipher.Key = key;
             _cipher.IV = iv;
             _keyInitialized = true;
+            _keySetTask.TrySetResult(null);
         }
 
         public void Encrypt(Stream source, Stream destination, byte[] buffer)

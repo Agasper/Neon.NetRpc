@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO.Compression;
 using System.Text;
 using ICSharpCode.SharpZipLib.GZip;
 using Neon.Util.Pooling;
@@ -8,6 +7,57 @@ namespace Neon.Networking.Messages
 {
     public class RawMessage : BaseRawMessage, IRawMessage
     {
+        internal MessageFlagsEnum WrapMessage(int compressionThreshold, int compressionLevel, ICipher cipher,
+            out RawMessage finalMessage)
+        {
+            finalMessage = this;
+            MessageFlagsEnum flags = MessageFlagsEnum.None;
+            
+            if (finalMessage.Length > compressionThreshold)
+            {
+                flags |= MessageFlagsEnum.Compressed;
+                finalMessage = finalMessage.Compress(compressionLevel);
+            }
+
+            if (cipher != null)
+            {
+                flags |= MessageFlagsEnum.Encrypted;
+                var oldMessage = finalMessage;
+                finalMessage = finalMessage.Encrypt(cipher);
+                if (oldMessage.Guid != this.Guid)
+                    oldMessage.Dispose();
+            }
+
+            return flags;
+        }
+        
+        internal MessageFlagsEnum UnrapMessage(MessageFlagsEnum flags, ICipher cipher, out RawMessage finalMessage)
+        {
+            if (flags.HasFlag(MessageFlagsEnum.Encrypted) && cipher == null)
+                throw new ArgumentException("Cipher not provided, but encrypted flag is set");
+            
+            var newFlags = flags;
+            finalMessage = this;
+            
+            if (newFlags.HasFlag(MessageFlagsEnum.Encrypted))
+            {
+                newFlags &= ~MessageFlagsEnum.Encrypted;
+                finalMessage = finalMessage.Decrypt(cipher);
+            }
+            
+            if (newFlags.HasFlag(MessageFlagsEnum.Compressed))
+            {
+                newFlags &= ~MessageFlagsEnum.Compressed;
+                var oldMessage = finalMessage;
+                finalMessage = finalMessage.Decompress();
+                if (oldMessage.Guid != this.Guid)
+                    oldMessage.Dispose();
+            }
+
+            return newFlags;
+        }
+
+
         internal RawMessage Compress(int level)
         {
             CheckDisposed();

@@ -1,9 +1,11 @@
 ﻿using System.Buffers;
 using System.Net;
+using System.Text;
 using Microsoft.IO;
 using Neon.Logging;
 using Neon.Logging.Handlers;
 using Neon.Networking;
+using Neon.Networking.Cryptography;
 using Neon.Networking.Tcp;
 using Neon.Networking.Tcp.Events;
 using Neon.Test.Util;
@@ -14,23 +16,86 @@ namespace Neon.Test.Tcp
 
     static class Program
     {
-        static SingleThreadSynchronizationContext? context;
-        static ILogger? logger;
-        
+        static SingleThreadSynchronizationContext? _context;
+        static MemoryManager? _memoryManager;
+        static ILogger? _logger;
+
+        static LogManager CreateLogManager(string name)
+        {
+            LogManager logManager = new LogManager();
+            logManager.Handlers.Add(new LoggingHandlerConsole(new NamedLoggingFormatter(name)));
+            return logManager;
+        }
+
+        static MyTcpServer CreteTcpServer(bool encrypted)
+        {
+            //Creating a server configuration
+            TcpConfigurationServer configurationServer = new TcpConfigurationServer();
+            configurationServer.MemoryManager = _memoryManager; //Setting our memory manager
+            configurationServer.LogManager = CreateLogManager("SERVER"); //Setting our log manager
+            configurationServer.ContextSynchronizationMode = ContextSynchronizationMode.Post; //Changing synchronization mode to post,
+            //to reduce network thread sleep time
+            configurationServer.SetSynchronizationContext(_context); //Setting out synchronization context
+            configurationServer.KeepAliveInterval = 1000; //Settings keep alive
+            configurationServer.KeepAliveTimeout = 10000;//Settings keep alive
+            configurationServer.KeepAliveEnabled = false;//Settings keep alive
+            configurationServer.CompressionThreshold = 1024;
+            configurationServer.CompressionLevel = 6;
+            if (encrypted)
+                configurationServer.CryptographyConfiguration =
+                    new CryptographyConfiguration(EncryptionAlgorithmEnum.Aes256, KeyExchangeAlgorithmEnum.Rsa2048);
+            
+            //Creating server
+            MyTcpServer server = new MyTcpServer(configurationServer);
+            server.OnConnectionClosedEvent += ServerOnConnectionClosedEvent;
+            server.OnConnectionOpenedEvent += ServerOnConnectionOpenedEvent;
+
+            return server;
+        }
+
+        static MyTcpClient CreteUnencryptedTcpClient(bool encrypted)
+        {
+            //Creating client configuration
+            TcpConfigurationClient configurationClient = new TcpConfigurationClient();
+            configurationClient.MemoryManager = _memoryManager; //Setting our memory manager
+            configurationClient.LogManager = CreateLogManager("CLIENT"); //Setting our log manager
+            configurationClient.ContextSynchronizationMode = ContextSynchronizationMode.Post; //Changing synchronization mode to post,
+            //to reduce network thread sleep time
+            configurationClient.SetSynchronizationContext(_context); //Setting out synchronization context
+            configurationClient.KeepAliveEnabled = false;
+            configurationClient.KeepAliveTimeout = 10000;//Settings keep alive
+            configurationClient.KeepAliveInterval = 1000;
+            configurationClient.ConnectTimeout = 50;
+            configurationClient.CompressionThreshold = 1024;
+            configurationClient.CompressionLevel = 6;
+            if (encrypted)
+                configurationClient.CryptographyConfiguration =
+                    new CryptographyConfiguration(EncryptionAlgorithmEnum.Aes256, KeyExchangeAlgorithmEnum.Rsa2048);
+            // configurationClient.ConnectionSimulation = new ConnectionSimulation(2000, 1000);
+
+            //Creating client
+            MyTcpClient client = new MyTcpClient(configurationClient);
+            client.OnConnectionClosedEvent += ClientOnConnectionClosedEvent;
+            client.OnConnectionOpenedEvent += ClientOnConnectionOpenedEvent;
+            client.OnClientStatusChangedEvent += ClientOnStatusChangedEvent;
+
+            return client;
+        }
+
         public static async Task Main(string[] args)
         {
             //Creating log managers
             LogManager logManagerMain = new LogManager();
             logManagerMain.Handlers.Add(new LoggingHandlerConsole(new NamedLoggingFormatter("MAIN")));
-            LogManager logManagerServer = new LogManager();
-            logManagerServer.Handlers.Add(new LoggingHandlerConsole(new NamedLoggingFormatter("SERVER")));
-            LogManager logManagerClient = new LogManager();
-            logManagerClient.Handlers.Add(new LoggingHandlerConsole(new NamedLoggingFormatter("CLIENT")));
             
-
             //Getting the main logger
-            logger = logManagerMain.GetLogger(nameof(Program));
-
+            _logger = logManagerMain.GetLogger(nameof(Program));
+            
+            //Creating a new synchronization context for debug purposes
+            _context = new SingleThreadSynchronizationContext(logManagerMain);
+            _context.OnException += ContextOnException;
+            _context.Start();
+            
             //Creating custom RecyclableMemoryStreamManager, to catch all undisposed streams
             //Only for debug purposes
             var streamManager = new RecyclableMemoryStreamManager(1024, 1024, 1024 * 1024, true);
@@ -40,76 +105,62 @@ namespace Neon.Test.Tcp
             streamManager.StreamDoubleDisposed += StreamManagerOnStreamDoubleDisposed;
             
             //Creating a new memory manager for debug purposes
-            MemoryManager memoryManager = new MemoryManager(ArrayPool<byte>.Shared, streamManager);
+            _memoryManager = new MemoryManager(ArrayPool<byte>.Shared, streamManager);
 
-            //Creating a new synchronization context for debug purposes
-            context = new SingleThreadSynchronizationContext(logManagerServer);
-            context.OnException += ContextOnException;
-            context.Start();
-
-            //Creating a server configuration
-            TcpConfigurationServer configurationServer = new TcpConfigurationServer();
-            configurationServer.MemoryManager = memoryManager; //Setting our memory manager
-            configurationServer.LogManager = logManagerServer; //Setting our log manager
-            configurationServer.ContextSynchronizationMode = ContextSynchronizationMode.Post; //Changing synchronization mode to post,
-                                                                                              //to reduce network thread sleep time
-            configurationServer.SetSynchronizationContext(context); //Setting out synchronization context
-            configurationServer.KeepAliveInterval = 1000; //Settings keep alive
-            configurationServer.KeepAliveTimeout = 10000;//Settings keep alive
-            configurationServer.KeepAliveEnabled = true;//Settings keep alive
+            // await Test(false);
+            await Test(true);
             
-            //Creating server
-            MyTcpServer server = new MyTcpServer(configurationServer);
-            server.OnConnectionClosedEvent += ServerOnConnectionClosedEvent;
-            server.OnConnectionOpenedEvent += ServerOnConnectionOpenedEvent;
+            _context.Stop();
+            _logger.Info("DONE!");
+        }
+
+        static async Task Test(bool encrypted)
+        {
+            var unencryptedTcpServer = CreteTcpServer(encrypted);
             //Starting server
-            server.Start();
+            unencryptedTcpServer.Start();
             //Starting listening on ipv6
-            server.Listen(new IPEndPoint(IPAddress.IPv6Loopback, 10000));
+            unencryptedTcpServer.Listen(new IPEndPoint(IPAddress.IPv6Loopback, 10000));
 
-            //Creating client configuration
-            TcpConfigurationClient configurationClient = new TcpConfigurationClient();
-            configurationClient.MemoryManager = memoryManager; //Setting our memory manager
-            configurationClient.LogManager = logManagerClient; //Setting our log manager
-            configurationClient.ContextSynchronizationMode = ContextSynchronizationMode.Post; //Changing synchronization mode to post,
-                                                                                            //to reduce network thread sleep time
-            configurationClient.SetSynchronizationContext(context); //Setting out synchronization context
-            configurationClient.KeepAliveInterval = 1000;
-            configurationClient.ConnectTimeout = 50;
-            // configurationClient.ConnectionSimulation = new ConnectionSimulation(2000, 1000);
-
-            //Creating client
-            MyTcpClient client = new MyTcpClient(configurationClient);
-            client.OnConnectionClosedEvent += ClientOnConnectionClosedEvent;
-            client.OnConnectionOpenedEvent += ClientOnConnectionOpenedEvent;
-            client.OnClientStatusChangedEvent += ClientOnStatusChangedEvent;
+            var unencryptedTcpClient = CreteUnencryptedTcpClient(encrypted);
             //Starting the client
-            client.Start();
+            unencryptedTcpClient.Start();
 
             //Connecting to the server, preferring ipv6 address
-            await client.ConnectAsync("localhost", 10000, IPAddressSelectionRules.PreferIpv6, CancellationToken.None);
+            await unencryptedTcpClient.ConnectAsync("localhost", 10000, IPAddressSelectionRules.PreferIpv6, CancellationToken.None);
 
-            //Sending a chat message
-            await (client.Connection as MyTcpConnection)?.SendChatMessage("Client", "Hello")!;
+            var clientConnection = (unencryptedTcpClient.Connection as MyTcpConnection)!;
+            var serverConnection = (unencryptedTcpServer.Connections.First().Value as MyTcpConnection)!;
 
-            //Waiting
-            await Task.Delay(1000);
+            //Sending a uncompressed chat message
+            await clientConnection.SendBytes(byte.MaxValue);
+            
+            //Sending a compressed chat message
+            await clientConnection.SendBytes(ushort.MaxValue);
+
+            using (CancellationTokenSource cts = new CancellationTokenSource(5000))
+            {
+                while (serverConnection.RecvBytes < ushort.MaxValue + byte.MaxValue)
+                {
+                    await Task.Delay(500, cts.Token);
+                }
+            }
+            
+            if (serverConnection.CrcReceivedMessages() != clientConnection.CrcSentMessages())
+                throw new Exception("CRC mismatch");
 
             //Disconnecting
-            client.Disconnect();
+            unencryptedTcpClient.Disconnect();
 
             //Shutting down everything
-            client.Shutdown();
-            server.Shutdown();
-            context.Stop();
-            
-            logger.Info("DONE!");
+            unencryptedTcpClient.Shutdown();
+            unencryptedTcpServer.Shutdown();
         }
         
         static void ContextOnException(Exception ex)
         {
             //If we got exception in context - we failed
-            logger?.Critical($"Unhandled exception in context: {ex}");
+            _logger?.Critical($"Unhandled exception in context: {ex}");
             Aborter.Abort(127);
         }
 
@@ -129,31 +180,31 @@ namespace Neon.Test.Tcp
         static void ClientOnStatusChangedEvent(ClientStatusChangedEventArgs args)
         {
             //Checking right thread
-            context?.CheckThread();
+            _context?.CheckThread();
         }
 
         static void ClientOnConnectionOpenedEvent(ConnectionOpenedEventArgs args)
         {
             //Checking right thread
-            context?.CheckThread();
+            _context?.CheckThread();
         }
 
         static void ClientOnConnectionClosedEvent(ConnectionClosedEventArgs args)
         {
             //Checking right thread
-            context?.CheckThread();
+            _context?.CheckThread();
         }
 
         static void ServerOnConnectionOpenedEvent(ConnectionOpenedEventArgs args)
         {
             //Checking right thread
-            context?.CheckThread();
+            _context?.CheckThread();
         }
 
         static void ServerOnConnectionClosedEvent(ConnectionClosedEventArgs args)
         {
             //Checking right thread
-            context?.CheckThread();
+            _context?.CheckThread();
         }
     }
 }

@@ -4,7 +4,7 @@ using Neon.Logging;
 
 namespace Neon.Networking
 {
-    public static class ContextSynchronizationHelper
+    static class ContextSynchronizationHelper
     {
         /// <summary>
         ///     Executes a method in the designated context and log any exception occured

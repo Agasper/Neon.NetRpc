@@ -212,6 +212,8 @@ namespace Neon.Networking.Tcp
             }
             catch (Exception ex)
             {
+                if (ex is SocketException se && se.ErrorCode == 89)
+                    return;
                 _logger.Error($"{nameof(TcpServer)} encountered exception on accepting thread: {ex}");
             }
         }

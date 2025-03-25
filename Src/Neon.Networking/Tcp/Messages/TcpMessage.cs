@@ -10,13 +10,15 @@ namespace Neon.Networking.Tcp.Messages
         public MessageTypeEnum MessageType { get; set; }
         public RawMessage RawMessage { get; }
         public CancellationToken CancellationToken { get; }
+        public bool DisposeAfterSend { get; }
 
-        public TcpMessage(MessageFlagsEnum flags, MessageTypeEnum type, RawMessage rawMessage, CancellationToken cancellationToken)
+        public TcpMessage(MessageFlagsEnum flags, MessageTypeEnum type, RawMessage rawMessage, CancellationToken cancellationToken, bool disposeAfterSend)
         {
             Flags = flags;
             MessageType = type;
             RawMessage = rawMessage;
             CancellationToken = cancellationToken;
+            DisposeAfterSend = disposeAfterSend;
         }
 
         public void Dispose()

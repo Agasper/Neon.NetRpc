@@ -45,8 +45,8 @@ namespace Neon.Networking.Tcp.Messages
         {
             if (!_flagsRead)
             {
-                header.Flags = (MessageFlagsEnum) ((value >> 2) & 0b0000_0011);
-                header.MessageType = (MessageTypeEnum) (value & 0b0000_0011);
+                header.Flags = (MessageFlagsEnum) ((value >> 4) & 0b0000_0011);
+                header.MessageType = (MessageTypeEnum) (value & 0b0000_1111);
                 _flagsRead = true;
                 return false;
             }
@@ -94,7 +94,7 @@ namespace Neon.Networking.Tcp.Messages
                 headerPos++;
             } while (value != 0);
 
-            rawHeader[0] = (byte) (((int) header.Flags << 2) | (int) header.MessageType);
+            rawHeader[0] = (byte) (((int) header.Flags << 4) | (int) header.MessageType);
 
             return new ArraySegment<byte>(rawHeader, 0, headerPos);
         }
