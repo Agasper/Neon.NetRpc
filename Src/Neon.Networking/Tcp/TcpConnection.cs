@@ -498,7 +498,7 @@ namespace Neon.Networking.Tcp
             {
                 if (_keyExchange == null)
                     throw new InvalidOperationException(
-                        "Client requests encrypted connection, but our encryption is disabled");
+                        "Other side sent encryption handshake, but our encryption is disabled");
 
                 var keyData = message.RawMessage.ReadBytes(message.RawMessage.Length);
                 var serverKeyData = _keyExchange.KeyDataExchange(new ArraySegment<byte>(keyData, 0, keyData.Length));
@@ -527,6 +527,12 @@ namespace Neon.Networking.Tcp
                 _logger.Debug("Common key set");
                 return;
             }
+
+            if (message.Flags.HasFlag(MessageFlagsEnum.Encrypted) &&
+                _keyExchange != null &&
+                _keyExchange.Status != KeyExchangeStatus.CommonKeySet)
+                throw new InvalidOperationException(
+                    "We required an encrypted connection, but other side haven't done encryption handshake and sent plain message");
 
             ICipher cipher = _cipher != null && _cipher.IsKeySet ? _cipher : null;
             var newFlags = message.RawMessage.UnrapMessage(message.Flags, cipher, out var finalMessage);
